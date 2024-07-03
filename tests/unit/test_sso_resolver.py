@@ -19,7 +19,8 @@ MANIFEST_SCHEMA_DEFINITION_FILEPATH = os.path.join(
 def test_create_rbac_assignments(setup_aws_environment: pytest.fixture) -> None:
 
     # Arrange
-    manifest_definition_filepath = os.path.join(CWD, "..", "configs", "manifests", "missing_rules.yaml")
+    manifest_definition_filepath = os.path.join(CWD, "..", "configs", "manifests", "multiple_rules_valid.yaml")
     aws_sso_resolver = AwsResolver(MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath)
 
-    # 
+    # Act
+    aws_sso_resolver.create_rbac_assignments()

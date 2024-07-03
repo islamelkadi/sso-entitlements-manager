@@ -26,7 +26,7 @@ class AwsResolver:
         self._is_valid_manifest_file()
 
         # Instantiate class instances
-        self._create_excluded_ou_account_map()
+        self._create_excluded_ou_account_name_list()
         self._aws_organizations = AwsOrganizations(self._root_ou_id, self._excluded_ou_name_list, self._excluded_account_name_list)
         self._aws_identitycenter = AwsIdentityCentre(self._identity_store_id, self._identity_store_arn)
 
@@ -44,7 +44,7 @@ class AwsResolver:
         except jsonschema.ValidationError as e:
             raise jsonschema.ValidationError(f"Validation error: {e.message}")
 
-    def _create_excluded_ou_account_map(self) -> None:
+    def _create_excluded_ou_account_name_list(self) -> None:
         for item in self._manifest_definition.get("ignore", []):
             target_list = self._excluded_ou_name_list if item["target_type"] == "OU" else self._excluded_account_name_list
             target_list.extend(item["target_names"])
@@ -54,6 +54,13 @@ class AwsResolver:
         sso_groups = self._aws_identitycenter.sso_groups
         permission_sets = self._aws_identitycenter.permission_sets
 
-        for rule in self._manifest_definition:
+        ignore_rules = self._manifest_definition.get("ignore", [])
+        rbac_rules = self._manifest_definition.get("rules", [])
+
+        print("IGNORE RULES")
+        for rule in ignore_rules:
             print(rule)
-        
+
+        print("RBAC RULES")
+        for rule in rbac_rules:
+            print(rule)

@@ -1,0 +1,20 @@
+ignore:
+  - target_type: OU
+    target_names:
+      - dev
+      - test
+rules:
+  - target_type: OU
+    target_names:
+      - ou_1
+    access_type: RBAC
+    permission_set_name: Admin
+    principal_name: group_1
+    principal_type: GROUP
+  - target_type: OU
+    target_names:
+      - ou_1
+    access_type: RBAC
+    permission_set_name: Admin
+    principal_name: user_1
+    principal_type: USER
