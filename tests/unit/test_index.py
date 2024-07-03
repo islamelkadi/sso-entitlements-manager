@@ -6,7 +6,7 @@
 # import importlib
 # import pytest
 # from aws_lambda_powertools.utilities.data_classes import EventBridgeEvent
-# from aws.app.lib.utils import generate_lambda_context
+# from app.lib.utils import generate_lambda_context
 
 
 # def test(

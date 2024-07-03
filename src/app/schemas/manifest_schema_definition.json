@@ -12,19 +12,11 @@
                     },
                     "target_names": {
                         "$ref": "#/$defs/target_names"
-                    },
-                    "nested": {
-                        "$ref": "#/$defs/nested"
                     }
                 },
                 "required": [
                     "target_type",
                     "target_names"
-                ],
-                "allOf": [
-                    {
-                        "$ref": "#/$defs/nested_dependency"
-                    }
                 ]
             }
         },
@@ -41,9 +33,6 @@
                     },
                     "target_names": {
                         "$ref": "#/$defs/target_names"
-                    },
-                    "nested": {
-                        "$ref": "#/$defs/nested"
                     },
                     "permission_set_name": {
                         "$ref": "#/$defs/permission_set_name"
@@ -65,18 +54,10 @@
                     "permission_set_name",
                     "principal_name",
                     "principal_type"
-                ],
-                "allOf": [
-                    {
-                        "$ref": "#/$defs/nested_dependency"
-                    }
                 ]
             }
         }
     },
-    "required": [
-        "rules"
-    ],
     "$defs": {
         "target_type": {
             "type": "string",
@@ -123,23 +104,6 @@
                 "implicit"
             ],
             "default": "explicit"
-        },
-        "nested_dependency": {
-            "dependencies": {
-                "nested": {
-                    "oneOf": [
-                        {
-                            "properties": {
-                                "target_type": {
-                                    "enum": [
-                                        "ou"
-                                    ]
-                                }
-                            }
-                        }
-                    ]
-                }
-            }
         }
     }
 }

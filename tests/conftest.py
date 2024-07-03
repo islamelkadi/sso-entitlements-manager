@@ -10,6 +10,12 @@ import boto3
 import pytest
 
 ################################################
+#                    Globals                   #
+################################################
+
+MONKEYPATCH = pytest.MonkeyPatch()
+
+################################################
 #               Helper functions               #
 ################################################
 
@@ -102,21 +108,19 @@ def delete_aws_ous_accounts(
 
 @pytest.fixture(scope="session", autouse=True)
 def set_aws_creds():
-    monkeypatch = pytest.MonkeyPatch()
-    monkeypatch.setenv("AWS_REGION", "us-east-1")
-    monkeypatch.setenv("AWS_SESSION_TOKEN", "test")
-    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "test")
-    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "test")
+    MONKEYPATCH.setenv("AWS_REGION", "us-east-1")
+    MONKEYPATCH.setenv("AWS_SESSION_TOKEN", "test")
+    MONKEYPATCH.setenv("AWS_ACCESS_KEY_ID", "test")
+    MONKEYPATCH.setenv("AWS_SECRET_ACCESS_KEY", "test")
     yield
 
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_env_vars():
-    monkeypatch = pytest.MonkeyPatch()
-    monkeypatch.setenv("LOG_LEVEL", "INFO")
-    monkeypatch.setenv("DDB_TABLE_NAME", "cloud_pass")
-    monkeypatch.setenv("IDENTITY_STORE_ID", "d-1234567890")
-    monkeypatch.setenv("IDENTITY_STORE_ARN", "arn:aws:sso:::instance/ssoins-instanceId")
+    MONKEYPATCH.setenv("LOG_LEVEL", "INFO")
+    MONKEYPATCH.setenv("DDB_TABLE_NAME", "cloud_pass")
+    MONKEYPATCH.setenv("IDENTITY_STORE_ID", "d-1234567890")
+    MONKEYPATCH.setenv("IDENTITY_STORE_ARN", "arn:aws:sso:::instance/ssoins-instanceId")
     yield
 
 
@@ -182,11 +186,13 @@ def setup_aws_environment(
     sso_users = aws_environment_details.get("sso_users", [])
     sso_groups = aws_environment_details.get("sso_groups", [])
 
-    # Setup AWS organizations
     root_ou_id = None
     try:
+
+        # Setup AWS organizations
         organizations_client.create_organization()
         root_ou_id = organizations_client.list_roots()["Roots"][0]["Id"]
+        
         create_aws_ous_accounts(
             organizations_client=organizations_client,
             aws_organization_definitions=aws_organizations_definitions,
@@ -216,6 +222,9 @@ def setup_aws_environment(
                 Name=permission_set["name"],
                 Description=permission_set["description"],
             )
+
+        # Set Root OU ID env var
+        MONKEYPATCH.setenv("ROOT_OU_ID", root_ou_id)
 
         yield {
             "root_ou_id": root_ou_id,

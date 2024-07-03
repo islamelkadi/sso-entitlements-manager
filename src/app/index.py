@@ -12,26 +12,15 @@ from aws_lambda_powertools.event_handler import Response, content_types
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from aws_lambda_powertools.utilities.data_classes import EventBridgeEvent, event_source
 
-# Local package & layer imports
-from .lib.aws_organizations import AwsOrganizations
-from .lib.aws_identitycentre import AwsIdentityStore
-from .lib.aws_sso_resolver import RbacResolver
+
 
 # Env vars
 LOG_LEVEL = os.getenv("LOG_LEVEL")
 TRACER_SERVICE_NAME = os.getenv("TRACER_SERVICE_NAME")
 
-ROOT_OU_ID = os.getenv("ROOT_OU_ID")
-IDENTITY_STORE_ID = os.getenv("IDENTITY_STORE_ID")
-IDENTITY_STORE_ARN = os.getenv("IDENTITY_STORE_ARN")
-
 # AWS Lambda powertool objects & class instances
 TRACER = Tracer(service=TRACER_SERVICE_NAME)
 LOGGER = Logger(service=TRACER_SERVICE_NAME, level=LOG_LEVEL)
-
-py_aws_organizations = AwsOrganizations(ROOT_OU_ID)
-py_aws_identitycenter = AwsIdentityStore(IDENTITY_STORE_ID, IDENTITY_STORE_ARN)
-py_aws_rbac_resolver = RbacResolver()
 
 
 # Lambda Routes

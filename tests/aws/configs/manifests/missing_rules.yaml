@@ -1,5 +1,0 @@
-ignore:
-  - target_type: OU
-    target_names:
-      - dev
-      - test
