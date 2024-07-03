@@ -14,11 +14,59 @@ import dataclasses
 LOGGER = logging.getLogger(__name__)
 
 
+def convert_list_to_dict(obj_list: list, key_attr: str):
+    """
+    Converts a list of dictionaries into a dictionary based on a specified attribute.
+
+    Parameters:
+    obj_list (list of dict): The list of dictionaries to convert.
+    key_attr (str): The key in each dictionary to use as the key for the resulting dictionary.
+
+    Returns:
+    dict: A dictionary where the keys are the values of the specified attribute from each dictionary in the input list,
+          and the values are the original dictionaries.
+
+    Example:
+    >>> obj_list = [
+    ...     {'DisplayName': 'user1', 'UserName': 'user1@testing.com'},
+    ...     {'DisplayName': 'user2', 'UserName': 'user2@testing.com'}
+    ... ]
+
+    >>> list_to_dict(obj_list, 'DisplayName')
+    {'user1': {'DisplayName': 'user1', 'UserName': 'user1@testing.com'},
+     'user2': {'DisplayName': 'user2', 'UserName': 'user2@testing.com'}}
+
+    """
+    return {obj[key_attr]: obj for obj in obj_list}
+
+
+def convert_specific_keys_to_lowercase(item: dict, keys_to_lowercase: list = []):
+    """
+    Recursively traverse a dictionary and convert the values of specific keys to lowercase.
+
+    :param item: Dictionary to be processed
+    :param keys_to_convert: List of keys whose values should be converted to lowercase
+    :return: Dictionary with specified string values converted to lowercase
+    """
+    def process_dict(data):
+        processed_data = {}
+        for key, value in data.items():
+            if isinstance(value, dict):
+                processed_data[key] = process_dict(value)
+            elif isinstance(value, list):
+                processed_data[key] = [process_dict(item) if isinstance(item, dict) else (item.lower() if isinstance(item, str) else item) for item in value]
+            else:
+                processed_data[key] = value.lower() if (key in keys_to_lowercase and isinstance(value, str)) else value
+        return processed_data
+    
+    return process_dict(item)
+
+
 def load_file(filepath: str) -> dict:
     """Loads a YAML or JSON file and returns its content as a dictionary."""
     if filepath.endswith((".yaml", ".yml")):
         with open(filepath, "r") as file:
-            return convert_strings_to_lowercase(yaml.safe_load(file))
+            return yaml.safe_load(file)
     elif filepath.endswith(".json"):
         with open(filepath, "r") as file:
             return json.load(file)
@@ -26,23 +74,6 @@ def load_file(filepath: str) -> dict:
         raise ValueError(
             "Unsupported file format. Only .yaml, .yml, and .json are supported."
         )
-
-
-def convert_strings_to_lowercase(item):
-    """
-    Recursively traverse a dictionary and convert all string values to lowercase.
-
-    :param d: Dictionary to be processed
-    :return: Dictionary with all string values converted to lowercase
-    """
-    if isinstance(item, dict):
-        return {k: convert_strings_to_lowercase(v) for k, v in item.items()}
-    elif isinstance(item, list):
-        return [convert_strings_to_lowercase(item) for item in item]
-    elif isinstance(item, str):
-        return item.lower()
-    else:
-        return item
 
 
 def recursive_process_dict(dict_object: dict):

@@ -8,6 +8,6 @@ rules:
     target_names:
       - ou_1
     access_type: RBAC
-    permission_set_name: Admin
-    principal_name: group_1
+    permission_set_name: Adminstrator
+    principal_name: group1
     principal_type: GROUP

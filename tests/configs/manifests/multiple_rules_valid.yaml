@@ -1,20 +1,31 @@
 ignore:
   - target_type: OU
     target_names:
-      - dev
-      - test
+      - suspended
 rules:
   - target_type: OU
     target_names:
-      - ou_1
+      - dev
+      - test
     access_type: RBAC
-    permission_set_name: Admin
-    principal_name: group_1
+    permission_set_name: Adminstrator
+    principal_name: group1
     principal_type: GROUP
   - target_type: OU
     target_names:
-      - ou_1
+      - dev
+      - test
+      - prod
     access_type: RBAC
-    permission_set_name: Admin
-    principal_name: user_1
+    permission_set_name: Adminstrator
+    principal_name: user1
+    principal_type: USER
+  - target_type: ACT
+    target_names:
+      - workload_1_dev
+      - workload_2_dev
+      - workload_2_test
+    access_type: RBAC
+    permission_set_name: Adminstrator
+    principal_name: user1
     principal_type: USER

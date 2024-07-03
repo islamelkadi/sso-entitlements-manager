@@ -8,5 +8,5 @@ rules:
     target_names:
       - ou_1
     access_type: FAIL
-    principal_name: group_1
+    principal_name: group1
     principal_type: GROUP

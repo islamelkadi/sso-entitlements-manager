@@ -8,12 +8,12 @@ rules:
     target_names:
       - ou_1
     access_type: RBAC
-    permission_set_name: Admin
+    permission_set_name: Adminstrator
     principal_type: GROUP
     principal_name: test
   - target_type: OU
     target_names:
       - ou_2
     access_type: RBAC
-    permission_set_name: Admin
+    permission_set_name: Adminstrator
     principal_type: GROUP

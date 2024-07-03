@@ -8,5 +8,5 @@ rules:
     target_names:
       - ou_1
     access_type: FAIL
-    permission_set_name: Admin
+    permission_set_name: Adminstrator
     principal_type: GROUP

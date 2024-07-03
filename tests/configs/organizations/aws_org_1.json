@@ -59,7 +59,7 @@
     ],
     "permission_sets": [
         {
-            "name": "Administration",
+            "name": "Adminstrator",
             "description": "Administration permission set"
         },
         {
