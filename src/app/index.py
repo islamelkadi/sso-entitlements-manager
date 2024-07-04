@@ -62,10 +62,7 @@ def put_rbac_sso_assignments():
 # Lambda handler
 @TRACER.capture_lambda_handler
 @event_source(data_class=EventBridgeEvent)  # pylint: disable=E1120
-@LOGGER.inject_lambda_context(
-    log_event=True,
-    correlation_id_path=correlation_paths.EVENT_BRIDGE,
-)
+@LOGGER.inject_lambda_context(log_event=True, correlation_id_path=correlation_paths.EVENT_BRIDGE)
 def lambda_handler(event: EventBridgeEvent, context: LambdaContext):
     """
     Function to create or retrieve regex rules for SSO permission
