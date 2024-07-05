@@ -11,7 +11,7 @@ class AwsOrganizations:
     def __init__(self, root_ou_id: str, exclude_ou_name_list: list = [], exclude_account_name_list: list = []) -> None:
 
         # Set instance vars
-        self.ou_to_account_map = {}
+        self.ou_account_map = {}
         self._ou_name_id_map = {}
         self._root_ou_id = root_ou_id
         self._exclude_ou_name_list = exclude_ou_name_list
@@ -29,7 +29,7 @@ class AwsOrganizations:
         self._map_aws_organizational_units(self._root_ou_id)
         self._map_aws_ou_to_accounts()
         self.account_map = convert_list_to_dict(
-            list(itertools.chain.from_iterable(self.ou_to_account_map.values())), "Name"
+            list(itertools.chain.from_iterable(self.ou_account_map.values())), "Name"
         )
 
 
@@ -49,7 +49,7 @@ class AwsOrganizations:
 
     def _map_aws_ou_to_accounts(self):
         for ou_name, ou_id in self._ou_name_id_map.items():
-            self.ou_to_account_map[ou_name] = []
+            self.ou_account_map[ou_name] = []
             accounts_iterator = self._account_paginator.paginate(ParentId=ou_id)
             aws_accounts_flattened_list = []
             for page in accounts_iterator:
@@ -57,4 +57,4 @@ class AwsOrganizations:
 
             for account in aws_accounts_flattened_list:
                 if account["Status"] == "ACTIVE" and account["Name"] not in self._exclude_account_name_list:
-                    self.ou_to_account_map[ou_name].append({"Id": account["Id"], "Name": account["Name"]})
+                    self.ou_account_map[ou_name].append({"Id": account["Id"], "Name": account["Name"]})
