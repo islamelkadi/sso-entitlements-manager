@@ -39,7 +39,6 @@ class AwsIdentityCentre:
             sso_groups.extend(page["Groups"])
         return sso_groups
 
-
     def _list_sso_users(self):
         """
         Method to list all the users in the identity store.
