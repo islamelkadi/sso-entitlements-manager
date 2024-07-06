@@ -1,7 +1,11 @@
+"""
+Module for resolving AWS resources and creating access 
+control assignments based on ingested customer manifest file.
+"""
+
 import os
 import jsonschema
 from typing import Optional
-
 import boto3
 from .aws_organizations import AwsOrganizations
 from .aws_identitycentre import AwsIdentityCentre
@@ -51,6 +55,21 @@ class AwsResolver:
         AwsOrganizations instance for managing AWS organizations.
     _aws_identitycenter: AwsIdentityCentre
         AwsIdentityCentre instance for managing AWS Identity Center.
+
+    Methods:
+    --------
+    __init__(self, schema_definition_filepath: str, manifest_definition_filepath: str) -> None
+        Initializes the AwsResolver instance with schema and manifest definitions.
+    _is_valid_manifest_file(self) -> None
+        Validates the manifest definition against the schema definition.
+    _is_valid_aws_resource(self, resource_name: str, resource_type: str) -> Optional[str]
+        Validates if a given AWS resource exists based on its type and name.
+    _create_excluded_ou_account_name_list(self) -> None
+        Creates a list of excluded OU and account names from the manifest definition.
+    _generate_account_assignments(self, rule: dict) -> list[dict[str]]
+        Generates a list of account assignments based on the provided rule.
+    _create_rbac_assignments(self) -> None
+        Creates RBAC assignments based on the manifest definition.
     """
 
     def __init__(self, schema_definition_filepath: str, manifest_definition_filepath: str) -> None:
@@ -134,8 +153,8 @@ class AwsResolver:
 
         Returns:
         -------
-        bool
-            True if the resource is valid, False otherwise.
+        str
+            The resource identifier if the resource is valid, None otherwise.
 
         Usage:
         ------
@@ -158,7 +177,7 @@ class AwsResolver:
             return None
 
         return resource_map[resource_name] if not key else resource_map[resource_name][key[0]]
-     
+
     def _create_excluded_ou_account_name_list(self) -> None:
         """
         Creates a list of excluded OU and account names from the manifest definition.
@@ -221,7 +240,7 @@ class AwsResolver:
                     "PrincipalType": rule["principal_type"],
                     "PermissionSetArn": rule["permission_set_arn"]
                 })
-        
+
         return assignments
 
     def _create_rbac_assignments(self) -> None:
@@ -230,14 +249,13 @@ class AwsResolver:
 
         Usage:
         ------
-        aws_resolver.create_rbac_assignments()
+        self._create_rbac_assignments()
         """
-
         assignments_to_create = []
         rbac_rules = self._manifest_definition.get("rules", [])
         for rule in rbac_rules:
             rule["principal_id"] = self._is_valid_aws_resource(rule["principal_name"], rule["principal_type"])
-            rule["permission_set_arn"] = self._is_valid_aws_resource(rule["permission_set_name"], "permission_set")  
+            rule["permission_set_arn"] = self._is_valid_aws_resource(rule["permission_set_name"], "permission_set")
             if rule["principal_id"] and rule["permission_set_arn"]:
                 account_assignments = self._generate_account_assignments(rule)
                 assignments_to_create.extend(account_assignments)
