@@ -38,16 +38,19 @@ def convert_list_to_dict(obj_list: list, key_attr: str):
      'user2': {'DisplayName': 'user2', 'UserName': 'user2@testing.com'}}
 
     """
-    return {obj[key_attr]: obj for obj in obj_list}
+    result_dict = {}
+    for obj in obj_list:
+        result_dict[obj[key_attr]] = obj
+    return result_dict
 
 
-def convert_specific_keys_to_lowercase(item: dict, keys_to_lowercase: list = []):
+def convert_specific_keys_to_uppercase(item: dict, keys_to_uppercase: list = []):
     """
-    Recursively traverse a dictionary and convert the values of specific keys to lowercase.
+    Recursively traverse a dictionary and convert the values of specific keys to uppercase.
 
     :param item: Dictionary to be processed
-    :param keys_to_convert: List of keys whose values should be converted to lowercase
-    :return: Dictionary with specified string values converted to lowercase
+    :param keys_to_uppercase: List of keys whose values should be converted to uppercase
+    :return: Dictionary with specified string values converted to uppercase
     """
     def process_dict(data):
         processed_data = {}
@@ -55,9 +58,14 @@ def convert_specific_keys_to_lowercase(item: dict, keys_to_lowercase: list = [])
             if isinstance(value, dict):
                 processed_data[key] = process_dict(value)
             elif isinstance(value, list):
-                processed_data[key] = [process_dict(item) if isinstance(item, dict) else (item.lower() if isinstance(item, str) else item) for item in value]
+                processed_data[key] = []
+                for item in value:
+                    if isinstance(item, dict):
+                        processed_data[key].append(process_dict(item))
+                    else:
+                        processed_data[key].append(item.upper() if isinstance(item, str) else item)
             else:
-                processed_data[key] = value.lower() if (key in keys_to_lowercase and isinstance(value, str)) else value
+                processed_data[key] = value.upper() if (key in keys_to_uppercase and isinstance(value, str)) else value
         return processed_data
     
     return process_dict(item)

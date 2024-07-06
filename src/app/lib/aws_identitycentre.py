@@ -2,7 +2,7 @@
 Module to interact with the AWS IAM Identity Store service
 """
 import boto3
-from .utils import convert_list_to_dict, convert_specific_keys_to_lowercase
+from .utils import convert_list_to_dict, convert_specific_keys_to_uppercase
 
 
 class AwsIdentityCentre:
@@ -28,9 +28,9 @@ class AwsIdentityCentre:
         self._permission_sets_paginator = self._sso_admin_client.get_paginator("list_permission_sets")
 
         # Get Identity center entities
-        self.sso_users = convert_specific_keys_to_lowercase(convert_list_to_dict(self._list_sso_users(), "DisplayName"))
-        self.sso_groups = convert_specific_keys_to_lowercase(convert_list_to_dict(self._list_sso_groups(), "DisplayName"))
-        self.permission_sets = convert_specific_keys_to_lowercase(convert_list_to_dict(self._list_permission_sets(), "Name"))
+        self.sso_users = convert_specific_keys_to_uppercase(convert_list_to_dict(self._list_sso_users(), "DisplayName"))
+        self.sso_groups = convert_specific_keys_to_uppercase(convert_list_to_dict(self._list_sso_groups(), "DisplayName"))
+        self.permission_sets = convert_specific_keys_to_uppercase(convert_list_to_dict(self._list_permission_sets(), "Name"))
 
     def _list_sso_groups(self):
         aws_identitystore_groups_iterator = self._sso_groups_paginator.paginate(IdentityStoreId=self._identity_store_id)

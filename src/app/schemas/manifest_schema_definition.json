@@ -62,8 +62,8 @@
         "target_type": {
             "type": "string",
             "enum": [
-                "ou",
-                "act"
+                "OU",
+                "ACT"
             ]
         },
         "target_names": {
@@ -75,9 +75,9 @@
         "access_type": {
             "type": "string",
             "enum": [
-                "rbac",
-                "abac",
-                "jiit"
+                "RBAC",
+                "ABAC",
+                "JIIT"
             ]
         },
         "nested": {
@@ -93,17 +93,17 @@
         "principal_type": {
             "type": "string",
             "enum": [
-                "group",
-                "user"
+                "GROUP",
+                "USER"
             ]
         },
         "rule_type": {
             "type": "string",
             "enum": [
-                "explicit",
-                "implicit"
+                "EXPLICIT",
+                "IMPLICIT"
             ],
-            "default": "explicit"
+            "default": "EXPLICIT"
         }
     }
 }
