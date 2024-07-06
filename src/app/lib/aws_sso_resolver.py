@@ -229,7 +229,8 @@ class AwsResolver:
         unique_assignments = {}
         for assignment in assignments_to_create:
             assignment_tuple = tuple(assignment.items())
-            unique_assignments[assignment_tuple] = assignment
+            if assignment_tuple not in unique_assignments:
+                unique_assignments[assignment_tuple] = assignment
 
         unique_assignments_to_create = unique_assignments.values()
         for assignment in unique_assignments_to_create:
