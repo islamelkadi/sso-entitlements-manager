@@ -14,6 +14,16 @@ class AwsResolver:
         List of excluded OU names.
     _excluded_account_names: list
         List of excluded account names.
+    _invalid_manifest_file_ou_names: set
+        Set of invalid OU names found in the manifest file.
+    _invalid_manifest_file_account_names: set
+        Set of invalid account names found in the manifest file.
+    _invalid_manifest_file_group_names: set
+        Set of invalid group names found in the manifest file.
+    _invalid_manifest_file_user_names: set
+        Set of invalid user names found in the manifest file.
+    _invalid_manifest_file_permission_sets: set
+        Set of invalid permission sets found in the manifest file.
     _root_ou_id: str
         Root OU ID from environment variables.
     _identity_store_id: str
@@ -57,6 +67,12 @@ class AwsResolver:
         """
         self._excluded_ou_names = []
         self._excluded_account_names = []
+
+        self._invalid_manifest_file_ou_names = set()
+        self._invalid_manifest_file_account_names = set()
+        self._invalid_manifest_file_group_names = set()
+        self._invalid_manifest_file_user_names = set()
+        self._invalid_manifest_file_permission_sets = set()
 
         self._root_ou_id = os.getenv("ROOT_OU_ID")
         self._identity_store_id = os.getenv("IDENTITY_STORE_ID")
@@ -120,18 +136,23 @@ class AwsResolver:
         is_valid = self._is_valid_aws_resource("resource_name", "resource_type")
         """
         if resource_type == self._ou_target_type and resource_name not in self._aws_organizations.ou_account_map:
+            self._invalid_manifest_file_ou_names.add(resource_name)
             return False
 
         if resource_type == self._account_target_type and resource_name not in self._aws_organizations.account_map:
+            self._invalid_manifest_file_account_names.add(resource_name)
             return False
 
         if resource_type == self._group_principal_type and resource_name not in self._aws_identitycenter.sso_groups:
+            self._invalid_manifest_file_group_names.add(resource_name)
             return False
 
         if resource_type == self._user_principal_type and resource_name not in self._aws_identitycenter.sso_users:
+            self._invalid_manifest_file_user_names.add(resource_name)
             return False
 
         if resource_type == "permission_set" and resource_name not in self._aws_identitycenter.permission_sets:
+            self._invalid_manifest_file_permission_sets.add(resource_name)
             return False
         
         return True
