@@ -1,5 +1,8 @@
 import os
 import jsonschema
+from typing import Optional
+
+import boto3
 from .aws_organizations import AwsOrganizations
 from .aws_identitycentre import AwsIdentityCentre
 from .utils import load_file, convert_specific_keys_to_uppercase
@@ -65,6 +68,9 @@ class AwsResolver:
         ------
         aws_resolver = AwsResolver("path/to/schema.json", "path/to/manifest.json")
         """
+
+        self._sso_admin_client = boto3.client("sso-admin")
+
         self._excluded_ou_names = []
         self._excluded_account_names = []
 
@@ -115,7 +121,7 @@ class AwsResolver:
         except jsonschema.ValidationError as e:
             raise jsonschema.ValidationError(f"Validation error: {e.message}")
 
-    def _is_valid_aws_resource(self, resource_name: str, resource_type: str) -> bool:
+    def _is_valid_aws_resource(self, resource_name: str, resource_type: str) -> Optional[str]:
         """
         Validates if a given AWS resource exists based on its type and name.
 
@@ -135,28 +141,24 @@ class AwsResolver:
         ------
         is_valid = self._is_valid_aws_resource("resource_name", "resource_type")
         """
-        if resource_type == self._ou_target_type and resource_name not in self._aws_organizations.ou_account_map:
-            self._invalid_manifest_file_ou_names.add(resource_name)
-            return False
+        resource_maps = {
+            self._ou_target_type: (self._aws_organizations.ou_account_map, self._invalid_manifest_file_ou_names),
+            self._account_target_type: (self._aws_organizations.account_map, self._invalid_manifest_file_account_names),
+            self._group_principal_type: (self._aws_identitycenter.sso_groups, self._invalid_manifest_file_group_names, "GroupId"),
+            self._user_principal_type: (self._aws_identitycenter.sso_users, self._invalid_manifest_file_user_names, "UserId"),
+            "permission_set": (self._aws_identitycenter.permission_sets, self._invalid_manifest_file_permission_sets)
+        }
 
-        if resource_type == self._account_target_type and resource_name not in self._aws_organizations.account_map:
-            self._invalid_manifest_file_account_names.add(resource_name)
-            return False
+        if resource_type not in resource_maps:
+            raise ValueError("Unsupported resource type")
 
-        if resource_type == self._group_principal_type and resource_name not in self._aws_identitycenter.sso_groups:
-            self._invalid_manifest_file_group_names.add(resource_name)
-            return False
+        resource_map, invalid_set, *key = resource_maps[resource_type]
+        if resource_name not in resource_map:
+            invalid_set.add(resource_name)
+            return None
 
-        if resource_type == self._user_principal_type and resource_name not in self._aws_identitycenter.sso_users:
-            self._invalid_manifest_file_user_names.add(resource_name)
-            return False
-
-        if resource_type == "permission_set" and resource_name not in self._aws_identitycenter.permission_sets:
-            self._invalid_manifest_file_permission_sets.add(resource_name)
-            return False
-        
-        return True
-
+        return resource_map[resource_name] if not key else resource_map[resource_name][key[0]]
+     
     def _create_excluded_ou_account_name_list(self) -> None:
         """
         Creates a list of excluded OU and account names from the manifest definition.
@@ -169,41 +171,55 @@ class AwsResolver:
             target_list = self._excluded_ou_names if item["target_type"] == self._ou_target_type else self._excluded_account_names
             target_list.extend(item["target_names"])
 
-    def _generate_account_assignments(self, rule):
+    def _generate_account_assignments(self, rule: dict) -> list[dict[str]]:
+        """
+        Generates a list of account assignments based on the provided rule.
 
-        sso_users = self._aws_identitycenter.sso_users
-        sso_groups = self._aws_identitycenter.sso_groups
-        permission_sets = self._aws_identitycenter.permission_sets
+        Parameters:
+        ----------
+        rule: dict
+            A dictionary containing the rule for generating account assignments.
+            Expected keys: "target_names", "target_type", "principal_id", "principal_type", "permission_set_arn".
 
-        assignments = []
-        permission_set_arn = permission_sets[rule["permission_set_name"]]["PermissionSetArn"]
-        sso_principal_id = (
-            sso_groups[rule["principal_name"]]["GroupId"] if rule["principal_type"] == self._group_principal_type
-            else sso_users[rule["principal_name"]]["UserId"]
-        )
-        
+        Returns:
+        -------
+        list
+            A list of dictionaries, each representing an account assignment.
+
+        Usage:
+        ------
+        rule = {
+            "target_names": ["OU1", "OU2"],
+            "target_type": "OU",
+            "principal_id": "user-123",
+            "principal_type": "USER",
+            "permission_set_arn": "arn:aws:iam::aws:policy/AdministratorAccess"
+        }
+        assignments = self._generate_account_assignments(rule)
+        """
         valid_target_names = []
         for name in rule["target_names"]:
             if self._is_valid_aws_resource(name, rule["target_type"]):
                 valid_target_names.append(name)
-        
+
+        assignments = []
         if rule["target_type"] == self._ou_target_type:
             for target in valid_target_names:
                 ou_aws_accounts = self._aws_organizations.ou_account_map[target]
                 for account in ou_aws_accounts:
                     assignments.append({
-                        "permission_set_arn": permission_set_arn,
-                        "principal_id": sso_principal_id,
-                        "principal_type": rule["principal_type"],
-                        "target_id": account["Id"]
+                        "TargetId": account["Id"],
+                        "PrincipalId": rule["principal_id"],
+                        "PrincipalType": rule["principal_type"],
+                        "PermissionSetArn": rule["permission_set_arn"]
                     })
         else:
             for target in valid_target_names:
                 assignments.append({
-                    "permission_set_arn": permission_set_arn,
-                    "principal_id": sso_principal_id,
-                    "principal_type": rule["principal_type"],
-                    "target_id": self._aws_organizations.account_map[target]["Id"]
+                    "TargetId": self._aws_organizations.account_map[target]["Id"],
+                    "PrincipalId": rule["principal_id"],
+                    "PrincipalType": rule["principal_type"],
+                    "PermissionSetArn": rule["permission_set_arn"]
                 })
         
         return assignments
@@ -220,9 +236,9 @@ class AwsResolver:
         assignments_to_create = []
         rbac_rules = self._manifest_definition.get("rules", [])
         for rule in rbac_rules:
-            is_valid_sso_principal = self._is_valid_aws_resource(rule["principal_name"], rule["principal_type"])
-            is_valid_permission_set = self._is_valid_aws_resource(rule["permission_set_name"], "permission_set")
-            if is_valid_sso_principal and is_valid_permission_set:
+            rule["principal_id"] = self._is_valid_aws_resource(rule["principal_name"], rule["principal_type"])
+            rule["permission_set_arn"] = self._is_valid_aws_resource(rule["permission_set_name"], "permission_set")  
+            if rule["principal_id"] and rule["permission_set_arn"]:
                 account_assignments = self._generate_account_assignments(rule)
                 assignments_to_create.extend(account_assignments)
 
@@ -234,4 +250,6 @@ class AwsResolver:
 
         unique_assignments_to_create = unique_assignments.values()
         for assignment in unique_assignments_to_create:
-            self._aws_identitycenter.create_permission_set_assignment(**assignment)
+            assignment["InstanceArn"] = self._identity_store_arn
+            assignment["TargetType"] = "AWS_ACCOUNT"
+            self._sso_admin_client.create_account_assignment(**assignment)

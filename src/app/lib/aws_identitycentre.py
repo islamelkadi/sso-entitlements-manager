@@ -64,13 +64,3 @@ class AwsIdentityCentre:
             described_permission_sets.append(permission_set_info.get("PermissionSet"))
         
         return described_permission_sets
-
-    def create_permission_set_assignment(self, permission_set_arn: str, principal_id: str, principal_type: str, target_id: str):
-        return self._sso_admin_client.create_account_assignment(
-            InstanceArn = self._identity_store_arn,
-            PermissionSetArn = permission_set_arn,
-            PrincipalId = principal_id,
-            PrincipalType = principal_type.upper(),
-            TargetId = target_id,
-            TargetType = "AWS_ACCOUNT"
-        ).get("AccountAssignmentCreationStatus")
