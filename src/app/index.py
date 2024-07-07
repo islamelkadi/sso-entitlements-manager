@@ -13,7 +13,6 @@ from aws_lambda_powertools.utilities.typing import LambdaContext
 from aws_lambda_powertools.utilities.data_classes import EventBridgeEvent, event_source
 
 
-
 # Env vars
 LOG_LEVEL = os.getenv("LOG_LEVEL")
 TRACER_SERVICE_NAME = os.getenv("TRACER_SERVICE_NAME")
@@ -62,7 +61,9 @@ def put_rbac_sso_assignments():
 # Lambda handler
 @TRACER.capture_lambda_handler
 @event_source(data_class=EventBridgeEvent)  # pylint: disable=E1120
-@LOGGER.inject_lambda_context(log_event=True, correlation_id_path=correlation_paths.EVENT_BRIDGE)
+@LOGGER.inject_lambda_context(
+    log_event=True, correlation_id_path=correlation_paths.EVENT_BRIDGE
+)
 def lambda_handler(event: EventBridgeEvent, context: LambdaContext):
     """
     Function to create or retrieve regex rules for SSO permission

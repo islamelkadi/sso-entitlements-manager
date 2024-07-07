@@ -27,11 +27,21 @@ def create_aws_ous_accounts(
     parent_ou_id: str = "",
 ) -> None:
     """
-    Fixture to setup AWS mock organizations by creating:
-        1. Creating an AWS organization
-        2. Creating AWS organizations units (OUs)
-        3. Creating AWS accounts
-        4. Moving those AWS accounts under their designated OU
+    Fixture helper function to setup AWS mock organizations:
+        1. Create AWS organization units (OUs)
+        2. Create AWS accounts
+        3. Move accounts under designated OUs
+
+    Parameters:
+    ----------
+    - organizations_client: boto3.client
+        AWS Organizations client.
+    - aws_organization_definitions: list[dict]
+        List of dictionaries defining AWS organizational structure.
+    - root_ou_id: str
+        Root organizational unit ID.
+    - parent_ou_id: str, optional
+        Parent organizational unit ID for nested setup.
     """
     for organization_resource in aws_organization_definitions:
         if organization_resource["type"] == "ORGANIZATIONAL_UNIT":
@@ -70,6 +80,16 @@ def delete_aws_ous_accounts(
 ) -> None:
     """
     Recursively delete AWS accounts from nested organizational units (OUs).
+
+    Parameters:
+    ----------
+
+    - organizations_client: boto3.client
+        AWS Organizations client.
+    - root_ou_id: str
+        Root organizational unit ID.
+    - parent_ou_id: str, optional
+        Parent organizational unit ID for nested deletion.
     """
 
     # Function to delete accounts in the current OU
@@ -107,7 +127,10 @@ def delete_aws_ous_accounts(
 
 
 @pytest.fixture(scope="session", autouse=True)
-def set_aws_creds():
+def set_aws_creds() -> None:
+    """
+    Fixture to set AWS credentials using MonkeyPatch for session scope.
+    """
     MONKEYPATCH.setenv("AWS_REGION", "us-east-1")
     MONKEYPATCH.setenv("AWS_SESSION_TOKEN", "test")
     MONKEYPATCH.setenv("AWS_ACCESS_KEY_ID", "test")
@@ -116,7 +139,10 @@ def set_aws_creds():
 
 
 @pytest.fixture(scope="session", autouse=True)
-def setup_env_vars():
+def setup_env_vars() -> None:
+    """
+    Fixture to set environment variables using MonkeyPatch for session scope.
+    """
     MONKEYPATCH.setenv("LOG_LEVEL", "INFO")
     MONKEYPATCH.setenv("DDB_TABLE_NAME", "cloud_pass")
     MONKEYPATCH.setenv("IDENTITY_STORE_ID", "d-1234567890")
@@ -132,7 +158,11 @@ def setup_env_vars():
 @pytest.fixture(scope="session")
 def organizations_client() -> boto3.client:
     """
-    Fixture to mock AWS Organizations client
+    Fixture to mock AWS Organizations client using moto for session scope.
+
+    Returns:
+    -------
+    - boto3.client: Mocked AWS Organizations client.
     """
     with moto.mock_organizations():
         yield boto3.client("organizations")
@@ -141,7 +171,11 @@ def organizations_client() -> boto3.client:
 @pytest.fixture(scope="session")
 def identity_store_client() -> boto3.client:
     """
-    Fixture to mock AWS Organizations client
+    Fixture to mock AWS Identity Store client using moto for session scope.
+
+    Returns:
+    -------
+    - boto3.client: Mocked AWS Identity Store client.
     """
     with moto.mock_identitystore():
         yield boto3.client("identitystore")
@@ -150,7 +184,11 @@ def identity_store_client() -> boto3.client:
 @pytest.fixture(scope="session")
 def sso_admin_client() -> boto3.client:
     """
-    Fixture to mock AWS Organizations client
+    Fixture to mock AWS SSO Admin client using moto for session scope.
+
+    Returns:
+    -------
+    - boto3.client: Mocked AWS SSO Admin client.
     """
     with moto.mock_ssoadmin():
         yield boto3.client("sso-admin")
@@ -168,6 +206,37 @@ def setup_aws_environment(
     identity_store_client: boto3.client,
     sso_admin_client: boto3.client,
 ) -> dict:
+    """
+    Fixture to setup AWS environment:
+        1. Create AWS organization
+        2. Setup AWS mock organizations with OUs and accounts
+        3. Setup AWS Identity Center with users, groups, and permission sets
+
+    Parameters:
+    ----------
+    - request: str
+        Parameter from pytest marker or fixture definition.
+    - organizations_client: boto3.client
+        AWS Organizations client.
+    - identity_store_client: boto3.client
+        AWS Identity Store client.
+    - sso_admin_client: boto3.client
+        AWS SSO Admin client.
+
+    Returns:
+    -------
+    - dict: Dictionary containing setup details:
+        - root_ou_id: str
+            Root organizational unit ID.
+        - aws_organization_definitions: list[dict]
+            List of dictionaries defining AWS organizational structure.
+        - aws_sso_group_definitions: list
+            List of dictionaries defining AWS SSO groups.
+        - aws_sso_user_definitions: list
+            List of dictionaries defining AWS SSO users.
+        - aws_permission_set_definitions: list
+            List of dictionaries defining AWS permission sets.
+    """
     # Load parameter from pytest marker or fixture definition
     param_value = request.param
 
@@ -188,11 +257,10 @@ def setup_aws_environment(
 
     root_ou_id = None
     try:
-
         # Setup AWS organizations
         organizations_client.create_organization()
         root_ou_id = organizations_client.list_roots()["Roots"][0]["Id"]
-        
+
         create_aws_ous_accounts(
             organizations_client=organizations_client,
             aws_organization_definitions=aws_organizations_definitions,

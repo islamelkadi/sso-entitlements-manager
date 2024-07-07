@@ -66,9 +66,15 @@ class AwsIdentityCentre:
         self._sso_admin_client = boto3.client("sso-admin")
         self._identity_store_client = boto3.client("identitystore")
 
-        self._sso_users_paginator = self._identity_store_client.get_paginator("list_users")
-        self._sso_groups_paginator = self._identity_store_client.get_paginator("list_groups")
-        self._permission_sets_paginator = self._sso_admin_client.get_paginator("list_permission_sets")
+        self._sso_users_paginator = self._identity_store_client.get_paginator(
+            "list_users"
+        )
+        self._sso_groups_paginator = self._identity_store_client.get_paginator(
+            "list_groups"
+        )
+        self._permission_sets_paginator = self._sso_admin_client.get_paginator(
+            "list_permission_sets"
+        )
 
         self.sso_users = convert_specific_keys_to_uppercase(
             convert_list_to_dict(self._list_sso_users(), "DisplayName")
@@ -94,7 +100,9 @@ class AwsIdentityCentre:
         sso_groups = self._list_sso_groups()
         """
         groups = []
-        for page in self._sso_groups_paginator.paginate(IdentityStoreId=self._identity_store_id):
+        for page in self._sso_groups_paginator.paginate(
+            IdentityStoreId=self._identity_store_id
+        ):
             groups.extend(page["Groups"])
         return groups
 
@@ -112,7 +120,9 @@ class AwsIdentityCentre:
         sso_users = self._list_sso_users()
         """
         users = []
-        for page in self._sso_users_paginator.paginate(IdentityStoreId=self._identity_store_id):
+        for page in self._sso_users_paginator.paginate(
+            IdentityStoreId=self._identity_store_id
+        ):
             users.extend(page["Users"])
         return users
 
@@ -130,7 +140,9 @@ class AwsIdentityCentre:
         permission_sets = self._list_permission_sets()
         """
         permission_sets = []
-        for page in self._permission_sets_paginator.paginate(InstanceArn=self._identity_store_arn):
+        for page in self._permission_sets_paginator.paginate(
+            InstanceArn=self._identity_store_arn
+        ):
             permission_sets.extend(page["PermissionSets"])
 
         described_permission_sets = []

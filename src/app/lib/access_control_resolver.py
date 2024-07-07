@@ -11,6 +11,7 @@ from .ou_accounts_mapper import AwsOrganizations
 from .identity_center_mapper import AwsIdentityCentre
 from .utils import load_file, convert_specific_keys_to_uppercase
 
+
 class AwsResolver:
     """
     Class for resolving AWS resources and creating RBAC assignments based on a manifest file.
@@ -72,7 +73,9 @@ class AwsResolver:
         Creates RBAC assignments based on the manifest definition.
     """
 
-    def __init__(self, schema_definition_filepath: str, manifest_definition_filepath: str) -> None:
+    def __init__(
+        self, schema_definition_filepath: str, manifest_definition_filepath: str
+    ) -> None:
         """
         Initializes the AwsResolver instance with schema and manifest definitions.
 
@@ -109,22 +112,28 @@ class AwsResolver:
         self._user_principal_type = os.getenv("USER_PRINCIPAL_TYPE_LABEL", "USER")
         self._group_principal_type = os.getenv("GROUP_PRINCIPAL_TYPE_LABEL", "GROUP")
 
-        self._manifest_file_keys_to_uppercase = ["access_type", "principal_type", "target_type"]
+        self._manifest_file_keys_to_uppercase = [
+            "access_type",
+            "principal_type",
+            "target_type",
+        ]
         self._schema_definition = load_file(schema_definition_filepath)
         self._manifest_definition = convert_specific_keys_to_uppercase(
-            load_file(manifest_definition_filepath), self._manifest_file_keys_to_uppercase
+            load_file(manifest_definition_filepath),
+            self._manifest_file_keys_to_uppercase,
         )
         self._is_valid_manifest_file()
         self._create_excluded_ou_account_name_list()
 
-        self._aws_organizations = AwsOrganizations(self._root_ou_id, self._excluded_ou_names, self._excluded_account_names)
-        self._aws_identitycenter = AwsIdentityCentre(self._identity_store_id, self._identity_store_arn)
+        self._aws_organizations = AwsOrganizations(
+            self._root_ou_id, self._excluded_ou_names, self._excluded_account_names
+        )
+        self._aws_identitycenter = AwsIdentityCentre(
+            self._identity_store_id, self._identity_store_arn
+        )
 
         self._create_rbac_assignments()
         self._generate_invalid_assignments()
-        print("INVALID RULES")
-        print(self._invalid_manifest_rules_report)
-        
 
     def _is_valid_manifest_file(self) -> None:
         """
@@ -140,11 +149,15 @@ class AwsResolver:
         self._is_valid_manifest_file()
         """
         try:
-            jsonschema.validate(instance=self._manifest_definition, schema=self._schema_definition)
+            jsonschema.validate(
+                instance=self._manifest_definition, schema=self._schema_definition
+            )
         except jsonschema.ValidationError as e:
             raise jsonschema.ValidationError(f"Validation error: {e.message}")
 
-    def _is_valid_aws_resource(self, rule_number: int, resource_name: str, resource_type: str) -> Optional[str]:
+    def _is_valid_aws_resource(
+        self, rule_number: int, resource_name: str, resource_type: str
+    ) -> Optional[str]:
         """
         Validates if a given AWS resource exists based on its type and name.
 
@@ -167,11 +180,29 @@ class AwsResolver:
         is_valid = self._is_valid_aws_resource("resource_name", "resource_type")
         """
         resource_maps = {
-            self._ou_target_type: (self._aws_organizations.ou_account_map, self._invalid_manifest_file_ou_names),
-            self._account_target_type: (self._aws_organizations.account_map, self._invalid_manifest_file_account_names),
-            self._group_principal_type: (self._aws_identitycenter.sso_groups, self._invalid_manifest_file_group_names, "GroupId"),
-            self._user_principal_type: (self._aws_identitycenter.sso_users, self._invalid_manifest_file_user_names, "UserId"),
-            "permission_set": (self._aws_identitycenter.permission_sets, self._invalid_manifest_file_permission_sets, "PermissionSetArn")
+            self._ou_target_type: (
+                self._aws_organizations.ou_account_map,
+                self._invalid_manifest_file_ou_names,
+            ),
+            self._account_target_type: (
+                self._aws_organizations.account_map,
+                self._invalid_manifest_file_account_names,
+            ),
+            self._group_principal_type: (
+                self._aws_identitycenter.sso_groups,
+                self._invalid_manifest_file_group_names,
+                "GroupId",
+            ),
+            self._user_principal_type: (
+                self._aws_identitycenter.sso_users,
+                self._invalid_manifest_file_user_names,
+                "UserId",
+            ),
+            "permission_set": (
+                self._aws_identitycenter.permission_sets,
+                self._invalid_manifest_file_permission_sets,
+                "PermissionSetArn",
+            ),
         }
 
         if resource_type not in resource_maps:
@@ -179,10 +210,20 @@ class AwsResolver:
 
         resource_map, invalid_set, *key = resource_maps[resource_type]
         if resource_name not in resource_map:
-            invalid_set.append({"rule_number": rule_number, "resource_type": resource_type, "resource_name": resource_name})
+            invalid_set.append(
+                {
+                    "rule_number": rule_number,
+                    "resource_type": resource_type,
+                    "resource_name": resource_name,
+                }
+            )
             return None
 
-        return resource_map[resource_name] if not key else resource_map[resource_name][key[0]]
+        return (
+            resource_map[resource_name]
+            if not key
+            else resource_map[resource_name][key[0]]
+        )
 
     def _create_excluded_ou_account_name_list(self) -> None:
         """
@@ -193,7 +234,11 @@ class AwsResolver:
         self._create_excluded_ou_account_name_list()
         """
         for item in self._manifest_definition.get("ignore", []):
-            target_list = self._excluded_ou_names if item["target_type"] == self._ou_target_type else self._excluded_account_names
+            target_list = (
+                self._excluded_ou_names
+                if item["target_type"] == self._ou_target_type
+                else self._excluded_account_names
+            )
             target_list.extend(item["target_names"])
 
     def _generate_account_assignments(self, rule: dict) -> list[dict[str]]:
@@ -204,7 +249,8 @@ class AwsResolver:
         ----------
         rule: dict
             A dictionary containing the rule for generating account assignments.
-            Expected keys: "target_names", "target_type", "principal_id", "principal_type", "permission_set_arn".
+            Expected keys: "target_names", "target_type", "principal_id",
+            "principal_type", "permission_set_arn".
 
         Returns:
         -------
@@ -224,7 +270,9 @@ class AwsResolver:
         """
         valid_target_names = []
         for name in rule["target_names"]:
-            if self._is_valid_aws_resource(rule["rule_number"], name, rule["target_type"]):
+            if self._is_valid_aws_resource(
+                rule["rule_number"], name, rule["target_type"]
+            ):
                 valid_target_names.append(name)
 
         assignments = []
@@ -232,30 +280,36 @@ class AwsResolver:
             for target in valid_target_names:
                 ou_aws_accounts = self._aws_organizations.ou_account_map[target]
                 for account in ou_aws_accounts:
-                    assignments.append({
-                        "TargetId": account["Id"],
-                        "PrincipalId": rule["principal_id"],
-                        "PrincipalType": rule["principal_type"],
-                        "PermissionSetArn": rule["permission_set_arn"]
-                    })
+                    assignments.append(
+                        {
+                            "TargetId": account["Id"],
+                            "PrincipalId": rule["principal_id"],
+                            "PrincipalType": rule["principal_type"],
+                            "PermissionSetArn": rule["permission_set_arn"],
+                        }
+                    )
         else:
             for target in valid_target_names:
-                assignments.append({
-                    "TargetId": self._aws_organizations.account_map[target]["Id"],
-                    "PrincipalId": rule["principal_id"],
-                    "PrincipalType": rule["principal_type"],
-                    "PermissionSetArn": rule["permission_set_arn"]
-                })
+                assignments.append(
+                    {
+                        "TargetId": self._aws_organizations.account_map[target]["Id"],
+                        "PrincipalId": rule["principal_id"],
+                        "PrincipalType": rule["principal_type"],
+                        "PermissionSetArn": rule["permission_set_arn"],
+                    }
+                )
 
         return assignments
 
-    def _generate_invalid_assignments(self, sort_key = "rule_number") -> None:
-        self._invalid_manifest_rules_report = self._invalid_manifest_file_ou_names + \
-            self._invalid_manifest_file_account_names + \
-            self._invalid_manifest_file_group_names + \
-            self._invalid_manifest_file_user_names + \
-            self._invalid_manifest_file_permission_sets
-        
+    def _generate_invalid_assignments(self, sort_key="rule_number") -> None:
+        self._invalid_manifest_rules_report = (
+            self._invalid_manifest_file_ou_names
+            + self._invalid_manifest_file_account_names
+            + self._invalid_manifest_file_group_names
+            + self._invalid_manifest_file_user_names
+            + self._invalid_manifest_file_permission_sets
+        )
+
         self._invalid_manifest_rules_report.sort(key=lambda x: x.get(sort_key))
 
     def _create_rbac_assignments(self) -> None:
@@ -270,15 +324,19 @@ class AwsResolver:
         rbac_rules = self._manifest_definition.get("rules", [])
         for i, rule in enumerate(rbac_rules):
             rule["rule_number"] = i
-            rule["principal_id"] = self._is_valid_aws_resource(rule["rule_number"], rule["principal_name"], rule["principal_type"])
-            rule["permission_set_arn"] = self._is_valid_aws_resource(rule["rule_number"], rule["permission_set_name"], "permission_set")
+            rule["principal_id"] = self._is_valid_aws_resource(
+                rule["rule_number"], rule["principal_name"], rule["principal_type"]
+            )
+            rule["permission_set_arn"] = self._is_valid_aws_resource(
+                rule["rule_number"], rule["permission_set_name"], "permission_set"
+            )
             if rule["principal_id"] and rule["permission_set_arn"]:
                 account_assignments = self._generate_account_assignments(rule)
                 assignments_to_create.extend(account_assignments)
 
         unique_assignments = {}
         for assignment in assignments_to_create:
-            assignment_tuple = tuple(assignment.items())        
+            assignment_tuple = tuple(assignment.items())
             if assignment_tuple not in unique_assignments:
                 unique_assignments[assignment_tuple] = assignment
 
