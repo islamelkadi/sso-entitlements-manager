@@ -1,6 +1,6 @@
 import os
 import pytest
-from app.lib.aws_sso_resolver import AwsResolver
+from app.lib.access_control_resolver import AwsResolver
 
 # Globals vars
 CWD = os.path.dirname(os.path.realpath(__file__))

@@ -63,7 +63,7 @@
             "type": "string",
             "enum": [
                 "OU",
-                "ACT"
+                "ACCOUNT"
             ]
         },
         "target_names": {

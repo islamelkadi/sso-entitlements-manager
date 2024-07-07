@@ -134,9 +134,9 @@ class AwsIdentityCentre:
             permission_sets.extend(page["PermissionSets"])
 
         described_permission_sets = []
-        for perm_set in permission_sets:
+        for permission_set in permission_sets:
             permission_set_info = self._sso_admin_client.describe_permission_set(
-                InstanceArn=self._identity_store_arn, PermissionSetArn=perm_set
+                InstanceArn=self._identity_store_arn, PermissionSetArn=permission_set
             )
             described_permission_sets.append(permission_set_info.get("PermissionSet"))
 

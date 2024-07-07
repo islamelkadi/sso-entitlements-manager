@@ -64,7 +64,7 @@ def convert_specific_keys_to_uppercase(item: dict, keys_to_uppercase: list = [])
                     if isinstance(item, dict):
                         processed_data[key].append(process_dict(item))
                     else:
-                        processed_data[key].append(item.upper() if isinstance(item, str) else item)
+                        processed_data[key].append(value.upper() if key in keys_to_uppercase and isinstance(item, str) else item)
             else:
                 processed_data[key] = value.upper() if (key in keys_to_uppercase and isinstance(value, str)) else value
         return processed_data
