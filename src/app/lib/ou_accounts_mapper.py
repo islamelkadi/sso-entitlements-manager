@@ -35,7 +35,8 @@ class AwsOrganizations:
 
     Methods:
     --------
-    __init__(root_ou_id: str, exclude_ou_name_list: list = [], exclude_account_name_list: list = []) -> None:
+    __init__(root_ou_id: str, exclude_ou_name_list: list = None,
+                exclude_account_name_list: list = []) -> None:
         Initializes the AwsOrganizations instance.
     _map_aws_organizational_units(parent_ou_id: str = "") -> None:
         Maps AWS organizational units starting from the given parent OU ID.
@@ -46,8 +47,8 @@ class AwsOrganizations:
     def __init__(
         self,
         root_ou_id: str,
-        exclude_ou_name_list: list = [],
-        exclude_account_name_list: list = [],
+        exclude_ou_name_list: list = None,
+        exclude_account_name_list: list = None,
     ) -> None:
         """
         Initializes the AwsOrganizations instance.
@@ -68,8 +69,12 @@ class AwsOrganizations:
         self.ou_account_map = {}
         self._ou_name_id_map = {}
         self._root_ou_id = root_ou_id
-        self._exclude_ou_name_list = exclude_ou_name_list
-        self._exclude_account_name_list = exclude_account_name_list
+        self._exclude_ou_name_list = (
+            [] if not exclude_ou_name_list else exclude_ou_name_list
+        )
+        self._exclude_account_name_list = (
+            [] if not exclude_account_name_list else exclude_account_name_list
+        )
 
         self._organizations_client = boto3.client("organizations")
 

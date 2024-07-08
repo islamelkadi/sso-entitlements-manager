@@ -1,3 +1,15 @@
+"""
+This module provides fixtures and helper functions for testing AWS Organizations,
+Identity Store, and SSO Admin services using the moto library and pytest framework.
+
+The module includes:
+- Helper functions to create and delete AWS Organizational Units (OUs) and accounts.
+- Fixtures to set up and tear down AWS environment variables.
+- Fixtures to mock AWS clients for Organizations, Identity Store, and SSO Admin services.
+- A fixture to set up the AWS environment, including OUs, accounts, Identity Center users,
+  groups, and permission sets.
+"""
+
 ################################################
 #                    Imports                   #
 ################################################
@@ -21,7 +33,7 @@ MONKEYPATCH = pytest.MonkeyPatch()
 
 
 def create_aws_ous_accounts(
-    organizations_client: boto3.client,
+    orgs_client: boto3.client,
     aws_organization_definitions: list[dict],
     root_ou_id: str,
     parent_ou_id: str = "",
@@ -34,7 +46,7 @@ def create_aws_ous_accounts(
 
     Parameters:
     ----------
-    - organizations_client: boto3.client
+    - orgs_client: boto3.client
         AWS Organizations client.
     - aws_organization_definitions: list[dict]
         List of dictionaries defining AWS organizational structure.
@@ -46,7 +58,7 @@ def create_aws_ous_accounts(
     for organization_resource in aws_organization_definitions:
         if organization_resource["type"] == "ORGANIZATIONAL_UNIT":
             # Create OU
-            nested_ou_id = organizations_client.create_organizational_unit(
+            nested_ou_id = orgs_client.create_organizational_unit(
                 ParentId=parent_ou_id if parent_ou_id else root_ou_id,
                 Name=organization_resource["name"],
             )["OrganizationalUnit"]["Id"]
@@ -54,7 +66,7 @@ def create_aws_ous_accounts(
             # Recursively setup OU
             if organization_resource["children"]:
                 create_aws_ous_accounts(
-                    organizations_client,
+                    orgs_client,
                     organization_resource["children"],
                     root_ou_id,
                     nested_ou_id,
@@ -62,13 +74,13 @@ def create_aws_ous_accounts(
 
         elif organization_resource["type"] == "ACCOUNT":
             # Create account
-            account_id = organizations_client.create_account(
+            account_id = orgs_client.create_account(
                 Email=f"{organization_resource['name']}@testing.com",
                 AccountName=organization_resource["name"],
             )["CreateAccountStatus"]["AccountId"]
 
             # Move account to OU
-            organizations_client.move_account(
+            orgs_client.move_account(
                 AccountId=account_id,
                 SourceParentId=root_ou_id,
                 DestinationParentId=parent_ou_id,
@@ -76,7 +88,7 @@ def create_aws_ous_accounts(
 
 
 def delete_aws_ous_accounts(
-    organizations_client: boto3.client, root_ou_id: str, parent_ou_id: str = ""
+    orgs_client: boto3.client, root_ou_id: str, parent_ou_id: str = ""
 ) -> None:
     """
     Recursively delete AWS accounts from nested organizational units (OUs).
@@ -84,7 +96,7 @@ def delete_aws_ous_accounts(
     Parameters:
     ----------
 
-    - organizations_client: boto3.client
+    - orgs_client: boto3.client
         AWS Organizations client.
     - root_ou_id: str
         Root organizational unit ID.
@@ -94,17 +106,15 @@ def delete_aws_ous_accounts(
 
     # Function to delete accounts in the current OU
     def delete_accounts_in_ou(ou_id: str) -> None:
-        accounts_to_delete = organizations_client.list_accounts_for_parent(
-            ParentId=ou_id
-        )["Accounts"]
+        accounts_to_delete = orgs_client.list_accounts_for_parent(ParentId=ou_id)[
+            "Accounts"
+        ]
         for account in accounts_to_delete:
-            organizations_client.remove_account_from_organization(
-                AccountId=account["Id"]
-            )
+            orgs_client.remove_account_from_organization(AccountId=account["Id"])
 
     # Function to recursively delete accounts in child OUs
     def delete_accounts_in_child_ous(parent_id: str) -> None:
-        child_ous_paginator = organizations_client.get_paginator("list_children")
+        child_ous_paginator = orgs_client.get_paginator("list_children")
         for page in child_ous_paginator.paginate(
             ParentId=parent_id, ChildType="ORGANIZATIONAL_UNIT"
         ):
@@ -202,9 +212,9 @@ def sso_admin_client() -> boto3.client:
 @pytest.fixture(scope="session")
 def setup_aws_environment(
     request: str,
-    organizations_client: boto3.client,
-    identity_store_client: boto3.client,
-    sso_admin_client: boto3.client,
+    organizations_client: boto3.client,  # pylint: disable=W0621
+    identity_store_client: boto3.client,  # pylint: disable=W0621
+    sso_admin_client: boto3.client,  # pylint: disable=W0621
 ) -> dict:
     """
     Fixture to setup AWS environment:
@@ -247,7 +257,7 @@ def setup_aws_environment(
     # Load JSON definitions
     cwd = os.path.dirname(os.path.realpath(__file__))
     organizations_map_path = os.path.join(cwd, "configs", "organizations", param_value)
-    with open(organizations_map_path) as fp:
+    with open(organizations_map_path, "r", encoding="utf-8") as fp:
         aws_environment_details = json.load(fp)
 
     aws_organizations_definitions = aws_environment_details.get("aws_organizations", [])
@@ -262,7 +272,7 @@ def setup_aws_environment(
         root_ou_id = organizations_client.list_roots()["Roots"][0]["Id"]
 
         create_aws_ous_accounts(
-            organizations_client=organizations_client,
+            orgs_client=organizations_client,
             aws_organization_definitions=aws_organizations_definitions,
             root_ou_id=root_ou_id,
         )
@@ -306,7 +316,7 @@ def setup_aws_environment(
         if root_ou_id:
             # Remove AWS accounts from organization
             delete_aws_ous_accounts(
-                organizations_client=organizations_client, root_ou_id=root_ou_id
+                orgs_client=organizations_client, root_ou_id=root_ou_id
             )
 
             # Delete AWS resources or undo changes as needed

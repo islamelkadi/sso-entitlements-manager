@@ -4,24 +4,39 @@ Module: test_utils.py
 Unit tests for utility functions in app.lib.utils module.
 
 Tests:
-- test_convert_list_to_dict_basic_conversion: Test basic conversion of list of dictionaries to dictionary with specified key as index.
-- test_convert_list_to_dict_empty_list: Test conversion of empty list to empty dictionary.
-- test_convert_list_to_dict_duplicate_keys: Test handling of duplicate keys during conversion.
-- test_convert_list_to_dict_missing_key_attr: Test error handling when key attribute is missing in list of dictionaries.
-- test_convert_specific_keys_to_uppercase_single_flat_key: Test conversion of specific keys to uppercase in a flat dictionary.
-- test_convert_specific_keys_to_uppercase_nested_keys: Test conversion of specific keys to uppercase in nested dictionaries.
-- test_convert_specific_keys_to_uppercase_no_keys_to_uppercase: Test conversion when no keys are specified to be converted to uppercase.
-- test_convert_specific_keys_to_uppercase_mixed_data_types: Test conversion of specific keys to uppercase in a dictionary with mixed data types.
-- test_load_yaml_file: Test loading YAML file using mock_open and patch decorators.
-- test_load_json_file: Test loading JSON file using mock_open and patch decorators.
-- test_load_unsupported_format: Test error handling when loading unsupported file format.
+- test_convert_list_to_dict_basic_conversion:
+    Test basic conversion of list of dictionaries to dictionary with specified key as index.
+- test_convert_list_to_dict_empty_list:
+    Test conversion of empty list to empty dictionary.
+- test_convert_list_to_dict_duplicate_keys:
+    Test handling of duplicate keys during conversion.
+- test_convert_list_to_dict_missing_key_attr:
+    Test error handling when key attribute is missing in list of dictionaries.
+- test_convert_specific_keys_to_uppercase_single_flat_key:
+    Test conversion of specific keys to uppercase in a flat dictionary.
+- test_convert_specific_keys_to_uppercase_nested_keys:
+    Test conversion of specific keys to uppercase in nested dictionaries.
+- test_convert_specific_keys_to_uppercase_no_keys_to_uppercase:
+    Test conversion when no keys are specified to be converted to uppercase.
+- test_convert_specific_keys_to_uppercase_mixed_data_types:
+    Test conversion of specific keys to uppercase in a dictionary with mixed data types.
+- test_load_yaml_file:
+    Test loading YAML file using mock_open and patch decorators.
+- test_load_json_file:
+    Test loading JSON file using mock_open and patch decorators.
+- test_load_unsupported_format:
+    Test error handling when loading unsupported file format.
 """
-
 import json
 import datetime
 from unittest.mock import mock_open, patch
+import yaml
 import pytest
-from app.lib.utils import *
+from app.lib.utils import (
+    convert_list_to_dict,
+    convert_specific_keys_to_uppercase,
+    load_file,
+)
 
 
 YAML_CONTENT = """
@@ -73,7 +88,7 @@ def test_convert_list_to_dict_empty_list() -> None:
     result = convert_list_to_dict(obj_list, key_attr)
 
     # Assert
-    assert result == {}
+    assert not result
 
 
 def test_convert_list_to_dict_duplicate_keys() -> None:
@@ -239,7 +254,7 @@ def test_load_yaml_file(mock_file_open) -> None:
     result = load_file(filepath)
 
     # Assert
-    mock_file_open.assert_called_once_with(filepath, "r")
+    mock_file_open.assert_called_once_with(filepath, "r", encoding="utf-8")
     assert result == yaml.safe_load(YAML_CONTENT)
 
 
@@ -255,7 +270,7 @@ def test_load_json_file(mock_file_open) -> None:
     result = load_file(filepath)
 
     # Assert
-    mock_file_open.assert_called_once_with(filepath, "r")
+    mock_file_open.assert_called_once_with(filepath, "r", encoding="utf-8")
     assert result == json.loads(JSON_CONTENT)
 
 

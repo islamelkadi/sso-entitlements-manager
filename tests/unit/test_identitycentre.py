@@ -1,3 +1,4 @@
+# pylint: disable=E1120
 """
 Unit tests to validate functionality of AwsIdentityCentre from identity_center_mapper.
 

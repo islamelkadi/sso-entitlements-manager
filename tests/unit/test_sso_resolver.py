@@ -1,8 +1,10 @@
+# pylint: disable=R0801,W0613
 """
+TBD
 """
 import os
 import pytest
-from app.lib.access_control_resolver import AwsResolver
+from app.lib.access_control_resolver import AwsAccessResolver
 
 # Globals vars
 CWD = os.path.dirname(os.path.realpath(__file__))
@@ -21,7 +23,7 @@ MANIFEST_SCHEMA_DEFINITION_FILEPATH = os.path.join(
 @pytest.mark.parametrize("setup_aws_environment", ["aws_org_1.json"], indirect=True)
 def test_create_rbac_assignments(setup_aws_environment: pytest.fixture) -> None:
     """
-    Test case to verify creating RBAC assignments using AwsResolver.
+    Test case to verify creating RBAC assignments using AwsAccessResolver.
 
     Parameters:
     ----------
@@ -31,7 +33,7 @@ def test_create_rbac_assignments(setup_aws_environment: pytest.fixture) -> None:
 
     Raises:
     ------
-    AssertionError: If the RBAC assignments created via AwsResolver
+    AssertionError: If the RBAC assignments created via AwsAccessResolver
     do not match expected definitions.
     """
     # Arrange
@@ -39,7 +41,7 @@ def test_create_rbac_assignments(setup_aws_environment: pytest.fixture) -> None:
         CWD, "..", "configs", "manifests", "multiple_rules_valid.yaml"
     )
 
-    AwsResolver(MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath)
+    AwsAccessResolver(MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath)
 
     # Act
     # (Assuming further actions are performed here to create RBAC assignments)

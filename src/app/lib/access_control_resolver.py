@@ -4,15 +4,15 @@ control assignments based on ingested customer manifest file.
 """
 
 import os
-import jsonschema
 from typing import Optional
+import jsonschema
 import boto3
 from .ou_accounts_mapper import AwsOrganizations
 from .identity_center_mapper import AwsIdentityCentre
 from .utils import load_file, convert_specific_keys_to_uppercase
 
 
-class AwsResolver:
+class AwsAccessResolver:
     """
     Class for resolving AWS resources and creating RBAC assignments based on a manifest file.
 
@@ -60,7 +60,7 @@ class AwsResolver:
     Methods:
     --------
     __init__(self, schema_definition_filepath: str, manifest_definition_filepath: str) -> None
-        Initializes the AwsResolver instance with schema and manifest definitions.
+        Initializes the AwsAccessResolver instance with schema and manifest definitions.
     _is_valid_manifest_file(self) -> None
         Validates the manifest definition against the schema definition.
     _is_valid_aws_resource(self, resource_name: str, resource_type: str) -> Optional[str]
@@ -77,7 +77,7 @@ class AwsResolver:
         self, schema_definition_filepath: str, manifest_definition_filepath: str
     ) -> None:
         """
-        Initializes the AwsResolver instance with schema and manifest definitions.
+        Initializes the AwsAccessResolver instance with schema and manifest definitions.
 
         Parameters:
         ----------
@@ -88,9 +88,10 @@ class AwsResolver:
 
         Usage:
         ------
-        aws_resolver = AwsResolver("path/to/schema.json", "path/to/manifest.json")
+        aws_resolver = AwsAccessResolver("path/to/schema.json", "path/to/manifest.json")
         """
 
+        self._s3_client = boto3.client("s3")
         self._sso_admin_client = boto3.client("sso-admin")
 
         self._excluded_ou_names = []

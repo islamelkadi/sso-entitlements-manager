@@ -4,10 +4,9 @@ various python modules in this repository.
 """
 
 import json
-import yaml
 import logging
-import functools
 import dataclasses
+import yaml
 
 LOGGER = logging.getLogger(__name__)
 
@@ -26,8 +25,9 @@ def convert_list_to_dict(obj_list: list, key_attr: str) -> dict:
     Returns:
     -------
     dict:
-        A dictionary where the keys are the values of the specified attribute from each dictionary in the input list,
-        and the values are the original dictionaries.
+        A dictionary where the keys are the values of the specified attribute
+        from each dictionary in the input list, and the values are the original
+        dictionaries.
     """
     result_dict = {}
     for obj in obj_list:
@@ -36,7 +36,7 @@ def convert_list_to_dict(obj_list: list, key_attr: str) -> dict:
 
 
 def convert_specific_keys_to_uppercase(
-    item: dict, keys_to_uppercase: list = []
+    item: dict, keys_to_uppercase: list = None
 ) -> dict:
     """
     Recursively traverse a dictionary and convert the values of specific keys to uppercase.
@@ -53,6 +53,7 @@ def convert_specific_keys_to_uppercase(
     dict:
         Dictionary with specified string values converted to uppercase.
     """
+    keys_to_uppercase = [] if not keys_to_uppercase else keys_to_uppercase
 
     def process_dict(data: dict) -> dict:
         processed_data = {}
@@ -101,10 +102,10 @@ def load_file(filepath: str) -> dict:
         If the file format is not supported (only .yaml, .yml, and .json are supported).
     """
     if filepath.endswith((".yaml", ".yml")):
-        with open(filepath, "r") as file:
+        with open(filepath, "r", encoding="utf-8") as file:
             return yaml.safe_load(file)
     elif filepath.endswith(".json"):
-        with open(filepath, "r") as file:
+        with open(filepath, "r", encoding="utf-8") as file:
             return json.load(file)
     else:
         raise ValueError(

@@ -3,7 +3,6 @@ Regex based rules engine for processing regex input for the
 purpose of assiging permission sets.
 """
 import os
-import itertools
 from http import HTTPStatus
 
 from aws_lambda_powertools import Logger, Tracer
@@ -12,14 +11,29 @@ from aws_lambda_powertools.event_handler import Response, content_types
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from aws_lambda_powertools.utilities.data_classes import EventBridgeEvent, event_source
 
+from app.lib.access_control_resolver import AwsAccessResolver
+
+# Globals
+CWD = os.path.dirname(os.path.realpath(__file__))
+MANIFEST_SCHEMA_DEFINITION_FILEPATH = os.path.join(
+    CWD,
+    "schemas",
+    "manifest_schema_definition.json",
+)
 
 # Env vars
 LOG_LEVEL = os.getenv("LOG_LEVEL")
 TRACER_SERVICE_NAME = os.getenv("TRACER_SERVICE_NAME")
+MANIFEST_FILE_S3_LOCATION = os.getenv("MANIFEST_FILE_S3_LOCATION")
 
 # AWS Lambda powertool objects & class instances
 TRACER = Tracer(service=TRACER_SERVICE_NAME)
 LOGGER = Logger(service=TRACER_SERVICE_NAME, level=LOG_LEVEL)
+
+# Class instance
+ACCESS_RESOLVER = AwsAccessResolver(
+    MANIFEST_FILE_S3_LOCATION, MANIFEST_SCHEMA_DEFINITION_FILEPATH
+)
 
 
 # Lambda Routes
@@ -29,34 +43,6 @@ def put_rbac_sso_assignments():
     Assignments.
     """
 
-    # Get active AWS accounts
-    aws_organizational_map = py_aws_organizations.describe_aws_organizational_unit()
-    active_aws_accounts = list(itertools.chain(*aws_organizational_map.values()))
-
-    # Get SSO groups & permission sets
-    aws_sso_groups = py_aws_identitycenter.list_sso_groups()
-    permission_sets = py_aws_identitycenter.list_permission_sets()
-
-    # Get SSO assignment rules
-    sso_assignment_rules = py_ddb.batch_query_items(
-        key="RULES", range_begins_with="RULE_"
-    )
-
-    # Create SSO assignment
-    py_aws_rbac_resolver.create_assignments_mapping(
-        aws_accounts=active_aws_accounts,
-        sso_groups=aws_sso_groups,
-        permission_sets=permission_sets,
-        assignment_rules=sso_assignment_rules,
-    )
-
-    # return {
-    #     "active_aws_accounts": active_aws_accounts,
-    #     "sso_groups": sso_groups,
-    #     "permission_sets": permission_sets,
-    #     "assignment_rules": assifgnment_rules,
-    # }
-
 
 # Lambda handler
 @TRACER.capture_lambda_handler
@@ -64,7 +50,9 @@ def put_rbac_sso_assignments():
 @LOGGER.inject_lambda_context(
     log_event=True, correlation_id_path=correlation_paths.EVENT_BRIDGE
 )
-def lambda_handler(event: EventBridgeEvent, context: LambdaContext):
+def lambda_handler(
+    event: EventBridgeEvent, context: LambdaContext
+):  # pylint: disable=W0613
     """
     Function to create or retrieve regex rules for SSO permission
     set assignments

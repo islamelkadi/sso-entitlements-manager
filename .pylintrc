@@ -1,3 +1,5 @@
 [MESSAGE CONTROL]
 
-disable=E0401,W1508,R0801,C0206,E1120,W0613
+disable=R0902, # Too many instance attributes
+    R0903, # Too few public methods
+    R0914 # Too many local variables

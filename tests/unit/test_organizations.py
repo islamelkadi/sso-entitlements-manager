@@ -1,3 +1,4 @@
+# pylint: disable=E1120
 """
 Unit tests for AwsOrganizations to testr listing AWS accounts, handling organizational units,
 and excluding specific accounts and organizational units.

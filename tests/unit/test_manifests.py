@@ -1,3 +1,4 @@
+# pylint: disable=R0801,W0613
 """
 Unit tests to test manifest file ingestion and validate different
 YAML configuration files against a JSON schema definition.
@@ -32,7 +33,7 @@ Tests:
 import os
 import pytest
 import jsonschema
-from app.lib.access_control_resolver import AwsResolver
+from app.lib.access_control_resolver import AwsAccessResolver
 
 # Globals vars
 CWD = os.path.dirname(os.path.realpath(__file__))
@@ -70,7 +71,9 @@ def test_single_rule_invalid_rules_target_type(setup_aws_environment) -> None:
     # Assert
     with pytest.raises(jsonschema.ValidationError):
         # Act
-        AwsResolver(MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath)
+        AwsAccessResolver(
+            MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath
+        )
 
 
 @pytest.mark.parametrize("setup_aws_environment", ["aws_org_1.json"], indirect=True)
@@ -100,7 +103,9 @@ def test_multiple_rules_invalid_rules_target_type(setup_aws_environment) -> None
     # Assert
     with pytest.raises(jsonschema.ValidationError):
         # Act
-        AwsResolver(MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath)
+        AwsAccessResolver(
+            MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath
+        )
 
 
 @pytest.mark.parametrize("setup_aws_environment", ["aws_org_1.json"], indirect=True)
@@ -126,7 +131,9 @@ def test_single_rule_invalid_rules_access_type(setup_aws_environment) -> None:
     # Assert
     with pytest.raises(jsonschema.ValidationError):
         # Act
-        AwsResolver(MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath)
+        AwsAccessResolver(
+            MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath
+        )
 
 
 @pytest.mark.parametrize("setup_aws_environment", ["aws_org_1.json"], indirect=True)
@@ -156,7 +163,9 @@ def test_multiple_rules_invalid_rules_access_type(setup_aws_environment) -> None
     # Assert
     with pytest.raises(jsonschema.ValidationError):
         # Act
-        AwsResolver(MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath)
+        AwsAccessResolver(
+            MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath
+        )
 
 
 @pytest.mark.parametrize("setup_aws_environment", ["aws_org_1.json"], indirect=True)
@@ -186,7 +195,9 @@ def test_single_rule_missing_permission_set_name(setup_aws_environment) -> None:
     # Assert
     with pytest.raises(jsonschema.ValidationError):
         # Act
-        AwsResolver(MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath)
+        AwsAccessResolver(
+            MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath
+        )
 
 
 @pytest.mark.parametrize("setup_aws_environment", ["aws_org_1.json"], indirect=True)
@@ -216,7 +227,9 @@ def test_multiple_rules_missing_permission_set_name(setup_aws_environment) -> No
     # Assert
     with pytest.raises(jsonschema.ValidationError):
         # Act
-        AwsResolver(MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath)
+        AwsAccessResolver(
+            MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath
+        )
 
 
 @pytest.mark.parametrize("setup_aws_environment", ["aws_org_1.json"], indirect=True)
@@ -242,7 +255,9 @@ def test_single_rule_missing_principal_name(setup_aws_environment) -> None:
     # Assert
     with pytest.raises(jsonschema.ValidationError):
         # Act
-        AwsResolver(MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath)
+        AwsAccessResolver(
+            MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath
+        )
 
 
 @pytest.mark.parametrize("setup_aws_environment", ["aws_org_1.json"], indirect=True)
@@ -268,7 +283,9 @@ def test_multiple_rules_missing_principal_name(setup_aws_environment) -> None:
     # Assert
     with pytest.raises(jsonschema.ValidationError):
         # Act
-        AwsResolver(MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath)
+        AwsAccessResolver(
+            MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath
+        )
 
 
 @pytest.mark.parametrize("setup_aws_environment", ["aws_org_1.json"], indirect=True)
@@ -294,7 +311,9 @@ def test_single_rule_invalid_principal_type(setup_aws_environment) -> None:
     # Assert
     with pytest.raises(jsonschema.ValidationError):
         # Act
-        AwsResolver(MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath)
+        AwsAccessResolver(
+            MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath
+        )
 
 
 @pytest.mark.parametrize("setup_aws_environment", ["aws_org_1.json"], indirect=True)
@@ -320,7 +339,9 @@ def test_multiple_rules_invalid_principal_type(setup_aws_environment) -> None:
     # Assert
     with pytest.raises(jsonschema.ValidationError):
         # Act
-        AwsResolver(MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath)
+        AwsAccessResolver(
+            MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath
+        )
 
 
 @pytest.mark.parametrize("setup_aws_environment", ["aws_org_1.json"], indirect=True)
@@ -346,7 +367,9 @@ def test_single_rule_invalid_rule_type(setup_aws_environment) -> None:
     # Assert
     with pytest.raises(jsonschema.ValidationError):
         # Act
-        AwsResolver(MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath)
+        AwsAccessResolver(
+            MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath
+        )
 
 
 @pytest.mark.parametrize("setup_aws_environment", ["aws_org_1.json"], indirect=True)
@@ -372,4 +395,6 @@ def test_multiple_rule_invalid_rule_type(setup_aws_environment) -> None:
     # Assert
     with pytest.raises(jsonschema.ValidationError):
         # Act
-        AwsResolver(MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath)
+        AwsAccessResolver(
+            MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath
+        )
