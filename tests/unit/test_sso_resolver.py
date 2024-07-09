@@ -31,7 +31,6 @@ Tests:
 """
 
 import os
-import itertools
 from typing import Dict, List, Set, Tuple
 
 import pytest
@@ -113,7 +112,6 @@ def get_unique_combinations(
     return unique_combinations
 
 # Test cases
-@pytest.mark.run(order=1)
 @pytest.mark.parametrize("setup_aws_environment, manifest_filename", [
     ("aws_org_1.json", "single_rule_invalid_target_type.yaml"),
     ("aws_org_1.json", "multiple_rules_invalid_target_type.yaml"),
@@ -151,7 +149,6 @@ def test_rules_invalid_manifest_schema(setup_aws_environment: AwsEnvironment, ma
             MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath
         )
 
-@pytest.mark.run(order=2)
 @pytest.mark.parametrize("setup_aws_environment, manifest_filename", [
     ("aws_org_1.json", "multiple_rules_valid.yaml"),
     ("aws_org_1.json", "multiple_rules_invalid_some_ous.yaml"),
