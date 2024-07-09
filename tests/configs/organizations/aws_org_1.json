@@ -117,8 +117,8 @@
             "name": "group1",
             "description": "group1 description",
             "members": [
-                "user1@testing.com",
-                "user2@testing.com"
+                "user1",
+                "user2"
             ]
         },
         {
@@ -126,8 +126,8 @@
             "name": "group2",
             "description": "group2 description",
             "members": [
-                "user1@testing.com",
-                "user2@testing.com"
+                "user1",
+                "user2"
             ]
         }
     ]

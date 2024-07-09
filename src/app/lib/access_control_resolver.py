@@ -104,6 +104,9 @@ class AwsAccessResolver:
         self._invalid_manifest_file_user_names = []
         self._invalid_manifest_file_permission_sets = []
 
+        self.failed_rbac_assignments = []
+        self.successful_rbac_assignments = []
+
         self._root_ou_id = os.getenv("ROOT_OU_ID")
         self._identity_store_id = os.getenv("IDENTITY_STORE_ID")
         self._identity_store_arn = os.getenv("IDENTITY_STORE_ARN")
@@ -345,4 +348,10 @@ class AwsAccessResolver:
         for assignment in unique_assignments_to_create:
             assignment["InstanceArn"] = self._identity_store_arn
             assignment["TargetType"] = "AWS_ACCOUNT"
-            self._sso_admin_client.create_account_assignment(**assignment)
+            try:
+                response = self._sso_admin_client.create_account_assignment(
+                    **assignment
+                )
+                self.successful_rbac_assignments.append(response)
+            except Exception as e:
+                self.failed_rbac_assignments.append(response)

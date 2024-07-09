@@ -77,7 +77,7 @@ class AwsIdentityCentre:
         )
 
         self.sso_users = convert_specific_keys_to_uppercase(
-            convert_list_to_dict(self._list_sso_users(), "DisplayName")
+            convert_list_to_dict(self._list_sso_users(), "UserName")
         )
         self.sso_groups = convert_specific_keys_to_uppercase(
             convert_list_to_dict(self._list_sso_groups(), "DisplayName")

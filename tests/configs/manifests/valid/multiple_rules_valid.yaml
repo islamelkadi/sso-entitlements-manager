@@ -18,7 +18,7 @@ rules:
       - prod
     access_type: RBAC
     permission_set_name: Adminstrator
-    principal_name: user1
+    principal_name: user1@testing.com
     principal_type: USER
   - target_type: ACCOUNT
     target_names:
@@ -27,5 +27,5 @@ rules:
       - workload_2_test
     access_type: RBAC
     permission_set_name: Adminstrator
-    principal_name: user1
+    principal_name: user1@testing.com
     principal_type: USER
