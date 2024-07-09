@@ -11,11 +11,4 @@ rules:
     permission_set_name: Adminstrator
     principal_name: group1
     principal_type: GROUP
-  - target_type: OU
-    target_names:
-      - ou_2
-    access_type: RBAC
-    permission_set_name: Adminstrator
-    principal_name: group1
-    principal_type: GROUP
-    rule_type: FAIL
+    rule_type: 1234

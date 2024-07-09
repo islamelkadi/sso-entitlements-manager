@@ -334,8 +334,9 @@ def setup_aws_environment(
             )
             for user in sso_users:
                 identity_store_client.delete_user(
-                    IdentityStoreId=identity_store_arn, UserId=user["UserId"]
+                    IdentityStoreId=identity_store_id, UserId=user["UserId"]
                 )
+
 
             # Delete SSO groups
             sso_groups_paginator = identity_store_client.get_paginator("list_groups")
@@ -349,7 +350,7 @@ def setup_aws_environment(
             )
             for group in sso_groups:
                 identity_store_client.delete_group(
-                    IdentityStoreId=identity_store_arn, GroupId=group["GroupId"]
+                    IdentityStoreId=identity_store_id, GroupId=group["GroupId"]
                 )
 
             # Delete permission sets
