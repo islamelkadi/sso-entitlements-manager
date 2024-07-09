@@ -51,14 +51,15 @@ MANIFEST_SCHEMA_DEFINITION_FILEPATH = os.path.join(
 )
 
 # Type Definitions
-AwsEnvironment = Dict[str, List[Dict[str, str]]]
-OuMap = Dict[str, Dict[str, List[Dict[str, str]]]]
-SsoMap = Dict[str, Dict[str, str]]
-ManifestFile = Dict[str, List[Dict[str, List[str]]]]
-UniqueCombination = Set[Tuple[str, str, str]]
+AWS_ENVIRONMENT = Dict[str, List[Dict[str, str]]]
+OU_MAP = Dict[str, Dict[str, List[Dict[str, str]]]]
+SSO_MAP = Dict[str, Dict[str, str]]
+MANIFEST_FILE = Dict[str, List[Dict[str, List[str]]]]
+ACCOUNT_ASSIGNMENT = Set[Tuple[str, str, str]]
+
 
 # Helper functions
-def get_valid_accounts(ou_map: OuMap) -> List[str]:
+def get_valid_accounts(ou_map: OU_MAP) -> List[str]:
     valid_accounts = []
     for ou in ou_map.values():
         for child in ou["children"]:
@@ -66,7 +67,7 @@ def get_valid_accounts(ou_map: OuMap) -> List[str]:
                 valid_accounts.append(child["name"])
     return valid_accounts
 
-def get_ignore_accounts(manifest_file: ManifestFile, ou_map: OuMap) -> Set[str]:
+def get_ignore_accounts(manifest_file: MANIFEST_FILE, ou_map: OU_MAP) -> Set[str]:
     ignore_accounts = set()
     for ignore_rule in manifest_file.get("ignore", []):
         if ignore_rule["target_type"] == "ACCOUNT":
@@ -81,14 +82,14 @@ def get_ignore_accounts(manifest_file: ManifestFile, ou_map: OuMap) -> Set[str]:
     return ignore_accounts
 
 def get_unique_combinations(
-    manifest_file: ManifestFile,
-    sso_user_map: SsoMap,
-    sso_group_map: SsoMap,
-    permission_set_map: SsoMap,
-    ou_map: OuMap,
+    manifest_file: MANIFEST_FILE,
+    sso_user_map: SSO_MAP,
+    sso_group_map: SSO_MAP,
+    permission_set_map: SSO_MAP,
+    ou_map: OU_MAP,
     valid_accounts: List[str],
     ignore_accounts: Set[str]
-) -> UniqueCombination:
+) -> ACCOUNT_ASSIGNMENT:
     unique_combinations = set()
     for rule in manifest_file.get("rules", []):
         if rule["principal_type"] == "USER" and rule["principal_name"] not in sso_user_map:
@@ -129,9 +130,8 @@ def get_unique_combinations(
     ("aws_org_1.json", "multiple_rules_invalid_rule_type_datatype.yaml")
 
 ], indirect=["setup_aws_environment"])
-def test_rules_invalid_manifest_schema(setup_aws_environment: AwsEnvironment, manifest_filename: str) -> None:
+def test_rules_invalid_manifest_schema(setup_aws_environment: AWS_ENVIRONMENT, manifest_filename: str) -> None:
     # Arrange
-
     # Load manfiest files
     manifest_definition_filepath = os.path.join(
         CWD,
@@ -158,7 +158,7 @@ def test_rules_invalid_manifest_schema(setup_aws_environment: AwsEnvironment, ma
     ("aws_org_1.json", "multiple_rules_invalid_some_permission_sets.yaml"),
     ("aws_org_1.json", "multiple_rules_invalid_all_permission_sets.yaml"),
 ], indirect=["setup_aws_environment"])
-def test_rules_valid_manifest_schema(setup_aws_environment: AwsEnvironment, manifest_filename: str) -> None:
+def test_rules_valid_manifest_schema(setup_aws_environment: AWS_ENVIRONMENT, manifest_filename: str) -> None:
     # Load AWS env definitions
     ou_map = convert_list_to_dict(setup_aws_environment["aws_organization_definitions"], "name")
     sso_user_map = convert_list_to_dict(setup_aws_environment["aws_sso_user_definitions"], "username")

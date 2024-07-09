@@ -11,10 +11,10 @@ Tests:
 """
 
 import itertools
+from typing import List
 import boto3
 import pytest
 from app.lib.ou_accounts_mapper import AwsOrganizations
-
 
 def test_missing_constructor_parameter() -> None:
     """
@@ -45,8 +45,8 @@ def test_missing_constructor_parameter() -> None:
 def test_list_active_included_aws_accounts(
     organizations_client: boto3.client,
     setup_aws_environment: pytest.fixture,
-    exclude_specific_ous: list,
-    exclude_specific_accounts: list
+    exclude_specific_ous: List[str],
+    exclude_specific_accounts: List[str]
 ) -> None:
     """
     Test case to verify listing active AWS accounts with optional exclusion of specific OUs and accounts.
