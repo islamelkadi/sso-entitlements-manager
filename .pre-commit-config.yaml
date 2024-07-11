@@ -7,37 +7,41 @@ repos:
         language: python
         types:
           - python
+        args:
+          - -p 'test_*.py' -v
+        additional_dependencies: []
+        pass_filenames: false
         stages:
           - pre-push
 
-  # - repo: https://github.com/pre-commit/pre-commit-hooks
-  #   rev: v4.6.0
-  #   hooks:
-  #     - id: end-of-file-fixer
-  #       stages:
-  #         - pre-push
-  #     - id: trailing-whitespace
-  #     - id: check-added-large-files
-  #       stages:
-  #         - pre-push
-  #     - id: check-ast
-  #       stages:
-  #         - pre-push
-  #     - id: check-docstring-first
-  #       stages:
-  #         - pre-push
-  #     - id: check-json
-  #       stages:
-  #         - pre-push
-  #     - id: check-merge-conflict
-  #       stages:
-  #         - pre-push
-  #     - id: check-toml
-  #       stages:
-  #         - pre-push
-  #     - id: debug-statements
-  #       stages:
-  #         - pre-push
-  #     - id: detect-private-key
-  #       stages:
-  #         - pre-push
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: end-of-file-fixer
+        stages:
+          - pre-push
+      - id: trailing-whitespace
+      - id: check-added-large-files
+        stages:
+          - pre-push
+      - id: check-ast
+        stages:
+          - pre-push
+      - id: check-docstring-first
+        stages:
+          - pre-push
+      - id: check-json
+        stages:
+          - pre-push
+      - id: check-merge-conflict
+        stages:
+          - pre-push
+      - id: check-toml
+        stages:
+          - pre-push
+      - id: debug-statements
+        stages:
+          - pre-push
+      - id: detect-private-key
+        stages:
+          - pre-push
