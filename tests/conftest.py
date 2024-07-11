@@ -337,7 +337,6 @@ def setup_aws_environment(
                     IdentityStoreId=identity_store_id, UserId=user["UserId"]
                 )
 
-
             # Delete SSO groups
             sso_groups_paginator = identity_store_client.get_paginator("list_groups")
             sso_groups_iterator = sso_groups_paginator.paginate(

@@ -21,7 +21,7 @@ env:
 .PHONY: unittest
 unittest:
 	@echo "Running unit tests"
-	@pytest tests/aws/unit
+	@pytest tests/unit
 
 # Formatting & Linting
 .PHONY: format

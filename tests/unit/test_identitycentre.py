@@ -39,6 +39,7 @@ def test_missing_default_constructor_parameters() -> None:
     with pytest.raises(TypeError):
         AwsIdentityCentre(identity_store_arn=identity_store_arn)
 
+
 @pytest.mark.parametrize("setup_aws_environment", ["aws_org_1.json"], indirect=True)
 def test_list_identity_center_entities(setup_aws_environment: pytest.fixture) -> None:
     """
@@ -63,6 +64,12 @@ def test_list_identity_center_entities(setup_aws_environment: pytest.fixture) ->
     py_aws_sso = AwsIdentityCentre(identity_store_id, identity_store_arn)
 
     # Assert
-    assert len(py_aws_sso.sso_users) == len(setup_aws_environment["aws_sso_user_definitions"])
-    assert len(py_aws_sso.sso_groups) == len(setup_aws_environment["aws_sso_group_definitions"])
-    assert len(py_aws_sso.permission_sets) == len(setup_aws_environment["aws_permission_set_definitions"])
+    assert len(py_aws_sso.sso_users) == len(
+        setup_aws_environment["aws_sso_user_definitions"]
+    )
+    assert len(py_aws_sso.sso_groups) == len(
+        setup_aws_environment["aws_sso_group_definitions"]
+    )
+    assert len(py_aws_sso.permission_sets) == len(
+        setup_aws_environment["aws_permission_set_definitions"]
+    )

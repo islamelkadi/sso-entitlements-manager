@@ -2,4 +2,5 @@
 
 disable=R0902, # Too many instance attributes
     R0903, # Too few public methods
+    R0913, # Too many arguments
     R0914 # Too many local variables

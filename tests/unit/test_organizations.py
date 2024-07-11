@@ -16,6 +16,7 @@ import boto3
 import pytest
 from app.lib.ou_accounts_mapper import AwsOrganizations
 
+
 def test_missing_constructor_parameter() -> None:
     """
     Test case to verify that AwsOrganizations raises TypeError when
@@ -30,6 +31,7 @@ def test_missing_constructor_parameter() -> None:
         # Act
         AwsOrganizations()
 
+
 @pytest.mark.parametrize(
     "setup_aws_environment, exclude_specific_ous, exclude_specific_accounts",
     [
@@ -37,19 +39,28 @@ def test_missing_constructor_parameter() -> None:
         ("aws_org_1.json", ["suspended"], []),
         ("aws_org_1.json", ["suspended", "prod"], []),
         ("aws_org_1.json", [], ["workload_1_dev"]),
-        ("aws_org_1.json", [], ["workload_1_dev", "workload_2_test", "workload_2_prod"]),
-        ("aws_org_1.json", ["suspended", "prod"], ["workload_1_dev", "workload_2_test"])
+        (
+            "aws_org_1.json",
+            [],
+            ["workload_1_dev", "workload_2_test", "workload_2_prod"],
+        ),
+        (
+            "aws_org_1.json",
+            ["suspended", "prod"],
+            ["workload_1_dev", "workload_2_test"],
+        ),
     ],
-    indirect=["setup_aws_environment"]
+    indirect=["setup_aws_environment"],
 )
 def test_list_active_included_aws_accounts(
     organizations_client: boto3.client,
     setup_aws_environment: pytest.fixture,
     exclude_specific_ous: List[str],
-    exclude_specific_accounts: List[str]
+    exclude_specific_accounts: List[str],
 ) -> None:
     """
-    Test case to verify listing active AWS accounts with optional exclusion of specific OUs and accounts.
+    Test case to verify listing active AWS accounts with optional
+    exclusion of specific OUs and accounts.
 
     Parameters:
     ----------
@@ -81,10 +92,16 @@ def test_list_active_included_aws_accounts(
     ]
 
     # Act
-    py_aws_organizations = AwsOrganizations(root_ou_id, exclude_specific_ous, exclude_specific_accounts)
+    py_aws_organizations = AwsOrganizations(
+        root_ou_id, exclude_specific_ous, exclude_specific_accounts
+    )
     active_aws_accounts_via_boto3 = organizations_client.list_accounts()["Accounts"]
-    active_aws_accounts_via_class = list(itertools.chain(*py_aws_organizations.ou_account_map.values()))
+    active_aws_accounts_via_class = list(
+        itertools.chain(*py_aws_organizations.ou_account_map.values())
+    )
 
     # Assert
-    expected_length = len(active_aws_accounts_via_boto3) - len(set(excluded_ou_accounts + exclude_specific_accounts))
+    expected_length = len(active_aws_accounts_via_boto3) - len(
+        set(excluded_ou_accounts + exclude_specific_accounts)
+    )
     assert len(active_aws_accounts_via_class) == expected_length

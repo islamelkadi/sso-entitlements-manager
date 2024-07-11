@@ -4,7 +4,7 @@ ignore:
       - dev
       - test
 rules:
-  - target_type: FAIL
+  - target_type: 1234
     target_names:
       - ou_1
     access_type: RBAC
@@ -12,19 +12,11 @@ rules:
     principal_name: group1
     principal_type: GROUP
     rule_type: EXPLICIT
-  - target_type: FAIL
+  - target_type: 1234
     target_names:
       - ou_2
     access_type: RBAC
     permission_set_name: Adminstrator
     principal_name: group2
-    principal_type: GROUP
-    rule_type: EXPLICIT
-  - target_type: OU
-    target_names:
-      - ou_3
-    access_type: RBAC
-    permission_set_name: Adminstrator
-    principal_name: group3
     principal_type: GROUP
     rule_type: EXPLICIT

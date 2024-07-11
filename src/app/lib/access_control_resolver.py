@@ -353,5 +353,5 @@ class AwsAccessResolver:
                     **assignment
                 )
                 self.successful_rbac_assignments.append(response)
-            except Exception as e:
+            except Exception:
                 self.failed_rbac_assignments.append(response)
