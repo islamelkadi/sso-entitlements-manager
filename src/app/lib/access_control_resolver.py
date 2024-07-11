@@ -12,6 +12,10 @@ from .identity_center_mapper import AwsIdentityCentre
 from .utils import load_file, convert_specific_keys_to_uppercase
 
 
+class UnexpectedAccessResolverError(Exception):
+    """Custom exception for unexpected errors in AwsAccessResolver."""
+
+
 class AwsAccessResolver:
     """
     Class for resolving AWS resources and creating RBAC assignments based on a manifest file.
@@ -306,6 +310,22 @@ class AwsAccessResolver:
         return assignments
 
     def _generate_invalid_assignments(self, sort_key="rule_number") -> None:
+        """
+        Generates a sorted list of invalid assignments found in the manifest definition.
+
+        This method consolidates invalid assignments from various categories
+        (OU names, account names, group names, user names, and permission sets)
+        into a single report and sorts them based on the specified sort key.
+
+        Parameters:
+        ----------
+        sort_key: str, optional
+            The key used for sorting the invalid assignments (default is "rule_number").
+
+        Usage:
+        ------
+        self._generate_invalid_assignments()
+        """
         self._invalid_manifest_rules_report = (
             self._invalid_manifest_file_ou_names
             + self._invalid_manifest_file_account_names
@@ -353,5 +373,7 @@ class AwsAccessResolver:
                     **assignment
                 )
                 self.successful_rbac_assignments.append(response)
-            except Exception:
-                self.failed_rbac_assignments.append(response)
+            except Exception as e:
+                raise UnexpectedAccessResolverError(
+                    f"Failed to create account assignment: {e}"
+                ) from e

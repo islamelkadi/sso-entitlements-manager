@@ -206,8 +206,7 @@ def get_unique_combinations(
         "multiple_rules_invalid_rule_type_datatype.yaml",
     ],
 )
-def test_rules_invalid_manifest_schema(manifest_filename: str
-) -> None:
+def test_rules_invalid_manifest_schema(manifest_filename: str) -> None:
     """
     Test to validate manifest files with invalid schema definitions.
 
