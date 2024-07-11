@@ -2,11 +2,16 @@
 Module consisting of utils functions that are used across
 various python modules in this repository.
 """
-
+import os
 import json
 import logging
 import dataclasses
+from urllib.parse import urlparse
+
 import yaml
+import boto3
+from botocore.exceptions import ClientError
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -161,3 +166,46 @@ def generate_lambda_context() -> dataclasses.dataclass:
             return 5
 
     return LambdaContext()
+
+
+def download_file_from_s3(s3_object_uri: str, download_path: str = "/tmp") -> None:
+    """
+    Downloads a file from an S3 bucket to the specified local path.
+
+    Parameters:
+    ----------
+    bucket_name (str):
+        The name of the S3 bucket.
+
+    object_key (str):
+        The key of the object to download.
+
+    download_path (str):
+        The local file path to download the file to.
+    """
+    s3_client = boto3.client("s3")
+
+    parsed_s3_uri = urlparse(s3_object_uri)
+    s3_bucket_name = parsed_s3_uri.netloc
+    s3_object_key = parsed_s3_uri.path.lstrip("/")
+
+    base_filename = os.path.basename(s3_object_key)
+    local_destination_filepath = os.path.join(download_path, base_filename)
+    try:
+        s3_client.download_file(
+            s3_bucket_name, s3_object_key, local_destination_filepath
+        )
+        LOGGER.info("File downloaded successfully to %s", download_path)
+    except ClientError as e:
+        error_code = e.response["Error"]["Code"]
+        if error_code == "NoSuchBucket":
+            LOGGER.error("%s - Error downloading file from S3", error_code)
+            LOGGER.error("The specified bucket does not exist.")
+            raise
+        if error_code == "NoSuchKey":
+            LOGGER.error("%s - Error downloading file from S3", error_code)
+            LOGGER.error("The specified key does not exist.")
+            raise
+        LOGGER.error("Unexpected error downloading file from S3: %s", e)
+        raise
+    return local_destination_filepath
