@@ -15,7 +15,7 @@ from typing import List
 import boto3
 import pytest
 from app.lib.ou_accounts_mapper import AwsOrganizations
- 
+
 
 def test_missing_constructor_parameter() -> None:
     """
