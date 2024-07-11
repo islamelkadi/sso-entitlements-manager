@@ -1,6 +1,6 @@
 # pylint: disable=E1120
 """
-Unit tests for AwsOrganizations to test listing AWS accounts, handling 
+Unit tests for AwsOrganizations to test listing AWS accounts, handling
 organizational units, and excluding specific accounts and organizational units.
 
 Tests:
@@ -15,7 +15,7 @@ from typing import List
 import boto3
 import pytest
 from app.lib.ou_accounts_mapper import AwsOrganizations
-
+ 
 
 def test_missing_constructor_parameter() -> None:
     """

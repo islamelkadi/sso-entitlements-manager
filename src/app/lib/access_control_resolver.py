@@ -1,5 +1,5 @@
 """
-Module for resolving AWS resources and creating access 
+Module for resolving AWS resources and creating access
 control assignments based on ingested customer manifest file.
 """
 
