@@ -15,7 +15,10 @@ env:
 	@pip3 install --upgrade pip
 
 	@echo "Installing dependencies"
-	@pip3 install -r requirements.txt
+	@pip3 install .[dev]
+
+	@echo "Install pre-commit hooks"
+	@pre-commit install
 
 # Automated Testing
 .PHONY: unittest
@@ -27,7 +30,7 @@ unittest:
 .PHONY: format
 format:
 	@echo "Running python formatting"
-	@black $(sources)
+	@black $(sources) --safe
 
 	@echo "Running python linter"
 	@pylint $(sources)
@@ -37,6 +40,6 @@ format:
 cleanup:
 	@echo "Remove Python Debris"
 	@pyclean . --debris --verbose
-	
+
 	@echo "Remove editable install artifacts"
 	@rm -rf *.egg-info
