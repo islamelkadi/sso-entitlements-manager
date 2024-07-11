@@ -11,7 +11,8 @@ from aws_lambda_powertools.event_handler import Response, content_types
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from aws_lambda_powertools.utilities.data_classes import EventBridgeEvent, event_source
 
-from app.lib.access_control_resolver import AwsAccessResolver
+from .lib.utils import download_file_from_s3
+from .lib.access_control_resolver import AwsAccessResolver
 
 # Globals
 CWD = os.path.dirname(os.path.realpath(__file__))
@@ -29,11 +30,6 @@ MANIFEST_FILE_S3_LOCATION = os.getenv("MANIFEST_FILE_S3_LOCATION")
 # AWS Lambda powertool objects & class instances
 TRACER = Tracer(service=TRACER_SERVICE_NAME)
 LOGGER = Logger(service=TRACER_SERVICE_NAME, level=LOG_LEVEL)
-
-# Class instance
-ACCESS_RESOLVER = AwsAccessResolver(
-    MANIFEST_FILE_S3_LOCATION, MANIFEST_SCHEMA_DEFINITION_FILEPATH
-)
 
 
 # Lambda handler
@@ -63,11 +59,17 @@ def lambda_handler(
         - body: contains stringified response of lambda function
         - statusCode: contains HTTP status code
     """
+
+    manifest_file_local_path = download_file_from_s3(MANIFEST_FILE_S3_LOCATION)
+    access_resolver = AwsAccessResolver(
+        MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_file_local_path
+    )
+
     return Response(
         status_code=HTTPStatus.OK.value,
         content_type=content_types.APPLICATION_JSON,
         body={
-            "successful_account_assignments": ACCESS_RESOLVER.successful_rbac_assignments,
-            "failed_account_assignments": ACCESS_RESOLVER.failed_rbac_assignments,
+            "successful_account_assignments": access_resolver.successful_rbac_assignments,
+            "failed_account_assignments": access_resolver.failed_rbac_assignments,
         },
     )
