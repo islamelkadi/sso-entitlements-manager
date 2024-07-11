@@ -9,7 +9,7 @@ import jsonschema
 import boto3
 from .ou_accounts_mapper import AwsOrganizations
 from .identity_center_mapper import AwsIdentityCentre
-from .utils import load_file, convert_specific_keys_to_uppercase
+from .utils import load_file, convert_specific_keys_to_uppercase, download_file_from_s3
 
 
 class UnexpectedAccessResolverError(Exception):
@@ -95,7 +95,6 @@ class AwsAccessResolver:
         aws_resolver = AwsAccessResolver("path/to/schema.json", "path/to/manifest.json")
         """
 
-        self._s3_client = boto3.client("s3")
         self._sso_admin_client = boto3.client("sso-admin")
 
         self._excluded_ou_names = []
@@ -120,6 +119,7 @@ class AwsAccessResolver:
         self._user_principal_type = os.getenv("USER_PRINCIPAL_TYPE_LABEL", "USER")
         self._group_principal_type = os.getenv("GROUP_PRINCIPAL_TYPE_LABEL", "GROUP")
 
+        download_file_from_s3(schema_definition_filepath)
         self._manifest_file_keys_to_uppercase = [
             "access_type",
             "principal_type",
