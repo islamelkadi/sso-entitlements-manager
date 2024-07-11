@@ -36,14 +36,6 @@ ACCESS_RESOLVER = AwsAccessResolver(
 )
 
 
-# Lambda Routes
-def put_rbac_sso_assignments():
-    """
-    Lambda function route to create RBAC permission set
-    Assignments.
-    """
-
-
 # Lambda handler
 @TRACER.capture_lambda_handler
 @event_source(data_class=EventBridgeEvent)  # pylint: disable=E1120
@@ -71,9 +63,11 @@ def lambda_handler(
         - body: contains stringified response of lambda function
         - statusCode: contains HTTP status code
     """
-    # return
     return Response(
         status_code=HTTPStatus.OK.value,
         content_type=content_types.APPLICATION_JSON,
-        body=put_rbac_sso_assignments(),
+        body={
+            "successful_account_assignments": ACCESS_RESOLVER.successful_rbac_assignments,
+            "failed_account_assignments": ACCESS_RESOLVER.failed_rbac_assignments,
+        },
     )
