@@ -51,13 +51,13 @@ MANIFEST_SCHEMA_DEFINITION_FILEPATH = os.path.join(
 )
 
 # Type Definitions
-AwsEnvironment = Dict[str, List[Dict[str, str]]]
 OuMap = Dict[str, Dict[str, List[Dict[str, str]]]]
 SsoMap = Dict[str, Dict[str, str]]
 ManifestFile = Dict[str, List[Dict[str, List[str]]]]
 AccountAssignment = Set[Tuple[str, str, str]]
 
 
+# Helper functions
 def get_valid_accounts(ou_map: OuMap) -> List[str]:
     """
     Extract a list of valid account names from the organizational unit map.
@@ -216,7 +216,7 @@ def test_rules_invalid_manifest_schema(manifest_filename: str) -> None:
 
     Parameters:
     ----------
-        setup_aws_environment (AwsEnvironment): Fixture to set up the AWS environment.
+        setup_aws_environment (pytest.fixture): Fixture to set up the AWS environment.
         manifest_filename (str): Name of the manifest file to validate.
 
     Asserts:
@@ -255,7 +255,7 @@ def test_rules_invalid_manifest_schema(manifest_filename: str) -> None:
     indirect=["setup_aws_environment"],
 )
 def test_rules_valid_manifest_schema(
-    setup_aws_environment: AwsEnvironment, manifest_filename: str
+    setup_aws_environment: pytest.fixture, manifest_filename: str
 ) -> None:
     """
     Test to validate manifest files with valid schema definitions.
@@ -266,7 +266,7 @@ def test_rules_valid_manifest_schema(
 
     Parameters:
     ----------
-        setup_aws_environment (AwsEnvironment): Fixture to set up the AWS environment.
+        setup_aws_environment (pytest.fixture): Fixture to set up the AWS environment.
         manifest_filename (str): Name of the manifest file to validate.
 
     Asserts:
