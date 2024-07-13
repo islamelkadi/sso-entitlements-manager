@@ -10,10 +10,32 @@ from urllib.parse import urlparse
 
 import yaml
 import boto3
-from botocore.exceptions import ClientError
 
 
 LOGGER = logging.getLogger(__name__)
+
+
+def dict_reverse_lookup(original_dict: dict, lookup_value: str):
+    """
+    Reverses a flat string to string dictionary and performs
+    a look up on the target key.
+
+    Parameters:
+    ----------
+    original_dict: dict
+        The dictionary to reverse.
+    lookup_value: str
+        Dictionary value to look up.
+
+    Returns:
+    -------
+    str:
+        Dictionary look up value.
+    """
+    for key, val in original_dict.items():
+        if val == lookup_value:
+            return key
+    return None
 
 
 def convert_list_to_dict(obj_list: list, key_attr: str) -> dict:
@@ -191,21 +213,5 @@ def download_file_from_s3(s3_object_uri: str, download_path: str = "/tmp") -> No
 
     base_filename = os.path.basename(s3_object_key)
     local_destination_filepath = os.path.join(download_path, base_filename)
-    try:
-        s3_client.download_file(
-            s3_bucket_name, s3_object_key, local_destination_filepath
-        )
-        LOGGER.info("File downloaded successfully to %s", download_path)
-    except ClientError as e:
-        error_code = e.response["Error"]["Code"]
-        if error_code == "NoSuchBucket":
-            LOGGER.error("%s - Error downloading file from S3", error_code)
-            LOGGER.error("The specified bucket does not exist.")
-            raise
-        if error_code == "NoSuchKey":
-            LOGGER.error("%s - Error downloading file from S3", error_code)
-            LOGGER.error("The specified key does not exist.")
-            raise
-        LOGGER.error("Unexpected error downloading file from S3: %s", e)
-        raise
+    s3_client.download_file(s3_bucket_name, s3_object_key, local_destination_filepath)
     return local_destination_filepath
