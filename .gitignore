@@ -7,3 +7,5 @@ src/layers/python/utils/**
 **.venv
 **.egg-info**
 sandbox/** */
+**.coverage
+**htmlcov
