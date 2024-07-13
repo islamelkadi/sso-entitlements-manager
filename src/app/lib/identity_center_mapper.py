@@ -3,7 +3,6 @@ Module to interact with the AWS IAM Identity Store service.
 """
 
 import boto3
-from .utils import convert_list_to_dict, convert_specific_keys_to_uppercase
 
 
 class AwsIdentityCentre:
@@ -20,29 +19,23 @@ class AwsIdentityCentre:
         The boto3 client for AWS SSO Admin.
     _identity_store_client: boto3.client
         The boto3 client for AWS Identity Store.
-    _sso_users_paginator: boto3.paginate.Paginator
-        Paginator for listing SSO users.
-    _sso_groups_paginator: boto3.paginate.Paginator
-        Paginator for listing SSO groups.
-    _permission_sets_paginator: boto3.paginate.Paginator
-        Paginator for listing permission sets.
     sso_users: dict
-        Dictionary of SSO users.
+        Dictionary mapping UserName to UserId for SSO users.
     sso_groups: dict
-        Dictionary of SSO groups.
+        Dictionary mapping DisplayName to GroupId for SSO groups.
     permission_sets: dict
-        Dictionary of permission sets.
+        Dictionary mapping Name to PermissionSetArn for permission sets.
 
     Methods:
     --------
     __init__(identity_store_id: str, identity_store_arn: str) -> None:
         Initializes the AwsIdentityCentre instance with the identity store ID and ARN.
-    _list_sso_groups() -> list:
-        Lists all groups in the identity store.
-    _list_sso_users() -> list:
-        Lists all users in the identity store.
-    _list_permission_sets() -> list:
-        Lists all permission sets and removes sensitive information.
+    _map_sso_groups() -> None:
+        Lists all groups in the identity store and maps DisplayName to GroupId.
+    _map_sso_users() -> None:
+        Lists all users in the identity store and maps UserName to UserId.
+    _map_permission_sets() -> None:
+        Lists all permission sets and maps Name to PermissionSetArn.
     """
 
     def __init__(self, identity_store_id: str, identity_store_arn: str) -> None:
@@ -66,81 +59,52 @@ class AwsIdentityCentre:
         self._sso_admin_client = boto3.client("sso-admin")
         self._identity_store_client = boto3.client("identitystore")
 
-        self._sso_users_paginator = self._identity_store_client.get_paginator(
-            "list_users"
-        )
-        self._sso_groups_paginator = self._identity_store_client.get_paginator(
-            "list_groups"
-        )
-        self._permission_sets_paginator = self._sso_admin_client.get_paginator(
+        self.sso_users = {}
+        self.sso_groups = {}
+        self.permission_sets = {}
+
+        self._map_sso_users()
+        self._map_sso_groups()
+        self._map_permission_sets()
+
+    def _map_sso_groups(self) -> None:
+        """
+        Lists all groups in the identity store and maps DisplayName to GroupId.
+        """
+        groups_paginator = self._identity_store_client.get_paginator("list_groups")
+
+        sso_groups_list = []
+        for page in groups_paginator.paginate(IdentityStoreId=self._identity_store_id):
+            sso_groups_list.extend(page["Groups"])
+
+        for group in sso_groups_list:
+            self.sso_groups[group["DisplayName"]] = group["GroupId"]
+
+    def _map_sso_users(self) -> None:
+        """
+        Lists all users in the identity store and maps UserName to UserId.
+        """
+        sso_users_pagniator = self._identity_store_client.get_paginator("list_users")
+
+        sso_users_list = []
+        for page in sso_users_pagniator.paginate(
+            IdentityStoreId=self._identity_store_id
+        ):
+            sso_users_list.extend(page["Users"])
+
+        for user in sso_users_list:
+            self.sso_users[user["UserName"]] = user["UserId"]
+
+    def _map_permission_sets(self) -> None:
+        """
+        Lists all permission sets and maps Name to PermissionSetArn.
+        """
+        permission_sets_paginator = self._sso_admin_client.get_paginator(
             "list_permission_sets"
         )
 
-        self.sso_users = convert_specific_keys_to_uppercase(
-            convert_list_to_dict(self._list_sso_users(), "UserName")
-        )
-        self.sso_groups = convert_specific_keys_to_uppercase(
-            convert_list_to_dict(self._list_sso_groups(), "DisplayName")
-        )
-        self.permission_sets = convert_specific_keys_to_uppercase(
-            convert_list_to_dict(self._list_permission_sets(), "Name")
-        )
-
-    def _list_sso_groups(self) -> list:
-        """
-        Lists all groups in the identity store.
-
-        Returns:
-        -------
-        list
-            A list of SSO groups.
-
-        Usage:
-        ------
-        sso_groups = self._list_sso_groups()
-        """
-        groups = []
-        for page in self._sso_groups_paginator.paginate(
-            IdentityStoreId=self._identity_store_id
-        ):
-            groups.extend(page["Groups"])
-        return groups
-
-    def _list_sso_users(self) -> list:
-        """
-        Lists all the users in the identity store.
-
-        Returns:
-        -------
-        list
-            A list of SSO users.
-
-        Usage:
-        ------
-        sso_users = self._list_sso_users()
-        """
-        users = []
-        for page in self._sso_users_paginator.paginate(
-            IdentityStoreId=self._identity_store_id
-        ):
-            users.extend(page["Users"])
-        return users
-
-    def _list_permission_sets(self) -> list:
-        """
-        Lists all permission sets and removes sensitive information.
-
-        Returns:
-        -------
-        list
-            A list of described permission sets.
-
-        Usage:
-        ------
-        permission_sets = self._list_permission_sets()
-        """
         permission_sets = []
-        for page in self._permission_sets_paginator.paginate(
+        for page in permission_sets_paginator.paginate(
             InstanceArn=self._identity_store_arn
         ):
             permission_sets.extend(page["PermissionSets"])
@@ -152,4 +116,7 @@ class AwsIdentityCentre:
             )
             described_permission_sets.append(permission_set_info.get("PermissionSet"))
 
-        return described_permission_sets
+        for permission_set in described_permission_sets:
+            self.permission_sets[permission_set["Name"]] = permission_set[
+                "PermissionSetArn"
+            ]
