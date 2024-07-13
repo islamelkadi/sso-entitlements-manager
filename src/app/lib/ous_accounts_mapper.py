@@ -1,9 +1,7 @@
 """
 Module to interact with the AWS Organizations service.
 """
-import itertools
 import boto3
-from .utils import convert_list_to_dict
 
 
 class AwsOrganizations:
@@ -12,7 +10,7 @@ class AwsOrganizations:
 
     Attributes:
     ----------
-    ou_account_map: dict
+    ou_name_accounts_details_map: dict
         A dictionary mapping OU names to lists of accounts.
     _ou_name_id_map: dict
         A dictionary mapping OU names to their IDs.
@@ -24,12 +22,6 @@ class AwsOrganizations:
         A list of account names to exclude.
     _organizations_client: boto3.client
         The Boto3 client for AWS Organizations.
-    _account_parent_paginator: boto3.Paginator
-        Paginator for listing account parents.
-    _account_paginator: boto3.Paginator
-        Paginator for listing accounts for a parent OU.
-    _ou_paginator: boto3.Paginator
-        Paginator for listing organizational units for a parent OU.
     account_map: dict
         A dictionary mapping account names to account details.
 
@@ -66,7 +58,9 @@ class AwsOrganizations:
         ------
         aws_orgs = AwsOrganizations("root-ou-id", ["ExcludeOU1"], ["ExcludeAccount1"])
         """
-        self.ou_account_map = {}
+        self.account_name_id_map = {}
+        self.ou_name_accounts_details_map = {}
+
         self._ou_name_id_map = {}
         self._root_ou_id = root_ou_id
         self._exclude_ou_name_list = (
@@ -78,21 +72,9 @@ class AwsOrganizations:
 
         self._organizations_client = boto3.client("organizations")
 
-        self._account_parent_paginator = self._organizations_client.get_paginator(
-            "list_parents"
-        )
-        self._account_paginator = self._organizations_client.get_paginator(
-            "list_accounts_for_parent"
-        )
-        self._ou_paginator = self._organizations_client.get_paginator(
-            "list_organizational_units_for_parent"
-        )
-
         self._map_aws_organizational_units(self._root_ou_id)
         self._map_aws_ou_to_accounts()
-        self.account_map = convert_list_to_dict(
-            list(itertools.chain.from_iterable(self.ou_account_map.values())), "Name"
-        )
+        self._map_aws_accounts()
 
     def _map_aws_organizational_units(self, parent_ou_id: str = "") -> None:
         """
@@ -108,9 +90,12 @@ class AwsOrganizations:
         self._map_aws_organizational_units()
         self._map_aws_organizational_units("parent-ou-id")
         """
+        ou_paginator = self._organizations_client.get_paginator(
+            "list_organizational_units_for_parent"
+        )
         parent_ou_id = parent_ou_id if parent_ou_id else self._root_ou_id
         aws_ous_flattened_list = []
-        aws_ou_iterator = self._ou_paginator.paginate(ParentId=parent_ou_id)
+        aws_ou_iterator = ou_paginator.paginate(ParentId=parent_ou_id)
         for page in aws_ou_iterator:
             aws_ous_flattened_list.extend(page["OrganizationalUnits"])
 
@@ -131,9 +116,13 @@ class AwsOrganizations:
         ------
         self._map_aws_ou_to_accounts()
         """
+        accounts_paginator = self._organizations_client.get_paginator(
+            "list_accounts_for_parent"
+        )
+
         for ou_name, ou_id in self._ou_name_id_map.items():
-            self.ou_account_map[ou_name] = []
-            accounts_iterator = self._account_paginator.paginate(ParentId=ou_id)
+            self.ou_name_accounts_details_map[ou_name] = []
+            accounts_iterator = accounts_paginator.paginate(ParentId=ou_id)
             aws_accounts_flattened_list = []
             for page in accounts_iterator:
                 aws_accounts_flattened_list.extend(page["Accounts"])
@@ -143,6 +132,18 @@ class AwsOrganizations:
                     account["Status"] == "ACTIVE"
                     and account["Name"] not in self._exclude_account_name_list
                 ):
-                    self.ou_account_map[ou_name].append(
+                    self.ou_name_accounts_details_map[ou_name].append(
                         {"Id": account["Id"], "Name": account["Name"]}
                     )
+
+    def _map_aws_accounts(self) -> None:
+        """
+        Maps AWS account names to their corresponding IDs
+        based on the `ou_name_accounts_details_map`.
+        """
+        aws_accounts = []
+        for account_set in self.ou_name_accounts_details_map.values():
+            aws_accounts.extend(account_set)
+
+        for account in aws_accounts:
+            self.account_name_id_map[account["Name"]] = account["Id"]
