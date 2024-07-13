@@ -14,7 +14,7 @@ import itertools
 from typing import List
 import boto3
 import pytest
-from app.lib.ou_accounts_mapper import AwsOrganizations
+from app.lib.ous_accounts_mapper import AwsOrganizations
 
 
 def test_missing_constructor_parameter() -> None:
@@ -97,7 +97,7 @@ def test_list_active_included_aws_accounts(
     )
     active_aws_accounts_via_boto3 = organizations_client.list_accounts()["Accounts"]
     active_aws_accounts_via_class = list(
-        itertools.chain(*py_aws_organizations.ou_account_map.values())
+        itertools.chain(*py_aws_organizations.ou_name_accounts_details_map.values())
     )
 
     # Assert

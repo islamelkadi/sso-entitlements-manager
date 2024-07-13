@@ -64,12 +64,12 @@ def test_list_identity_center_entities(setup_aws_environment: pytest.fixture) ->
     py_aws_sso = AwsIdentityCentre(identity_store_id, identity_store_arn)
 
     # Assert
-    assert len(py_aws_sso.sso_users) == len(
+    assert len(py_aws_sso.sso_users.values()) == len(
         setup_aws_environment["aws_sso_user_definitions"]
     )
-    assert len(py_aws_sso.sso_groups) == len(
+    assert len(py_aws_sso.sso_groups.values()) == len(
         setup_aws_environment["aws_sso_group_definitions"]
     )
-    assert len(py_aws_sso.permission_sets) == len(
+    assert len(py_aws_sso.permission_sets.values()) == len(
         setup_aws_environment["aws_permission_set_definitions"]
     )
