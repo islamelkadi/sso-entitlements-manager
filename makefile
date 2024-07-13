@@ -26,6 +26,9 @@ unittest:
 	@echo "Running unit tests"
 	@pytest tests/unit
 
+	@echo "Generating coverage report"
+	@pytest --cov=tests/ --cov-report=html
+
 # Formatting & Linting
 .PHONY: format
 format:
