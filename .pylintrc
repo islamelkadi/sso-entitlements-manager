@@ -1,6 +1,9 @@
 [MESSAGE CONTROL]
 
-disable=R0902, # Too many instance attributes
-    R0903, # Too few public methods
-    R0913, # Too many arguments
-    R0914 # Too many local variables
+disable=
+    line-too-long,
+    too-many-instance-attributes,
+    too-few-public-methods,
+    too-many-arguments,
+    too-many-locals,
+    too-many-nested-blocks

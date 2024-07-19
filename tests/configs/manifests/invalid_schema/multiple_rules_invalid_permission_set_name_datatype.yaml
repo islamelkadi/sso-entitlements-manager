@@ -23,4 +23,4 @@ rules:
       - ou_1
     access_type: ABAC
     principal_type: GROUP
-    permission_set_name: Adminstrator
+    permission_set_name: Administrator

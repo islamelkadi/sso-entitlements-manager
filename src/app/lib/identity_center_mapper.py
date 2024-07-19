@@ -71,9 +71,8 @@ class AwsIdentityCentre:
         """
         Lists all groups in the identity store and maps DisplayName to GroupId.
         """
-        groups_paginator = self._identity_store_client.get_paginator("list_groups")
-
         sso_groups_list = []
+        groups_paginator = self._identity_store_client.get_paginator("list_groups")
         for page in groups_paginator.paginate(IdentityStoreId=self._identity_store_id):
             sso_groups_list.extend(page["Groups"])
 
@@ -84,12 +83,10 @@ class AwsIdentityCentre:
         """
         Lists all users in the identity store and maps UserName to UserId.
         """
-        sso_users_pagniator = self._identity_store_client.get_paginator("list_users")
-
         sso_users_list = []
-        for page in sso_users_pagniator.paginate(
-            IdentityStoreId=self._identity_store_id
-        ):
+        sso_users_pagniator = self._identity_store_client.get_paginator("list_users")
+        sso_users_pages = sso_users_pagniator.paginate(IdentityStoreId=self._identity_store_id)
+        for page in sso_users_pages:
             sso_users_list.extend(page["Users"])
 
         for user in sso_users_list:
@@ -99,24 +96,16 @@ class AwsIdentityCentre:
         """
         Lists all permission sets and maps Name to PermissionSetArn.
         """
-        permission_sets_paginator = self._sso_admin_client.get_paginator(
-            "list_permission_sets"
-        )
-
         permission_sets = []
-        for page in permission_sets_paginator.paginate(
-            InstanceArn=self._identity_store_arn
-        ):
+        permission_sets_paginator = self._sso_admin_client.get_paginator("list_permission_sets")
+        permission_sets_pages = permission_sets_paginator.paginate(InstanceArn=self._identity_store_arn)
+        for page in permission_sets_pages:
             permission_sets.extend(page["PermissionSets"])
 
         described_permission_sets = []
         for permission_set in permission_sets:
-            permission_set_info = self._sso_admin_client.describe_permission_set(
-                InstanceArn=self._identity_store_arn, PermissionSetArn=permission_set
-            )
+            permission_set_info = self._sso_admin_client.describe_permission_set(InstanceArn=self._identity_store_arn, PermissionSetArn=permission_set)
             described_permission_sets.append(permission_set_info.get("PermissionSet"))
 
         for permission_set in described_permission_sets:
-            self.permission_sets[permission_set["Name"]] = permission_set[
-                "PermissionSetArn"
-            ]
+            self.permission_sets[permission_set["Name"]] = permission_set["PermissionSetArn"]

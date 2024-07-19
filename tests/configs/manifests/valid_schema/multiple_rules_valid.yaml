@@ -8,7 +8,7 @@ rules:
       - dev
       - test
     access_type: RBAC
-    permission_set_name: Adminstrator
+    permission_set_name: Administrator
     principal_name: group1
     principal_type: GROUP
   - target_type: OU
@@ -17,7 +17,7 @@ rules:
       - test
       - prod
     access_type: RBAC
-    permission_set_name: Adminstrator
+    permission_set_name: Administrator
     principal_name: user1@testing.com
     principal_type: USER
   - target_type: ACCOUNT
@@ -26,6 +26,6 @@ rules:
       - workload_2_dev
       - workload_2_test
     access_type: RBAC
-    permission_set_name: Adminstrator
+    permission_set_name: Administrator
     principal_name: user1@testing.com
     principal_type: USER

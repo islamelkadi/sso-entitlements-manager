@@ -40,7 +40,7 @@ def test_missing_default_constructor_parameters() -> None:
         AwsIdentityCentre(identity_store_arn=identity_store_arn)
 
 
-@pytest.mark.parametrize("setup_aws_environment", ["aws_org_1.json"], indirect=True)
+@pytest.mark.parametrize("setup_aws_environment", ["aws_org_1.json", "aws_org_1.json"], indirect=True)
 def test_list_identity_center_entities(setup_aws_environment: pytest.fixture) -> None:
     """
     Test case for listing SSO groups, users, and permission sets and make sure they
@@ -64,12 +64,14 @@ def test_list_identity_center_entities(setup_aws_environment: pytest.fixture) ->
     py_aws_sso = AwsIdentityCentre(identity_store_id, identity_store_arn)
 
     # Assert
-    assert len(py_aws_sso.sso_users.values()) == len(
-        setup_aws_environment["aws_sso_user_definitions"]
-    )
-    assert len(py_aws_sso.sso_groups.values()) == len(
-        setup_aws_environment["aws_sso_group_definitions"]
-    )
-    assert len(py_aws_sso.permission_sets.values()) == len(
-        setup_aws_environment["aws_permission_set_definitions"]
-    )
+    sso_usernames_via_class = list(py_aws_sso.sso_users.keys())
+    sso_usernames_via_definitions = [x["username"] for x in setup_aws_environment["aws_sso_user_definitions"]]
+    assert sorted(sso_usernames_via_class) == sorted(sso_usernames_via_definitions)
+
+    sso_groups_via_class = list(py_aws_sso.sso_groups.keys())
+    sso_groups_via_definitions = [x["name"] for x in setup_aws_environment["aws_sso_group_definitions"]]
+    assert sorted(sso_groups_via_class) == sorted(sso_groups_via_definitions)
+
+    permission_sets_via_class = list(py_aws_sso.permission_sets.keys())
+    permission_sets_via_definitions = [x["name"] for x in setup_aws_environment["aws_permission_set_definitions"]]
+    assert sorted(permission_sets_via_class) == sorted(permission_sets_via_definitions)

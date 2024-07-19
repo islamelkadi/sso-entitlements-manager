@@ -220,9 +220,7 @@ def test_convert_specific_keys_to_uppercase_mixed_data_types() -> None:
         "name": "Mark",
         "age": 40,
         "details": {"location": "London", "active": True},
-        "timestamp": datetime.datetime(
-            2024, 7, 7, 10, 30, 0, tzinfo=datetime.timezone.utc
-        ),
+        "timestamp": datetime.datetime(2024, 7, 7, 10, 30, 0, tzinfo=datetime.timezone.utc),
     }
     keys_to_uppercase = ["name", "location"]
 
@@ -230,9 +228,7 @@ def test_convert_specific_keys_to_uppercase_mixed_data_types() -> None:
         "name": "MARK",
         "age": 40,
         "details": {"location": "LONDON", "active": True},
-        "timestamp": datetime.datetime(
-            2024, 7, 7, 10, 30, 0, tzinfo=datetime.timezone.utc
-        ),
+        "timestamp": datetime.datetime(2024, 7, 7, 10, 30, 0, tzinfo=datetime.timezone.utc),
     }
 
     # Act

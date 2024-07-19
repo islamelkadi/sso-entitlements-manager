@@ -8,7 +8,7 @@ rules:
     target_names:
       - ou_1
     access_type: RBAC
-    permission_set_name: Adminstrator
+    permission_set_name: Administrator
     principal_name: group1
     principal_type: GROUP
     rule_type: EXPLICIT
@@ -16,7 +16,7 @@ rules:
     target_names:
       - ou_2
     access_type: RBAC
-    permission_set_name: Adminstrator
+    permission_set_name: Administrator
     principal_name: group2
     principal_type: GROUP
     rule_type: EXPLICIT
@@ -24,7 +24,7 @@ rules:
     target_names:
       - ou_3
     access_type: RBAC
-    permission_set_name: Adminstrator
+    permission_set_name: Administrator
     principal_name: group3
     principal_type: GROUP
     rule_type: EXPLICIT

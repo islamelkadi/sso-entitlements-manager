@@ -62,9 +62,7 @@ def convert_list_to_dict(obj_list: list, key_attr: str) -> dict:
     return result_dict
 
 
-def convert_specific_keys_to_uppercase(
-    item: dict, keys_to_uppercase: list = None
-) -> dict:
+def convert_specific_keys_to_uppercase(item: dict, keys_to_uppercase: list = None) -> dict:
     """
     Recursively traverse a dictionary and convert the values of specific keys to uppercase.
 
@@ -93,17 +91,9 @@ def convert_specific_keys_to_uppercase(
                     if isinstance(item, dict):
                         processed_data[key].append(process_dict(item))
                     else:
-                        processed_data[key].append(
-                            value.upper()
-                            if key in keys_to_uppercase and isinstance(item, str)
-                            else item
-                        )
+                        processed_data[key].append(value.upper() if key in keys_to_uppercase and isinstance(item, str) else item)
             else:
-                processed_data[key] = (
-                    value.upper()
-                    if (key in keys_to_uppercase and isinstance(value, str))
-                    else value
-                )
+                processed_data[key] = value.upper() if (key in keys_to_uppercase and isinstance(value, str)) else value
         return processed_data
 
     return process_dict(item)
@@ -135,9 +125,7 @@ def load_file(filepath: str) -> dict:
         with open(filepath, "r", encoding="utf-8") as file:
             return json.load(file)
     else:
-        raise ValueError(
-            "Unsupported file format. Only .yaml, .yml, and .json are supported."
-        )
+        raise ValueError("Unsupported file format. Only .yaml, .yml, and .json are supported.")
 
 
 def generate_lambda_context() -> dataclasses.dataclass:
@@ -175,9 +163,7 @@ def generate_lambda_context() -> dataclasses.dataclass:
 
         function_name: str = "test"
         function_version: str = "$LATEST"
-        invoked_function_arn: str = (
-            f"arn:aws:lambda:us-east-1:123456789101:function:{function_name}"
-        )
+        invoked_function_arn: str = f"arn:aws:lambda:us-east-1:123456789101:function:{function_name}"
         memory_limit_in_mb: int = 256
         aws_request_id: str = "43723370-e382-466b-848e-5400507a5e86"
         log_group_name: str = f"/aws/lambda/{function_name}"

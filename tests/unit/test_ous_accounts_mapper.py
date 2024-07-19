@@ -83,25 +83,14 @@ def test_list_active_included_aws_accounts(
     organization_map = setup_aws_environment["aws_organization_definitions"]
 
     # Gather account names to exclude from specified OUs
-    excluded_ou_accounts = [
-        item["name"]
-        for ou in organization_map
-        if ou["name"] in exclude_specific_ous
-        for item in ou["children"]
-        if item["type"] == "ACCOUNT"
-    ]
+    excluded_ou_accounts = [item["name"] for ou in organization_map if ou["name"] in exclude_specific_ous for item in ou["children"] if item["type"] == "ACCOUNT"]
+
+    accounts_to_filter_out = set(excluded_ou_accounts + exclude_specific_accounts)
 
     # Act
-    py_aws_organizations = AwsOrganizations(
-        root_ou_id, exclude_specific_ous, exclude_specific_accounts
-    )
-    active_aws_accounts_via_boto3 = organizations_client.list_accounts()["Accounts"]
-    active_aws_accounts_via_class = list(
-        itertools.chain(*py_aws_organizations.ou_name_accounts_details_map.values())
-    )
+    py_aws_organizations = AwsOrganizations(root_ou_id, exclude_specific_ous, exclude_specific_accounts)
+    active_aws_accounts_via_class = [x["Name"] for x in list(itertools.chain(*py_aws_organizations.ou_name_accounts_details_map.values()))]
+    active_aws_account_names_via_boto3 = [x["Name"] for x in organizations_client.list_accounts()["Accounts"] if x["Name"] not in accounts_to_filter_out]
 
     # Assert
-    expected_length = len(active_aws_accounts_via_boto3) - len(
-        set(excluded_ou_accounts + exclude_specific_accounts)
-    )
-    assert len(active_aws_accounts_via_class) == expected_length
+    assert sorted(active_aws_accounts_via_class) == sorted(active_aws_account_names_via_boto3)

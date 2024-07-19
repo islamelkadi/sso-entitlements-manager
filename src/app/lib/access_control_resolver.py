@@ -4,13 +4,18 @@ control assignments based on ingested customer manifest file.
 """
 
 import os
-import time
-from typing import Optional, Union, List, Dict
+from typing import Optional, Dict
 import jsonschema
 import boto3
 from .ous_accounts_mapper import AwsOrganizations
 from .identity_center_mapper import AwsIdentityCentre
 from .utils import load_file, convert_specific_keys_to_uppercase, dict_reverse_lookup
+
+# Global vars
+OU_TARGET_TYPE_LABEL = "OU"
+ACCOUNT_TARGET_TYPE_LABEL = "ACCOUNT"
+USER_PRINCIPAL_TYPE_LABEL = "USER"
+GROUP_PRINCIPAL_TYPE_LABEL = "GROUP"
 
 
 class AwsAccessResolver:
@@ -18,9 +23,7 @@ class AwsAccessResolver:
     Class for resolving AWS resources and creating RBAC assignments based on a manifest file.
     """
 
-    def __init__(
-        self, schema_definition_filepath: str, manifest_definition_filepath: str
-    ) -> None:
+    def __init__(self, schema_definition_filepath: str, manifest_definition_filepath: str) -> None:
         """
         Initializes AwsAccessResolver with schema and manifest file paths.
 
@@ -28,25 +31,12 @@ class AwsAccessResolver:
             schema_definition_filepath (str): Path to the schema definition file.
             manifest_definition_filepath (str): Path to the manifest definition file.
         """
-        self._initialize_class_attributes()
-        self._load_environment_variables()
-        self._load_schema_and_manifest(
-            schema_definition_filepath, manifest_definition_filepath
-        )
-        self._validate_manifest()
-        self._create_excluded_lists()
-        self._initialize_aws_environment_mappers()
-        self._create_rbac_assignments()
-        self._generate_invalid_assignments_report()
+        self._root_ou_id = os.getenv("ROOT_OU_ID")
+        self._identity_store_id = os.getenv("IDENTITY_STORE_ID")
+        self._identity_store_arn = os.getenv("IDENTITY_STORE_ARN")
 
-    def _initialize_class_attributes(self) -> None:
-        """
-        Initializes various attributes used by AwsAccessResolver.
-        """
-        self._sso_admin_client = boto3.client("sso-admin")
-        self._account_assignments_paginator = self._sso_admin_client.get_paginator(
-            "list_account_assignments"
-        )
+        self._schema_definition_filepath = schema_definition_filepath
+        self._manifest_definition_filepath = manifest_definition_filepath
 
         self._excluded_ou_names = []
         self._excluded_account_names = []
@@ -57,65 +47,44 @@ class AwsAccessResolver:
         self._invalid_manifest_file_group_names = []
         self._invalid_manifest_file_user_names = []
         self._invalid_manifest_file_permission_sets = []
+        self._manifest_file_keys_to_uppercase = ["access_type", "principal_type", "target_type"]
 
-        self.failed_rbac_assignments = []
-        self.successful_rbac_assignments = []
+        self.valid_named_account_assignments = []
+        self.valid_resolved_account_assignments = []
 
-    def _load_environment_variables(self) -> None:
+        self._sso_admin_client = boto3.client("sso-admin")
+
+        self._load_validate_sso_manifest()
+        self._generate_excluded_lists()
+        self._initialize_aws_environment_mappers()
+        self._generate_rbac_assignments()
+        self._generate_invalid_assignments_report()
+        self._generate_valid_named_assignments_report()
+
+    def _load_validate_sso_manifest(self) -> None:
         """
-        Loads required environment variables for the resolver.
+        Loads schema and manifest files, converts specific keys to uppercase, and validates the manifest.
         """
-        self._root_ou_id = os.getenv("ROOT_OU_ID")
-        self._identity_store_id = os.getenv("IDENTITY_STORE_ID")
-        self._identity_store_arn = os.getenv("IDENTITY_STORE_ARN")
+        # Load schema definition
+        self._schema_definition = load_file(self._schema_definition_filepath)
 
-        self._ou_target_type = os.getenv("OU_TARGET_TYPE_LABEL", "OU")
-        self._account_target_type = os.getenv("ACCOUNT_TARGET_TYPE_LABEL", "ACCOUNT")
-        self._user_principal_type = os.getenv("USER_PRINCIPAL_TYPE_LABEL", "USER")
-        self._group_principal_type = os.getenv("GROUP_PRINCIPAL_TYPE_LABEL", "GROUP")
+        # Load manifest file definition and convert specific keys to
+        # uppercase in manifest definition
+        manifest_data = load_file(self._manifest_definition_filepath)
+        self._manifest_definition = convert_specific_keys_to_uppercase(manifest_data, self._manifest_file_keys_to_uppercase)
 
-        self._manifest_file_keys_to_uppercase = [
-            "access_type",
-            "principal_type",
-            "target_type",
-        ]
-
-    def _load_schema_and_manifest(
-        self, schema_definition_filepath: str, manifest_definition_filepath: str
-    ) -> None:
-        """
-        Loads schema and manifest files, converting specific keys to uppercase.
-
-        Args:
-            schema_definition_filepath (str): Path to the schema definition file.
-            manifest_definition_filepath (str): Path to the manifest definition file.
-        """
-        self._schema_definition = load_file(schema_definition_filepath)
-        self._manifest_definition = convert_specific_keys_to_uppercase(
-            load_file(manifest_definition_filepath),
-            self._manifest_file_keys_to_uppercase,
-        )
-
-    def _validate_manifest(self) -> None:
-        """
-        Validates the manifest file against the schema definition.
-
-        Raises:
-            jsonschema.ValidationError: If the manifest file is not valid.
-        """
+        # Validate manifest against schema
         try:
-            jsonschema.validate(
-                instance=self._manifest_definition, schema=self._schema_definition
-            )
+            jsonschema.validate(instance=self._manifest_definition, schema=self._schema_definition)
         except jsonschema.ValidationError as e:
             raise jsonschema.ValidationError(f"Validation error: {e.message}")
 
-    def _create_excluded_lists(self) -> None:
+    def _generate_excluded_lists(self) -> None:
         """
         Creates lists of excluded organizational units (OUs) and account names.
         """
         for item in self._manifest_definition.get("ignore", []):
-            if item["target_type"] == self._ou_target_type:
+            if item["target_type"] == OU_TARGET_TYPE_LABEL:
                 self._excluded_ou_names.extend(item["target_names"])
             else:
                 self._excluded_account_names.extend(item["target_names"])
@@ -124,61 +93,10 @@ class AwsAccessResolver:
         """
         Initializes AWS Organizations and Identity Center mappers.
         """
-        self._aws_organizations = AwsOrganizations(
-            self._root_ou_id, self._excluded_ou_names, self._excluded_account_names
-        )
-        self._aws_identitycenter = AwsIdentityCentre(
-            self._identity_store_id, self._identity_store_arn
-        )
+        self._aws_identitycenter = AwsIdentityCentre(self._identity_store_id, self._identity_store_arn)
+        self._aws_organizations = AwsOrganizations(self._root_ou_id, self._excluded_ou_names, self._excluded_account_names)
 
-    def _list_existing_assignments(
-        self, account_id: str, instance_arn: str, permission_set_arn: str
-    ) -> List[Dict[str, str]]:
-        """
-        Lists existing account assignments for a given account, instance, and permission set.
-
-        Args:
-            account_id (str): AWS account ID.
-            instance_arn (str): Instance ARN.
-            permission_set_arn (str): Permission set ARN.
-
-        Returns:
-            List[Dict[str, str]]: List of existing account assignments.
-        """
-        paginator = self._account_assignments_paginator.paginate(
-            AccountId=account_id,
-            InstanceArn=instance_arn,
-            PermissionSetArn=permission_set_arn,
-        )
-        existing_assignments = []
-        for page in paginator:
-            existing_assignments.extend(page["AccountAssignments"])
-        return existing_assignments
-
-    def _check_assignment_exists(
-        self, assignment: Dict[str, str], existing_assignments: List[Dict[str, str]]
-    ) -> bool:
-        """
-        Checks if a given assignment already exists.
-
-        Args:
-            assignment (Dict[str, str]): Assignment to check.
-            existing_assignments (List[Dict[str, str]]):List of existing assignments.
-
-        Returns:
-            bool: True if assignment exists, False otherwise.
-        """
-        check_assignment = {
-            "AccountId": assignment["TargetId"],
-            "PermissionSetArn": assignment["PermissionSetArn"],
-            "PrincipalId": assignment["PrincipalId"],
-            "PrincipalType": assignment["PrincipalType"],
-        }
-        return check_assignment in existing_assignments
-
-    def _is_valid_aws_resource(
-        self, rule_number: int, resource_name: str, resource_type: str
-    ) -> Optional[str]:
+    def _is_valid_aws_resource(self, rule_number: int, resource_name: str, resource_type: str) -> Optional[str]:
         """
         Validates if the provided AWS resource is valid.
 
@@ -191,19 +109,19 @@ class AwsAccessResolver:
             Optional[str]: Resource ID if valid, None otherwise.
         """
         resource_maps = {
-            self._ou_target_type: (
+            OU_TARGET_TYPE_LABEL: (
                 self._aws_organizations.ou_name_accounts_details_map,
                 self._invalid_manifest_file_ou_names,
             ),
-            self._account_target_type: (
+            ACCOUNT_TARGET_TYPE_LABEL: (
                 self._aws_organizations.account_name_id_map,
                 self._invalid_manifest_file_account_names,
             ),
-            self._group_principal_type: (
+            GROUP_PRINCIPAL_TYPE_LABEL: (
                 self._aws_identitycenter.sso_groups,
                 self._invalid_manifest_file_group_names,
             ),
-            self._user_principal_type: (
+            USER_PRINCIPAL_TYPE_LABEL: (
                 self._aws_identitycenter.sso_users,
                 self._invalid_manifest_file_user_names,
             ),
@@ -212,9 +130,6 @@ class AwsAccessResolver:
                 self._invalid_manifest_file_permission_sets,
             ),
         }
-
-        if resource_type not in resource_maps:
-            raise ValueError("Unsupported resource type")
 
         resource_map, invalid_set = resource_maps[resource_type]
         if resource_name not in resource_map:
@@ -229,56 +144,7 @@ class AwsAccessResolver:
 
         return resource_map[resource_name]
 
-    def _generate_account_assignments(
-        self, rule: Dict
-    ) -> List[Dict[str, Union[str, List[str]]]]:
-        """
-        Generates account assignments based on the given rule.
-
-        Args:
-            rule (Dict): Rule definition.
-
-        Returns:
-            List[Dict[str, Union[str, List[str]]]]: List of generated account assignments.
-        """
-        valid_target_names = [
-            name
-            for name in rule["target_names"]
-            if self._is_valid_aws_resource(
-                rule["rule_number"], name, rule["target_type"]
-            )
-        ]
-        assignments = []
-
-        if rule["target_type"] == self._ou_target_type:
-            for target in valid_target_names:
-                ou_aws_accounts = self._aws_organizations.ou_name_accounts_details_map[
-                    target
-                ]
-                for account in ou_aws_accounts:
-                    assignments.append(
-                        {
-                            "TargetId": account["Id"],
-                            "PrincipalId": rule["principal_id"],
-                            "PrincipalType": rule["principal_type"],
-                            "PermissionSetArn": rule["permission_set_arn"],
-                        }
-                    )
-        else:
-            for target in valid_target_names:
-                assignments.append(
-                    {
-                        "TargetId": self._aws_organizations.account_name_id_map[target],
-                        "PrincipalId": rule["principal_id"],
-                        "PrincipalType": rule["principal_type"],
-                        "PermissionSetArn": rule["permission_set_arn"],
-                    }
-                )
-        return assignments
-
-    def _generate_invalid_assignments_report(
-        self, sort_key: str = "rule_number"
-    ) -> None:
+    def _generate_invalid_assignments_report(self, sort_key: str = "rule_number") -> None:
         """
         Generates a report of invalid assignments.
 
@@ -286,94 +152,69 @@ class AwsAccessResolver:
             sort_key (str, optional): Key to sort invalid assignments. Defaults to "rule_number".
         """
         self._invalid_manifest_rules_report = (
-            self._invalid_manifest_file_ou_names
-            + self._invalid_manifest_file_account_names
-            + self._invalid_manifest_file_group_names
-            + self._invalid_manifest_file_user_names
-            + self._invalid_manifest_file_permission_sets
+            self._invalid_manifest_file_ou_names + self._invalid_manifest_file_account_names + self._invalid_manifest_file_group_names + self._invalid_manifest_file_user_names + self._invalid_manifest_file_permission_sets
         )
         self._invalid_manifest_rules_report.sort(key=lambda x: x.get(sort_key))
 
-    def _create_rbac_assignments(self) -> None:
+    def _generate_rbac_assignments(self) -> None:
         """
         Creates RBAC assignments based on the manifest rules.
         """
-        assignments_to_create = []
+
+        def add_unique_assignment(target_id: str, base_item: Dict) -> None:
+            assignment = {"TargetId": target_id, **base_item}
+            if assignment not in self.valid_resolved_account_assignments:
+                self.valid_resolved_account_assignments.append(assignment)
+
         rbac_rules = self._manifest_definition.get("rules", [])
         for i, rule in enumerate(rbac_rules):
             rule["rule_number"] = i
-            rule["principal_id"] = self._is_valid_aws_resource(
-                rule["rule_number"], rule["principal_name"], rule["principal_type"]
-            )
-            rule["permission_set_arn"] = self._is_valid_aws_resource(
-                rule["rule_number"], rule["permission_set_name"], "permission_set"
-            )
-            if rule["principal_id"] and rule["permission_set_arn"]:
-                account_assignments = self._generate_account_assignments(rule)
-                assignments_to_create.extend(account_assignments)
+            rule["principal_id"] = self._is_valid_aws_resource(rule["rule_number"], rule["principal_name"], rule["principal_type"])
+            rule["permission_set_arn"] = self._is_valid_aws_resource(rule["rule_number"], rule["permission_set_name"], "permission_set")
+            if not (rule["principal_id"] and rule["permission_set_arn"]):
+                continue
 
-        unique_assignments = {}
-        for assignment in assignments_to_create:
-            assignment_tuple = tuple(assignment.items())
-            if assignment_tuple not in unique_assignments:
-                unique_assignments[assignment_tuple] = assignment
+            valid_target_names = []
+            for name in rule["target_names"]:
+                if self._is_valid_aws_resource(rule["rule_number"], name, rule["target_type"]):
+                    valid_target_names.append(name)
 
-        unique_assignments_to_create = unique_assignments.values()
-        for assignment in unique_assignments_to_create:
-            assignment["TargetType"] = "AWS_ACCOUNT"
-            assignment["InstanceArn"] = self._identity_store_arn
-            existing_assignments = self._list_existing_assignments(
-                account_id=assignment["TargetId"],
-                instance_arn=assignment["InstanceArn"],
-                permission_set_arn=assignment["PermissionSetArn"],
-            )
+            resolved_account_assignment_item = {
+                "TargetType": "AWS_ACCOUNT",
+                "PrincipalId": rule["principal_id"],
+                "PrincipalType": rule["principal_type"],
+                "PermissionSetArn": rule["permission_set_arn"],
+                "InstanceArn": self._identity_store_arn,
+            }
 
-            if not self._check_assignment_exists(assignment, existing_assignments):
-                self._handle_assignment_creation(assignment)
+            if rule["target_type"] == OU_TARGET_TYPE_LABEL:
+                for target in valid_target_names:
+                    ou_aws_accounts = self._aws_organizations.ou_name_accounts_details_map[target]
+                    for account in ou_aws_accounts:
+                        add_unique_assignment(account["Id"], resolved_account_assignment_item)
+            else:
+                for target in valid_target_names:
+                    target_id = self._aws_organizations.account_name_id_map[target]
+                    add_unique_assignment(target_id, resolved_account_assignment_item)
 
-    def _handle_assignment_creation(self, assignment: Dict) -> None:
+    def _generate_valid_named_assignments_report(self) -> None:
         """
-        Handles the creation of a single account assignment.
-
-        Args:
-            assignment (Dict): Account assignment details.
+        Generates a report of valid named account assignments.
         """
-        account_assignment_response = self._sso_admin_client.create_account_assignment(
-            **assignment
-        )["AccountAssignmentCreationStatus"]
-        attempts = 0
-        while account_assignment_response["Status"] == "IN_PROGRESS" and attempts < 3:
-            time.sleep(1)
-            account_assignment_response = (
-                self._sso_admin_client.describe_account_assignment_creation_status(
-                    InstanceArn=assignment["InstanceArn"],
-                    AccountAssignmentCreationRequestId=account_assignment_response[
-                        "RequestId"
-                    ],
-                )["AccountAssignmentCreationStatus"]
-            )
-            attempts += 1
+        for assignment in self.valid_resolved_account_assignments:
+            named_account_assignment_item = {
+                "principal_name": dict_reverse_lookup(
+                    self._aws_identitycenter.sso_groups if assignment["PrincipalType"] == GROUP_PRINCIPAL_TYPE_LABEL else self._aws_identitycenter.sso_users,
+                    assignment["PrincipalId"],
+                ),
+                "permission_set_name": dict_reverse_lookup(
+                    self._aws_identitycenter.permission_sets,
+                    assignment["PermissionSetArn"],
+                ),
+                "target_type": "AWS_ACCOUNT",
+                "principal_type": assignment["PrincipalType"],
+                "account_name": dict_reverse_lookup(self._aws_organizations.account_name_id_map, assignment["TargetId"]),
+            }
 
-        account_assignment_result = {
-            "status": account_assignment_response["Status"],
-            "account": dict_reverse_lookup(
-                self._aws_organizations.account_name_id_map, assignment["TargetId"]
-            ),
-            "principal_type": assignment["PrincipalType"],
-            "principal_name": dict_reverse_lookup(
-                self._aws_identitycenter.sso_groups, assignment["PrincipalId"]
-            ),
-            "permission_set_name": dict_reverse_lookup(
-                self._aws_identitycenter.permission_sets, assignment["PermissionSetArn"]
-            ),
-        }
-
-        if account_assignment_response["Status"] == "SUCCEEDED":
-            self.successful_rbac_assignments.append(account_assignment_result)
-        else:
-            account_assignment_result[
-                "failure_reason"
-            ] = account_assignment_response.get(
-                "FailureReason", "IN_PROGRESS status check attempts exceeded"
-            )
-            self.failed_rbac_assignments.append(account_assignment_result)
+            if named_account_assignment_item not in self.valid_named_account_assignments:
+                self.valid_named_account_assignments.append(named_account_assignment_item)

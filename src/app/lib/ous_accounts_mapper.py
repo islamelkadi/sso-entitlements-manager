@@ -63,12 +63,8 @@ class AwsOrganizations:
 
         self._ou_name_id_map = {}
         self._root_ou_id = root_ou_id
-        self._exclude_ou_name_list = (
-            [] if not exclude_ou_name_list else exclude_ou_name_list
-        )
-        self._exclude_account_name_list = (
-            [] if not exclude_account_name_list else exclude_account_name_list
-        )
+        self._exclude_ou_name_list = [] if not exclude_ou_name_list else exclude_ou_name_list
+        self._exclude_account_name_list = [] if not exclude_account_name_list else exclude_account_name_list
 
         self._organizations_client = boto3.client("organizations")
 
@@ -90,20 +86,16 @@ class AwsOrganizations:
         self._map_aws_organizational_units()
         self._map_aws_organizational_units("parent-ou-id")
         """
-        ou_paginator = self._organizations_client.get_paginator(
-            "list_organizational_units_for_parent"
-        )
-        parent_ou_id = parent_ou_id if parent_ou_id else self._root_ou_id
+
         aws_ous_flattened_list = []
+        parent_ou_id = parent_ou_id if parent_ou_id else self._root_ou_id
+        ou_paginator = self._organizations_client.get_paginator("list_organizational_units_for_parent")
         aws_ou_iterator = ou_paginator.paginate(ParentId=parent_ou_id)
         for page in aws_ou_iterator:
             aws_ous_flattened_list.extend(page["OrganizationalUnits"])
 
         for ou in aws_ous_flattened_list:
-            if (
-                ou["Name"] not in self._exclude_ou_name_list
-                and ou["Name"] not in self._ou_name_id_map
-            ):
+            if ou["Name"] not in self._exclude_ou_name_list and ou["Name"] not in self._ou_name_id_map:
                 self._map_aws_organizational_units(ou["Id"])
                 self._ou_name_id_map[ou["Name"]] = ou["Id"]
         self._ou_name_id_map["root"] = self._root_ou_id
@@ -116,9 +108,7 @@ class AwsOrganizations:
         ------
         self._map_aws_ou_to_accounts()
         """
-        accounts_paginator = self._organizations_client.get_paginator(
-            "list_accounts_for_parent"
-        )
+        accounts_paginator = self._organizations_client.get_paginator("list_accounts_for_parent")
 
         for ou_name, ou_id in self._ou_name_id_map.items():
             self.ou_name_accounts_details_map[ou_name] = []
@@ -128,13 +118,8 @@ class AwsOrganizations:
                 aws_accounts_flattened_list.extend(page["Accounts"])
 
             for account in aws_accounts_flattened_list:
-                if (
-                    account["Status"] == "ACTIVE"
-                    and account["Name"] not in self._exclude_account_name_list
-                ):
-                    self.ou_name_accounts_details_map[ou_name].append(
-                        {"Id": account["Id"], "Name": account["Name"]}
-                    )
+                if account["Status"] == "ACTIVE" and account["Name"] not in self._exclude_account_name_list:
+                    self.ou_name_accounts_details_map[ou_name].append({"Id": account["Id"], "Name": account["Name"]})
 
     def _map_aws_accounts(self) -> None:
         """

@@ -33,7 +33,7 @@ unittest:
 .PHONY: format
 format:
 	@echo "Running python formatting"
-	@black $(sources) --safe
+	@black $(sources) --safe --line-length 250
 
 	@echo "Running python linter"
 	@pylint $(sources)

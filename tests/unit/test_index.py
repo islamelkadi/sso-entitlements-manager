@@ -103,9 +103,7 @@ def test_lambda_handler(
         importlib.reload(index)
 
         # Act
-        lambda_response = index.lambda_handler(
-            EventBridgeEvent(data={}), context=generate_lambda_context()
-        )
+        lambda_response = index.lambda_handler(EventBridgeEvent(data={}), context=generate_lambda_context())
 
         # Assert
         print(lambda_response.body)

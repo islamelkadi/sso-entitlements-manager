@@ -3,14 +3,7 @@ ignore:
     target_names:
       - suspended
 rules:
-  - target_type: OU
-    target_names:
-      - dev
-      - test
-    access_type: RBAC
-    permission_set_name: Administrator
-    principal_name: group1
-    principal_type: GROUP
+
   - target_type: OU
     target_names:
       - dev
@@ -20,6 +13,7 @@ rules:
     permission_set_name: invalid_permission_set_2
     principal_name: user1@testing.com
     principal_type: USER
+
   - target_type: ACCOUNT
     target_names:
       - workload_1_dev
@@ -29,3 +23,12 @@ rules:
     permission_set_name: invalid_permission_set_3
     principal_name: user1@testing.com
     principal_type: USER
+
+  - target_type: OU
+    target_names:
+      - dev
+      - test
+    access_type: RBAC
+    permission_set_name: Administrator
+    principal_name: group1
+    principal_type: GROUP

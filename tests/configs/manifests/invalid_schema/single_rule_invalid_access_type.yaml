@@ -8,6 +8,6 @@ rules:
     target_names:
       - ou_1
     access_type: FAIL
-    permission_set_name: Adminstrator
+    permission_set_name: Administrator
     principal_name: group1
     principal_type: GROUP

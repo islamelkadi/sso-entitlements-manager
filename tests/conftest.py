@@ -61,7 +61,9 @@ def create_aws_ous_accounts(
             nested_ou_id = orgs_client.create_organizational_unit(
                 ParentId=parent_ou_id if parent_ou_id else root_ou_id,
                 Name=organization_resource["name"],
-            )["OrganizationalUnit"]["Id"]
+            )[
+                "OrganizationalUnit"
+            ]["Id"]
 
             # Recursively setup OU
             if organization_resource["children"]:
@@ -77,7 +79,9 @@ def create_aws_ous_accounts(
             account_id = orgs_client.create_account(
                 Email=f"{organization_resource['name']}@testing.com",
                 AccountName=organization_resource["name"],
-            )["CreateAccountStatus"]["AccountId"]
+            )[
+                "CreateAccountStatus"
+            ]["AccountId"]
 
             # Move account to OU
             orgs_client.move_account(
@@ -87,9 +91,7 @@ def create_aws_ous_accounts(
             )
 
 
-def delete_aws_ous_accounts(
-    orgs_client: boto3.client, root_ou_id: str, parent_ou_id: str = ""
-) -> None:
+def delete_aws_ous_accounts(orgs_client: boto3.client, root_ou_id: str, parent_ou_id: str = "") -> None:
     """
     Recursively delete AWS accounts from nested organizational units (OUs).
 
@@ -106,18 +108,14 @@ def delete_aws_ous_accounts(
 
     # Function to delete accounts in the current OU
     def delete_accounts_in_ou(ou_id: str) -> None:
-        accounts_to_delete = orgs_client.list_accounts_for_parent(ParentId=ou_id)[
-            "Accounts"
-        ]
+        accounts_to_delete = orgs_client.list_accounts_for_parent(ParentId=ou_id)["Accounts"]
         for account in accounts_to_delete:
             orgs_client.remove_account_from_organization(AccountId=account["Id"])
 
     # Function to recursively delete accounts in child OUs
     def delete_accounts_in_child_ous(parent_id: str) -> None:
         child_ous_paginator = orgs_client.get_paginator("list_children")
-        for page in child_ous_paginator.paginate(
-            ParentId=parent_id, ChildType="ORGANIZATIONAL_UNIT"
-        ):
+        for page in child_ous_paginator.paginate(ParentId=parent_id, ChildType="ORGANIZATIONAL_UNIT"):
             for child in page.get("Children", []):
                 delete_accounts_in_ou(child["Id"])
                 delete_accounts_in_child_ous(child["Id"])
@@ -154,7 +152,6 @@ def setup_env_vars() -> None:
     Fixture to set environment variables using MonkeyPatch for session scope.
     """
     MONKEYPATCH.setenv("LOG_LEVEL", "INFO")
-    MONKEYPATCH.setenv("DDB_TABLE_NAME", "cloud_pass")
     MONKEYPATCH.setenv("IDENTITY_STORE_ID", "d-1234567890")
     MONKEYPATCH.setenv("IDENTITY_STORE_ARN", "arn:aws:sso:::instance/ssoins-instanceId")
     yield
@@ -315,56 +312,28 @@ def setup_aws_environment(
         # Teardown logic
         if root_ou_id:
             # Remove AWS accounts from organization
-            delete_aws_ous_accounts(
-                orgs_client=organizations_client, root_ou_id=root_ou_id
-            )
+            delete_aws_ous_accounts(orgs_client=organizations_client, root_ou_id=root_ou_id)
 
             # Delete AWS resources or undo changes as needed
             organizations_client.delete_organization(OrganizationId=root_ou_id)
 
             # Delete SSO users
             sso_users_paginator = identity_store_client.get_paginator("list_users")
-            sso_users_iterator = sso_users_paginator.paginate(
-                IdentityStoreId=identity_store_id
-            )
-            sso_users = list(
-                itertools.chain.from_iterable(
-                    (page["Users"] for page in sso_users_iterator)
-                )
-            )
+            sso_users_iterator = sso_users_paginator.paginate(IdentityStoreId=identity_store_id)
+            sso_users = list(itertools.chain.from_iterable((page["Users"] for page in sso_users_iterator)))
             for user in sso_users:
-                identity_store_client.delete_user(
-                    IdentityStoreId=identity_store_id, UserId=user["UserId"]
-                )
+                identity_store_client.delete_user(IdentityStoreId=identity_store_id, UserId=user["UserId"])
 
             # Delete SSO groups
             sso_groups_paginator = identity_store_client.get_paginator("list_groups")
-            sso_groups_iterator = sso_groups_paginator.paginate(
-                IdentityStoreId=identity_store_id
-            )
-            sso_groups = list(
-                itertools.chain.from_iterable(
-                    (page["Groups"] for page in sso_groups_iterator)
-                )
-            )
+            sso_groups_iterator = sso_groups_paginator.paginate(IdentityStoreId=identity_store_id)
+            sso_groups = list(itertools.chain.from_iterable((page["Groups"] for page in sso_groups_iterator)))
             for group in sso_groups:
-                identity_store_client.delete_group(
-                    IdentityStoreId=identity_store_id, GroupId=group["GroupId"]
-                )
+                identity_store_client.delete_group(IdentityStoreId=identity_store_id, GroupId=group["GroupId"])
 
             # Delete permission sets
-            permission_sets_paginator = sso_admin_client.get_paginator(
-                "list_permission_sets"
-            )
-            permission_sets_iterator = permission_sets_paginator.paginate(
-                InstanceArn=identity_store_arn
-            )
-            permission_sets = list(
-                itertools.chain.from_iterable(
-                    (page["PermissionSets"] for page in permission_sets_iterator)
-                )
-            )
+            permission_sets_paginator = sso_admin_client.get_paginator("list_permission_sets")
+            permission_sets_iterator = permission_sets_paginator.paginate(InstanceArn=identity_store_arn)
+            permission_sets = list(itertools.chain.from_iterable((page["PermissionSets"] for page in permission_sets_iterator)))
             for permission_set in permission_sets:
-                sso_admin_client.delete_permission_set(
-                    InstanceArn=identity_store_arn, PermissionSetArn=permission_set
-                )
+                sso_admin_client.delete_permission_set(InstanceArn=identity_store_arn, PermissionSetArn=permission_set)
