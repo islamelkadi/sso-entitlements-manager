@@ -28,9 +28,6 @@
                     "target_type": {
                         "$ref": "#/$defs/target_type"
                     },
-                    "access_type": {
-                        "$ref": "#/$defs/access_type"
-                    },
                     "target_names": {
                         "$ref": "#/$defs/target_names"
                     },
@@ -49,7 +46,6 @@
                 },
                 "required": [
                     "target_type",
-                    "access_type",
                     "target_names",
                     "permission_set_name",
                     "principal_name",
@@ -71,14 +67,6 @@
             "items": {
                 "type": "string"
             }
-        },
-        "access_type": {
-            "type": "string",
-            "enum": [
-                "RBAC",
-                "ABAC",
-                "JIIT"
-            ]
         },
         "nested": {
             "type": "boolean",

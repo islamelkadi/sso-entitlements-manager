@@ -7,7 +7,6 @@ rbac_rules:
     target_names:
       - dev
       - test
-    access_type: RBAC
     permission_set_name: invalid_permission_set_1
     principal_name: group1
     principal_type: GROUP
@@ -16,7 +15,6 @@ rbac_rules:
       - dev
       - test
       - prod
-    access_type: RBAC
     permission_set_name: invalid_permission_set_2
     principal_name: user1@testing.com
     principal_type: USER
@@ -25,7 +23,6 @@ rbac_rules:
       - workload_1_dev
       - workload_2_dev
       - workload_2_test
-    access_type: RBAC
     permission_set_name: invalid_permission_set_3
     principal_name: user1@testing.com
     principal_type: USER

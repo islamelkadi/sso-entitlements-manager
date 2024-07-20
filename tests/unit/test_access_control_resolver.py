@@ -8,10 +8,6 @@ Tests:
     Validate a single rule with invalid rules target type.
 - test_multiple_rules_invalid_rules_target_type:
     Validate multiple rules with invalid rules target type.
-- test_single_rule_invalid_rules_access_type:
-    Validate a single rule with invalid rules access type.
-- test_multiple_rules_invalid_rules_access_type:
-    Validate multiple rules with invalid rules access type.
 - test_single_rule_missing_permission_set_name:
     Validate a single rule with missing permission set name.
 - test_multiple_rules_missing_permission_set_name:
@@ -179,10 +175,6 @@ def get_unique_combinations(
         "single_rule_invalid_target_type_datatype.yaml",
         "multiple_rules_invalid_target_type.yaml",
         "multiple_rules_invalid_target_type_datatype.yaml",
-        "single_rule_invalid_access_type.yaml",
-        "single_rule_invalid_access_type_datatype.yaml",
-        "multiple_rules_invalid_access_type.yaml",
-        "multiple_rules_invalid_access_type_datatype.yaml",
         "single_rule_missing_permission_set_name.yaml",
         "single_rule_invalid_permission_set_name_datatype.yaml",
         "multiple_rules_missing_permission_set_name.yaml",

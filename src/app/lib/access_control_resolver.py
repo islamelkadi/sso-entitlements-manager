@@ -47,7 +47,7 @@ class AwsAccessResolver:
         self._invalid_manifest_file_group_names = []
         self._invalid_manifest_file_user_names = []
         self._invalid_manifest_file_permission_sets = []
-        self._manifest_file_keys_to_uppercase = ["access_type", "principal_type", "target_type"]
+        self._manifest_file_keys_to_uppercase = ["principal_type", "target_type"]
 
         self.valid_named_account_assignments = []
         self.valid_resolved_account_assignments = []

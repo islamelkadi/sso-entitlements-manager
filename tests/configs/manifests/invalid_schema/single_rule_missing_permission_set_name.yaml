@@ -7,6 +7,5 @@ rbac_rules:
   - target_type: OU
     target_names:
       - ou_1
-    access_type: FAIL
     principal_name: group1
     principal_type: GROUP

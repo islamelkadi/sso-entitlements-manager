@@ -7,7 +7,6 @@ rbac_rules:
   - target_type: OU
     target_names:
       - ou_1
-    access_type: RBAC
     permission_set_name: Administrator
     principal_name: group1
     principal_type: 1234
