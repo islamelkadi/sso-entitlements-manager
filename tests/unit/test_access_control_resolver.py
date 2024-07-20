@@ -285,11 +285,53 @@ def test_rules_valid_manifest_schema(setup_aws_environment: pytest.fixture, mani
         valid_accounts,
         ignore_accounts,
     )
-    # Assert the length of unique combinations matches the successful RBAC assignments
+
+    # Assert generated combinations matches the successful RBAC assignments
     sort_keys = itemgetter("permission_set_name", "principal_type", "principal_name", "account_name")
-
     valid_named_assignments_sorted = sorted(aws_access_resolver.valid_named_account_assignments, key=sort_keys)
-
     valid_unique_named_combinations = sorted(valid_unique_named_combinations, key=sort_keys)
 
     assert valid_named_assignments_sorted == valid_unique_named_combinations
+
+    # Assert test generated invalid report matches class generated invalid report matches
+    invalid_assignments = []
+    rbac_rules = manifest_file.get("rbac_rules", [])
+    for i, rule in enumerate(rbac_rules):
+        # Check target names
+        target_reference = list(ou_map.keys()) if rule["target_type"] == "OU" else valid_accounts
+        for target_name in rule["target_names"]:
+            if target_name not in target_reference:
+                invalid_assignments.append(
+                    {
+                        "rule_number": i,
+                        "resource_type": rule["target_type"],
+                        "resource_name": target_name,
+                    }
+                )
+
+        # Check principal name
+        target_reference = sso_group_map.keys() if rule["principal_type"] == "GROUP" else sso_user_map.keys()
+        if rule["principal_name"] not in target_reference:
+            invalid_assignments.append(
+                {
+                    "rule_number": i,
+                    "resource_type": rule["principal_type"],
+                    "resource_name": rule["principal_name"],
+                }
+            )
+
+        # Check permission set name
+        if rule["permission_set_name"] not in permission_set_map:
+            invalid_assignments.append(
+                {
+                    "rule_number": i,
+                    "resource_type": "permission_set",
+                    "resource_name": rule["permission_set_name"],
+                }
+            )
+
+    sort_keys = itemgetter("rule_number", "resource_type", "resource_name")
+    sorted_invalid_assignments_via_test = sorted(invalid_assignments, key=sort_keys)
+    sorted_invalid_assignments_via_class = sorted(aws_access_resolver.invalid_manifest_rules_report, key=sort_keys)
+
+    assert sorted_invalid_assignments_via_test == sorted_invalid_assignments_via_class

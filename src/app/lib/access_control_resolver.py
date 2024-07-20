@@ -41,7 +41,7 @@ class AwsAccessResolver:
         self._excluded_ou_names = []
         self._excluded_account_names = []
 
-        self._invalid_manifest_rules_report = []
+        self.invalid_manifest_rules_report = []
         self._invalid_manifest_file_ou_names = []
         self._invalid_manifest_file_account_names = []
         self._invalid_manifest_file_group_names = []
@@ -144,17 +144,16 @@ class AwsAccessResolver:
 
         return resource_map[resource_name]
 
-    def _generate_invalid_assignments_report(self, sort_key: str = "rule_number") -> None:
+    def _generate_invalid_assignments_report(self) -> None:
         """
         Generates a report of invalid assignments.
 
         Args:
             sort_key (str, optional): Key to sort invalid assignments. Defaults to "rule_number".
         """
-        self._invalid_manifest_rules_report = (
+        self.invalid_manifest_rules_report = (
             self._invalid_manifest_file_ou_names + self._invalid_manifest_file_account_names + self._invalid_manifest_file_group_names + self._invalid_manifest_file_user_names + self._invalid_manifest_file_permission_sets
         )
-        self._invalid_manifest_rules_report.sort(key=lambda x: x.get(sort_key))
 
     def _generate_rbac_assignments(self) -> None:
         """
