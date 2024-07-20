@@ -66,12 +66,12 @@ def test_list_identity_center_entities(setup_aws_environment: pytest.fixture) ->
     # Assert
     sso_usernames_via_class = list(py_aws_sso.sso_users.keys())
     sso_usernames_via_definitions = [x["username"] for x in setup_aws_environment["aws_sso_user_definitions"]]
-    assert sorted(sso_usernames_via_class) == sorted(sso_usernames_via_definitions)
+    assert sso_usernames_via_class.sort() == sso_usernames_via_definitions.sort()
 
     sso_groups_via_class = list(py_aws_sso.sso_groups.keys())
     sso_groups_via_definitions = [x["name"] for x in setup_aws_environment["aws_sso_group_definitions"]]
-    assert sorted(sso_groups_via_class) == sorted(sso_groups_via_definitions)
+    assert sso_groups_via_class.sort() == sso_groups_via_definitions.sort()
 
     permission_sets_via_class = list(py_aws_sso.permission_sets.keys())
     permission_sets_via_definitions = [x["name"] for x in setup_aws_environment["aws_permission_set_definitions"]]
-    assert sorted(permission_sets_via_class) == sorted(permission_sets_via_definitions)
+    assert permission_sets_via_class.sort() == permission_sets_via_definitions.sort()

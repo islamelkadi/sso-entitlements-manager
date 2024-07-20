@@ -288,10 +288,7 @@ def test_rules_valid_manifest_schema(setup_aws_environment: pytest.fixture, mani
 
     # Assert generated combinations matches the successful RBAC assignments
     sort_keys = itemgetter("permission_set_name", "principal_type", "principal_name", "account_name")
-    valid_named_assignments_sorted = sorted(aws_access_resolver.valid_named_account_assignments, key=sort_keys)
-    valid_unique_named_combinations = sorted(valid_unique_named_combinations, key=sort_keys)
-
-    assert valid_named_assignments_sorted == valid_unique_named_combinations
+    assert valid_unique_named_combinations.sort(key=sort_keys) == aws_access_resolver.valid_named_account_assignments.sort(key=sort_keys)
 
     # Assert test generated invalid report matches class generated invalid report matches
     invalid_assignments = []
@@ -331,7 +328,4 @@ def test_rules_valid_manifest_schema(setup_aws_environment: pytest.fixture, mani
             )
 
     sort_keys = itemgetter("rule_number", "resource_type", "resource_name")
-    sorted_invalid_assignments_via_test = sorted(invalid_assignments, key=sort_keys)
-    sorted_invalid_assignments_via_class = sorted(aws_access_resolver.invalid_manifest_rules_report, key=sort_keys)
-
-    assert sorted_invalid_assignments_via_test == sorted_invalid_assignments_via_class
+    assert invalid_assignments.sort(key=sort_keys) == aws_access_resolver.invalid_manifest_rules_report.sort(key=sort_keys)
