@@ -135,7 +135,7 @@ def get_unique_combinations(
         UniqueCombination: A set of unique (principal_name, permission_set_name, target) tuples.
     """
     unique_combinations = []
-    for rule in manifest_file.get("rules", []):
+    for rule in manifest_file.get("rbac_rules", []):
         if rule["principal_type"] == "USER" and rule["principal_name"] not in sso_user_map:
             continue
 

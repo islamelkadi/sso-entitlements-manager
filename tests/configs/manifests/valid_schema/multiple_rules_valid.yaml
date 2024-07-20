@@ -2,7 +2,7 @@ ignore:
   - target_type: OU
     target_names:
       - suspended
-rules:
+rbac_rules:
   - target_type: OU
     target_names:
       - dev

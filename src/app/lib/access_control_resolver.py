@@ -166,7 +166,7 @@ class AwsAccessResolver:
             if assignment not in self.valid_resolved_account_assignments:
                 self.valid_resolved_account_assignments.append(assignment)
 
-        rbac_rules = self._manifest_definition.get("rules", [])
+        rbac_rules = self._manifest_definition.get("rbac_rules", [])
         for i, rule in enumerate(rbac_rules):
             rule["rule_number"] = i
             rule["principal_id"] = self._is_valid_aws_resource(rule["rule_number"], rule["principal_name"], rule["principal_type"])

@@ -20,7 +20,7 @@
                 ]
             }
         },
-        "rules": {
+        "rbac_rules": {
             "type": "array",
             "items": {
                 "type": "object",

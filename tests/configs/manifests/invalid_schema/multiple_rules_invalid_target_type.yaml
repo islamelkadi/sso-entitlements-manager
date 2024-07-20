@@ -3,7 +3,7 @@ ignore:
     target_names:
       - dev
       - test
-rules:
+rbac_rules:
   - target_type: FAIL
     target_names:
       - ou_1
