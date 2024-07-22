@@ -54,13 +54,6 @@ class AwsAccessResolver:
 
         self._sso_admin_client = boto3.client("sso-admin")
 
-        self._load_validate_sso_manifest()
-        self._generate_excluded_lists()
-        self._initialize_aws_environment_mappers()
-        self._generate_rbac_assignments()
-        self._generate_invalid_assignments_report()
-        self._generate_valid_named_assignments_report()
-
     def _load_validate_sso_manifest(self) -> None:
         """
         Loads schema and manifest files, converts specific keys to uppercase, and validates the manifest.
@@ -217,3 +210,11 @@ class AwsAccessResolver:
 
             if named_account_assignment_item not in self.valid_named_account_assignments:
                 self.valid_named_account_assignments.append(named_account_assignment_item)
+
+    def run_access_control_resolver(self) -> None:
+        self._load_validate_sso_manifest()
+        self._generate_excluded_lists()
+        self._initialize_aws_environment_mappers()
+        self._generate_rbac_assignments()
+        self._generate_invalid_assignments_report()
+        self._generate_valid_named_assignments_report()

@@ -1,5 +1,49 @@
 """
 Module to interact with the AWS IAM Identity Store service.
+
+This module provides a class to facilitate interactions with AWS IAM Identity Store, 
+including mapping SSO users, groups, and permission sets.
+
+Classes:
+--------
+AwsIdentityCentre
+    A class to interact with AWS IAM Identity Store service.
+
+    Attributes:
+    -----------
+    _identity_store_id: str
+        The identity store ID.
+    _identity_store_arn: str
+        The identity store ARN.
+    _sso_admin_client: boto3.client
+        The boto3 client for AWS SSO Admin.
+    _identity_store_client: boto3.client
+        The boto3 client for AWS Identity Store.
+    sso_users: dict
+        Dictionary mapping UserName to UserId for SSO users.
+    sso_groups: dict
+        Dictionary mapping DisplayName to GroupId for SSO groups.
+    permission_sets: dict
+        Dictionary mapping Name to PermissionSetArn for permission sets.
+    exclude_sso_users: list
+        List of SSO user names to be excluded.
+    exclude_sso_groups: list
+        List of SSO group display names to be excluded.
+    exclude_permission_sets: list
+        List of permission set names to be excluded.
+
+    Methods:
+    --------
+    __init__(identity_store_id: str, identity_store_arn: str) -> None
+        Initializes the AwsIdentityCentre instance with the identity store ID and ARN.
+    _map_sso_groups() -> None
+        Lists all groups in the identity store and maps DisplayName to GroupId.
+    _map_sso_users() -> None
+        Lists all users in the identity store and maps UserName to UserId.
+    _map_permission_sets() -> None
+        Lists all permission sets and maps Name to PermissionSetArn.
+    run_identity_center_mapper() -> None
+        Runs all mapping methods to update SSO users, groups, and permission sets.
 """
 
 import boto3
@@ -25,17 +69,25 @@ class AwsIdentityCentre:
         Dictionary mapping DisplayName to GroupId for SSO groups.
     permission_sets: dict
         Dictionary mapping Name to PermissionSetArn for permission sets.
+    exclude_sso_users: list
+        List of SSO user names to be excluded.
+    exclude_sso_groups: list
+        List of SSO group display names to be excluded.
+    exclude_permission_sets: list
+        List of permission set names to be excluded.
 
     Methods:
     --------
-    __init__(identity_store_id: str, identity_store_arn: str) -> None:
+    __init__(identity_store_id: str, identity_store_arn: str) -> None
         Initializes the AwsIdentityCentre instance with the identity store ID and ARN.
-    _map_sso_groups() -> None:
+    _map_sso_groups() -> None
         Lists all groups in the identity store and maps DisplayName to GroupId.
-    _map_sso_users() -> None:
+    _map_sso_users() -> None
         Lists all users in the identity store and maps UserName to UserId.
-    _map_permission_sets() -> None:
+    _map_permission_sets() -> None
         Lists all permission sets and maps Name to PermissionSetArn.
+    run_identity_center_mapper() -> None
+        Runs all mapping methods to update SSO users, groups, and permission sets.
     """
 
     def __init__(self, identity_store_id: str, identity_store_arn: str) -> None:
@@ -59,13 +111,13 @@ class AwsIdentityCentre:
         self._sso_admin_client = boto3.client("sso-admin")
         self._identity_store_client = boto3.client("identitystore")
 
+        self.exclude_sso_users = []
+        self.exclude_sso_groups = []
+        self.exclude_permission_sets = []
+
         self.sso_users = {}
         self.sso_groups = {}
         self.permission_sets = {}
-
-        self._map_sso_users()
-        self._map_sso_groups()
-        self._map_permission_sets()
 
     def _map_sso_groups(self) -> None:
         """
@@ -77,7 +129,8 @@ class AwsIdentityCentre:
             sso_groups_list.extend(page["Groups"])
 
         for group in sso_groups_list:
-            self.sso_groups[group["DisplayName"]] = group["GroupId"]
+            if group["DisplayName"] not in self.exclude_sso_groups:
+                self.sso_groups[group["DisplayName"]] = group["GroupId"]
 
     def _map_sso_users(self) -> None:
         """
@@ -90,7 +143,8 @@ class AwsIdentityCentre:
             sso_users_list.extend(page["Users"])
 
         for user in sso_users_list:
-            self.sso_users[user["UserName"]] = user["UserId"]
+            if user["UserName"] not in self.exclude_sso_users:
+                self.sso_users[user["UserName"]] = user["UserId"]
 
     def _map_permission_sets(self) -> None:
         """
@@ -108,4 +162,13 @@ class AwsIdentityCentre:
             described_permission_sets.append(permission_set_info.get("PermissionSet"))
 
         for permission_set in described_permission_sets:
-            self.permission_sets[permission_set["Name"]] = permission_set["PermissionSetArn"]
+            if permission_set["Name"] not in self.exclude_permission_sets:
+                self.permission_sets[permission_set["Name"]] = permission_set["PermissionSetArn"]
+
+    def run_identity_center_mapper(self) -> None:
+        """
+        Runs all mapping methods to update SSO users, groups, and permission sets.
+        """
+        self._map_sso_users()
+        self._map_sso_groups()
+        self._map_permission_sets()

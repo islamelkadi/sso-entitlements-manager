@@ -11,6 +11,7 @@ Tests:
 """
 
 import os
+from typing import List
 import pytest
 from app.lib.identity_center_mapper import AwsIdentityCentre
 
@@ -40,8 +41,23 @@ def test_missing_default_constructor_parameters() -> None:
         AwsIdentityCentre(identity_store_arn=identity_store_arn)
 
 
-@pytest.mark.parametrize("setup_aws_environment", ["aws_org_1.json", "aws_org_1.json"], indirect=True)
-def test_list_identity_center_entities(setup_aws_environment: pytest.fixture) -> None:
+@pytest.mark.parametrize(
+    "setup_aws_environment, excluded_sso_users, excluded_sso_groups, excluded_permission_sets",
+    [
+        ("aws_org_1.json", ["user1@testing.com"], [], []),
+        ("aws_org_1.json", [], ["group1"], []),
+        ("aws_org_1.json", [], [], ["Administrator"]),
+        ("aws_org_1.json", ["user1@testing.com", "user2@testing.com"], [], []),
+        ("aws_org_1.json", [], ["group1", "group2"], []),
+        ("aws_org_1.json", [], [], ["Administrator", "ReadOnly"]),
+        ("aws_org_1.json", ["user1@testing.com"], ["group1"], []),
+        ("aws_org_1.json", ["user1@testing.com", "user2@testing.com"], ["group1"], []),
+        ("aws_org_1.json", ["user1@testing.com"], ["group1", "group2"], []),
+        ("aws_org_1.json", ["user1@testing.com"], [], ["Administrator", "ReadOnly"]),
+    ],
+    indirect=["setup_aws_environment"],
+)
+def test_list_identity_center_entities(setup_aws_environment: pytest.fixture, excluded_sso_users: List[str], excluded_sso_groups: List[str], excluded_permission_sets: List[str]) -> None:
     """
     Test case for listing SSO groups, users, and permission sets and make sure they
     were successfully created.
@@ -62,16 +78,20 @@ def test_list_identity_center_entities(setup_aws_environment: pytest.fixture) ->
 
     # Act
     py_aws_sso = AwsIdentityCentre(identity_store_id, identity_store_arn)
+    setattr(py_aws_sso, "exclude_sso_users", excluded_sso_users)
+    setattr(py_aws_sso, "exclude_sso_groups", excluded_sso_groups)
+    setattr(py_aws_sso, "exclude_permission_sets", excluded_permission_sets)
+    py_aws_sso.run_identity_center_mapper()
 
     # Assert
     sso_usernames_via_class = list(py_aws_sso.sso_users.keys())
-    sso_usernames_via_definitions = [x["username"] for x in setup_aws_environment["aws_sso_user_definitions"]]
+    sso_usernames_via_definitions = [x["username"] for x in setup_aws_environment["aws_sso_user_definitions"] if x["username"] not in excluded_sso_users]
     assert sso_usernames_via_class.sort() == sso_usernames_via_definitions.sort()
 
     sso_groups_via_class = list(py_aws_sso.sso_groups.keys())
-    sso_groups_via_definitions = [x["name"] for x in setup_aws_environment["aws_sso_group_definitions"]]
+    sso_groups_via_definitions = [x["name"] for x in setup_aws_environment["aws_sso_group_definitions"] if x["name"] not in excluded_sso_groups]
     assert sso_groups_via_class.sort() == sso_groups_via_definitions.sort()
 
     permission_sets_via_class = list(py_aws_sso.permission_sets.keys())
-    permission_sets_via_definitions = [x["name"] for x in setup_aws_environment["aws_permission_set_definitions"]]
+    permission_sets_via_definitions = [x["name"] for x in setup_aws_environment["aws_permission_set_definitions"] if x["name"] not in excluded_permission_sets]
     assert permission_sets_via_class.sort() == permission_sets_via_definitions.sort()
