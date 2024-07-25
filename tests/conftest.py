@@ -171,7 +171,7 @@ def organizations_client() -> boto3.client:
     -------
     - boto3.client: Mocked AWS Organizations client.
     """
-    with moto.mock_organizations():
+    with moto.mock_aws():
         yield boto3.client("organizations")
 
 
@@ -184,7 +184,7 @@ def identity_store_client() -> boto3.client:
     -------
     - boto3.client: Mocked AWS Identity Store client.
     """
-    with moto.mock_identitystore():
+    with moto.mock_aws():
         yield boto3.client("identitystore")
 
 
@@ -197,7 +197,7 @@ def sso_admin_client() -> boto3.client:
     -------
     - boto3.client: Mocked AWS SSO Admin client.
     """
-    with moto.mock_ssoadmin():
+    with moto.mock_aws():
         yield boto3.client("sso-admin")
 
 
@@ -303,6 +303,8 @@ def setup_aws_environment(
 
         yield {
             "root_ou_id": root_ou_id,
+            "identity_center_id": identity_store_id,
+            "identity_center_arn": identity_store_arn,
             "aws_organization_definitions": aws_organizations_definitions,
             "aws_sso_group_definitions": sso_groups,
             "aws_sso_user_definitions": sso_users,

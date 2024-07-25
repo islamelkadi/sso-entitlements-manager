@@ -11,9 +11,9 @@ AwsIdentityCentre
 
     Attributes:
     -----------
-    _identity_store_id: str
+    identity_store_id: str
         The identity store ID.
-    _identity_store_arn: str
+    identity_store_arn: str
         The identity store ARN.
     _sso_admin_client: boto3.client
         The boto3 client for AWS SSO Admin.
@@ -55,9 +55,9 @@ class AwsIdentityCentre:
 
     Attributes:
     -----------
-    _identity_store_id: str
+    identity_store_id: str
         The identity store ID.
-    _identity_store_arn: str
+    identity_store_arn: str
         The identity store ARN.
     _sso_admin_client: boto3.client
         The boto3 client for AWS SSO Admin.
@@ -105,11 +105,8 @@ class AwsIdentityCentre:
         ------
         aws_identity_centre = AwsIdentityCentre("identity_store_id", "identity_store_arn")
         """
-        self._identity_store_id = identity_store_id
-        self._identity_store_arn = identity_store_arn
-
-        self._sso_admin_client = boto3.client("sso-admin")
-        self._identity_store_client = boto3.client("identitystore")
+        self.identity_store_id = identity_store_id
+        self.identity_store_arn = identity_store_arn
 
         self.exclude_sso_users = []
         self.exclude_sso_groups = []
@@ -119,13 +116,16 @@ class AwsIdentityCentre:
         self.sso_groups = {}
         self.permission_sets = {}
 
+        self._sso_admin_client = boto3.client("sso-admin")
+        self._identity_store_client = boto3.client("identitystore")
+
     def _map_sso_groups(self) -> None:
         """
         Lists all groups in the identity store and maps DisplayName to GroupId.
         """
         sso_groups_list = []
         groups_paginator = self._identity_store_client.get_paginator("list_groups")
-        for page in groups_paginator.paginate(IdentityStoreId=self._identity_store_id):
+        for page in groups_paginator.paginate(IdentityStoreId=self.identity_store_id):
             sso_groups_list.extend(page["Groups"])
 
         for group in sso_groups_list:
@@ -138,7 +138,7 @@ class AwsIdentityCentre:
         """
         sso_users_list = []
         sso_users_pagniator = self._identity_store_client.get_paginator("list_users")
-        sso_users_pages = sso_users_pagniator.paginate(IdentityStoreId=self._identity_store_id)
+        sso_users_pages = sso_users_pagniator.paginate(IdentityStoreId=self.identity_store_id)
         for page in sso_users_pages:
             sso_users_list.extend(page["Users"])
 
@@ -152,13 +152,13 @@ class AwsIdentityCentre:
         """
         permission_sets = []
         permission_sets_paginator = self._sso_admin_client.get_paginator("list_permission_sets")
-        permission_sets_pages = permission_sets_paginator.paginate(InstanceArn=self._identity_store_arn)
+        permission_sets_pages = permission_sets_paginator.paginate(InstanceArn=self.identity_store_arn)
         for page in permission_sets_pages:
             permission_sets.extend(page["PermissionSets"])
 
         described_permission_sets = []
         for permission_set in permission_sets:
-            permission_set_info = self._sso_admin_client.describe_permission_set(InstanceArn=self._identity_store_arn, PermissionSetArn=permission_set)
+            permission_set_info = self._sso_admin_client.describe_permission_set(InstanceArn=self.identity_store_arn, PermissionSetArn=permission_set)
             described_permission_sets.append(permission_set_info.get("PermissionSet"))
 
         for permission_set in described_permission_sets:

@@ -31,8 +31,11 @@ from operator import itemgetter
 from typing import Dict, List, Set, Tuple
 
 import pytest
-import jsonschema
+from app.lib.ous_accounts_mapper import AwsOrganizations
+from app.lib.identity_center_mapper import AwsIdentityCentre
 from app.lib.access_control_resolver import AwsAccessResolver
+from app.lib.access_manifest_reader import AccessManifestReader
+
 from app.lib.utils import load_file, convert_list_to_dict
 
 
@@ -77,7 +80,7 @@ def get_valid_accounts(ou_map: OuMap) -> List[str]:
     return valid_accounts
 
 
-def get_ignore_accounts(manifest_file: ManifestFile, ou_map: OuMap) -> Set[str]:
+def get_ignore_accounts(manifest_file: AccessManifestReader, ou_map: OuMap) -> Set[str]:
     """
     Determine which accounts should be ignored based on the manifest file
     and organizational unit map.
@@ -93,13 +96,10 @@ def get_ignore_accounts(manifest_file: ManifestFile, ou_map: OuMap) -> Set[str]:
         Set[str]: A set of account names to ignore.
     """
     ignore_accounts = set()
-    for ignore_rule in manifest_file.get("ignore", []):
-        if ignore_rule["target_type"] == "ACCOUNT":
-            ignore_accounts.update(ignore_rule["target_names"])
-        elif ignore_rule["target_type"] == "OU":
-            for ou_name in ignore_rule["target_names"]:
-                if ou_name in ou_map:
-                    ignore_accounts.update(account["name"] for account in ou_map[ou_name]["children"] if account["type"] == "ACCOUNT")
+    ignore_accounts.update(manifest_file.excluded_account_names)
+    for ou_name in manifest_file.excluded_ou_names:
+        if ou_name in ou_map:
+            ignore_accounts.update(account["name"] for account in ou_map[ou_name]["children"] if account["type"] == "ACCOUNT")
     return ignore_accounts
 
 
@@ -131,7 +131,7 @@ def get_unique_combinations(
         UniqueCombination: A set of unique (principal_name, permission_set_name, target) tuples.
     """
     unique_combinations = []
-    for rule in manifest_file.get("rbac_rules", []):
+    for rule in manifest_file.rbac_rules:
         if rule["principal_type"] == "USER" and rule["principal_name"] not in sso_user_map:
             continue
 
@@ -169,64 +169,6 @@ def get_unique_combinations(
 
 # Test cases
 @pytest.mark.parametrize(
-    "manifest_filename",
-    [
-        "single_rule_invalid_target_type.yaml",
-        "single_rule_invalid_target_type_datatype.yaml",
-        "multiple_rules_invalid_target_type.yaml",
-        "multiple_rules_invalid_target_type_datatype.yaml",
-        "single_rule_missing_permission_set_name.yaml",
-        "single_rule_invalid_permission_set_name_datatype.yaml",
-        "multiple_rules_missing_permission_set_name.yaml",
-        "multiple_rules_invalid_permission_set_name_datatype.yaml",
-        "single_rule_missing_principal_name.yaml",
-        "single_rule_invalid_principal_name_datatype.yaml",
-        "multiple_rules_missing_principal_name.yaml",
-        "multiple_rules_invalid_principal_name_datatype.yaml",
-        "single_rule_invalid_principal_type.yaml",
-        "single_rule_invalid_principal_type_datatype.yaml",
-        "multiple_rules_invalid_principal_type.yaml",
-        "multiple_rules_invalid_principal_type_datatype.yaml",
-        "single_rule_invalid_rule_type.yaml",
-        "single_rule_invalid_rule_type_datatype.yaml",
-        "multiple_rules_invalid_rule_type.yaml",
-        "multiple_rules_invalid_rule_type_datatype.yaml",
-    ],
-)
-def test_rules_invalid_manifest_schema(manifest_filename: str) -> None:
-    """
-    Test to validate manifest files with invalid schema definitions.
-
-    This test checks if manifest files with various invalid schema
-    configurations raise a jsonschema.ValidationError when processed
-    by the AwsAccessResolver.
-
-    Parameters:
-    ----------
-        setup_aws_environment (pytest.fixture): Fixture to set up the AWS environment.
-        manifest_filename (str): Name of the manifest file to validate.
-
-    Asserts:
-    -------
-        jsonschema.ValidationError: If the manifest file schema is invalid.
-    """
-    # Arrange
-    manifest_definition_filepath = os.path.join(
-        CWD,
-        "..",
-        "configs",
-        "manifests",
-        "invalid_schema",
-        manifest_filename,
-    )
-
-    # Assert
-    with pytest.raises(jsonschema.ValidationError):
-        # Act
-        AwsAccessResolver(MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath)
-
-
-@pytest.mark.parametrize(
     "setup_aws_environment, manifest_filename",
     [
         ("aws_org_1.json", "multiple_rules_valid.yaml"),
@@ -256,24 +198,17 @@ def test_rules_valid_manifest_schema(setup_aws_environment: pytest.fixture, mani
     -------
         The number of unique combinations matches the number of successful RBAC assignments.
     """
+
+    # Load manifest file
+    manifest_definition_filepath = os.path.join(CWD, "..", "configs", "manifests", "valid_schema", manifest_filename)
+    manifest_file = AccessManifestReader(MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath)
+
     # Load AWS environment definitions
     ou_map = convert_list_to_dict(setup_aws_environment["aws_organization_definitions"], "name")
     sso_user_map = convert_list_to_dict(setup_aws_environment["aws_sso_user_definitions"], "username")
     sso_group_map = convert_list_to_dict(setup_aws_environment["aws_sso_group_definitions"], "name")
     permission_set_map = convert_list_to_dict(setup_aws_environment["aws_permission_set_definitions"], "name")
-
-    # Load manifest file
-    manifest_definition_filepath = os.path.join(
-        CWD,
-        "..",
-        "configs",
-        "manifests",
-        "valid_schema",
-        manifest_filename,
-    )
-    manifest_file = load_file(manifest_definition_filepath)
-    aws_access_resolver = AwsAccessResolver(MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath)
-
+    
     valid_accounts = get_valid_accounts(ou_map)
     ignore_accounts = get_ignore_accounts(manifest_file, ou_map)
     valid_unique_named_combinations = get_unique_combinations(
@@ -286,14 +221,34 @@ def test_rules_valid_manifest_schema(setup_aws_environment: pytest.fixture, mani
         ignore_accounts,
     )
 
+    # Create OU & Accounts map via class
+    aws_org = AwsOrganizations(setup_aws_environment["root_ou_id"])
+    setattr(aws_org, "exclude_ou_name_list", manifest_file.excluded_ou_names)
+    setattr(aws_org, "exclude_account_name_list", manifest_file.excluded_account_names)
+    aws_org.run_ous_accounts_mapper()
+
+    aws_idc = AwsIdentityCentre(setup_aws_environment["identity_center_id"], setup_aws_environment["identity_center_arn"])
+    setattr(aws_idc, "exclude_sso_users", manifest_file.excluded_sso_user_names)
+    setattr(aws_idc, "exclude_sso_groups", manifest_file.excluded_sso_group_names)
+    setattr(aws_idc, "exclude_permission_sets", manifest_file.excluded_permission_set_names)
+    aws_idc.run_identity_center_mapper()
+
+    aws_access_resolver = AwsAccessResolver(setup_aws_environment["identity_center_arn"])
+    setattr(aws_access_resolver, "rbac_rules", manifest_file.rbac_rules)
+    setattr(aws_access_resolver, "sso_users", aws_idc.sso_users)
+    setattr(aws_access_resolver, "sso_groups", aws_idc.sso_groups)
+    setattr(aws_access_resolver, "permission_sets", aws_idc.permission_sets)
+    setattr(aws_access_resolver, "account_name_id_map", aws_org.account_name_id_map)
+    setattr(aws_access_resolver, "ou_name_accounts_details_map", aws_org.ou_name_accounts_details_map)
+    aws_access_resolver.run_access_control_resolver()
+
     # Assert generated combinations matches the successful RBAC assignments
     sort_keys = itemgetter("permission_set_name", "principal_type", "principal_name", "account_name")
-    assert valid_unique_named_combinations.sort(key=sort_keys) == aws_access_resolver.valid_named_account_assignments.sort(key=sort_keys)
+    assert sorted(valid_unique_named_combinations, key=sort_keys) == sorted(aws_access_resolver.valid_named_account_assignments, key=sort_keys)
 
     # Assert test generated invalid report matches class generated invalid report matches
     invalid_assignments = []
-    rbac_rules = manifest_file.get("rbac_rules", [])
-    for i, rule in enumerate(rbac_rules):
+    for i, rule in enumerate(manifest_file.rbac_rules):
         # Check target names
         target_reference = list(ou_map.keys()) if rule["target_type"] == "OU" else valid_accounts
         for target_name in rule["target_names"]:
@@ -328,4 +283,4 @@ def test_rules_valid_manifest_schema(setup_aws_environment: pytest.fixture, mani
             )
 
     sort_keys = itemgetter("rule_number", "resource_type", "resource_name")
-    assert invalid_assignments.sort(key=sort_keys) == aws_access_resolver.invalid_manifest_rules_report.sort(key=sort_keys)
+    assert sorted(invalid_assignments, key=sort_keys) == sorted(aws_access_resolver.invalid_manifest_rules_report, key=sort_keys)

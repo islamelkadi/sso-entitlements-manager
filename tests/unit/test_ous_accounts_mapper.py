@@ -88,4 +88,4 @@ def test_list_active_included_aws_accounts(
     active_aws_account_names_via_boto3 = [x["Name"] for x in organizations_client.list_accounts()["Accounts"] if x["Name"] not in accounts_to_filter_out]
 
     # Assert
-    assert active_aws_accounts_via_class.sort() == active_aws_account_names_via_boto3.sort()
+    assert sorted(active_aws_accounts_via_class) == sorted(active_aws_account_names_via_boto3)

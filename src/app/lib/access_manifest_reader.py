@@ -37,13 +37,14 @@ AccessManifestReader
 """
 
 import jsonschema
-from .utils import download_file_from_s3, load_file, convert_specific_keys_to_uppercase
+from .utils import load_file, convert_specific_keys_to_uppercase
 
 # Constants (typically should be uppercase to indicate they are constants)
 OU_TARGET_TYPE_LABEL = "OU"
 ACCOUNT_TARGET_TYPE_LABEL = "ACCOUNT"
 USER_PRINCIPAL_TYPE_LABEL = "USER"
 GROUP_PRINCIPAL_TYPE_LABEL = "GROUP"
+PERMISSION_SET_TYPE_LABEL = "PERMISSION_SET"
 
 class AccessManifestReader:
     """
@@ -79,7 +80,7 @@ class AccessManifestReader:
         Returns the RBAC rules from the manifest.
     """
 
-    def __init__(self, schema_definition_filepath: str, manifest_file_s3_uri: str) -> None:
+    def __init__(self, schema_definition_filepath: str, manifest_definition_filepath: str) -> None:
         """
         Initializes the AccessManifestReader with the schema definition filepath and manifest file S3 URI.
 
@@ -91,8 +92,8 @@ class AccessManifestReader:
             S3 URI of the manifest file.
         """
         self._schema_definition_filepath = schema_definition_filepath
-        self._manifest_file_s3_uri = manifest_file_s3_uri
-        self._manifest_file_keys_to_uppercase = ["principal_type", "target_type"]
+        self._manifest_definition_filepath = manifest_definition_filepath
+        self._manifest_file_keys_to_uppercase = ["principal_type", "target_type", "exclude_target_type"]
 
         self.excluded_ou_names = []
         self.excluded_account_names = []
@@ -113,8 +114,7 @@ class AccessManifestReader:
         from the given S3 URI. Converts specified keys in the manifest data to uppercase.
         """
         self._schema_definition = load_file(self._schema_definition_filepath)
-        manifest_file_local_path = download_file_from_s3(self._manifest_file_s3_uri)
-        manifest_data = load_file(manifest_file_local_path)
+        manifest_data = load_file(self._manifest_definition_filepath)
         self._manifest_definition = convert_specific_keys_to_uppercase(manifest_data, self._manifest_file_keys_to_uppercase)
 
     def _validate_sso_manifest(self) -> None:
@@ -145,10 +145,11 @@ class AccessManifestReader:
             ACCOUNT_TARGET_TYPE_LABEL: self.excluded_account_names,
             USER_PRINCIPAL_TYPE_LABEL: self.excluded_sso_user_names,
             GROUP_PRINCIPAL_TYPE_LABEL: self.excluded_sso_group_names,
+            PERMISSION_SET_TYPE_LABEL: self.excluded_permission_set_names
         }
 
         for item in self._manifest_definition.get("ignore", []):
-            target_list = target_map.get(item["target_type"], self.excluded_permission_set_names)
+            target_list = target_map.get(item["target_type"])
             target_list.extend(item["target_names"])
 
     @property
