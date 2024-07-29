@@ -1,4 +1,6 @@
 import os
+import glob
+import itertools
 from operator import itemgetter
 from typing import Dict, List, Set, Tuple
 
@@ -9,29 +11,27 @@ from app.lib.access_control_resolver import AwsAccessResolver
 
 # Globals vars
 CWD = os.path.dirname(os.path.realpath(__file__))
-MANIFEST_SCHEMA_DEFINITION_FILEPATH = os.path.join(
-    CWD,
-    "..",
-    "..",
-    "src",
-    "app",
-    "schemas",
-    "manifest_schema_definition.json",
-)
 
-# Type Definitions
-OuMap = Dict[str, Dict[str, List[Dict[str, str]]]]
+PRE_TEST_ACCOUNT_ASSIGNMENT_PERCENTAGES = [round(i * 0.2, 2) for i in range(6)] # 20% increments
+
+AWS_ORG_DEFINITIONS_FILES_PATH = os.path.join(CWD, "..", "configs", "organizations", "*.json")
+AWS_ORG_DEFINITION_FILES = [os.path.basename(x) for x in glob.glob(AWS_ORG_DEFINITIONS_FILES_PATH)]
+
+VALID_MANIFEST_DEFINITION_FILES_PATH = os.path.join(CWD, "..", "configs", "manifests", "valid_schema", "*.yaml")
+VALID_MANIFEST_DEFINITION_FILES = [os.path.basename(x) for x in glob.glob(VALID_MANIFEST_DEFINITION_FILES_PATH)]
+
+TEST_INPUT_COMBINATIONS = list(itertools.product(PRE_TEST_ACCOUNT_ASSIGNMENT_PERCENTAGES, AWS_ORG_DEFINITION_FILES, VALID_MANIFEST_DEFINITION_FILES))
 
 # Helper functions
-def get_unique_combinations(
+def generate_expected_account_assignments(
     rbac_rules,
     ou_map,
+    valid_accounts: List[str],
     sso_users_map: Dict[str, str],
     sso_groups_map: Dict[str, str],
     sso_permission_sets: Dict[str, str],
-    valid_accounts: List[str],
 ):
-    unique_combinations = []
+    expected_assignments = []
     for rule in rbac_rules:
         if rule["principal_type"] == "USER" and rule["principal_name"] not in sso_users_map:
             continue
@@ -41,7 +41,6 @@ def get_unique_combinations(
 
         if rule["permission_set_name"] not in sso_permission_sets:
             continue
-
 
         target_names = rule["target_names"]
         if rule["target_type"] == "ACCOUNT":
@@ -67,50 +66,92 @@ def get_unique_combinations(
                 "InstanceArn": "arn:aws:sso:::instance/ssoins-instanceId"
             }
 
-            if target_assignment_item not in unique_combinations:
-                unique_combinations.append(target_assignment_item)
+            if target_assignment_item not in expected_assignments:
+                expected_assignments.append(target_assignment_item)
 
-    return unique_combinations
+    return expected_assignments
 
 # Test cases
-@pytest.mark.parametrize(
-    "setup_aws_environment, manifest_filename",
-    [
-        ("aws_org_1.json", "multiple_rules_valid.yaml"),
-        ("aws_org_1.json", "multiple_rules_invalid_some_ous.yaml"),
-        ("aws_org_1.json", "multiple_rules_invalid_all_ous.yaml"),
-        ("aws_org_1.json", "multiple_rules_invalid_some_accounts.yaml"),
-        ("aws_org_1.json", "multiple_rules_invalid_all_accounts.yaml"),
-        ("aws_org_1.json", "multiple_rules_invalid_some_permission_sets.yaml"),
-        ("aws_org_1.json", "multiple_rules_invalid_all_permission_sets.yaml"),
-    ],
-    indirect=["setup_aws_environment"],
-)
-def test_create_assignments(setup_aws_environment: pytest.fixture, manifest_filename: str) -> None:
-    # Load manifest file
+@pytest.mark.parametrize("account_assignment_range, setup_aws_environment, manifest_filename", TEST_INPUT_COMBINATIONS, indirect=["setup_aws_environment"])
+def test_create_assignments(sso_admin_client, account_assignment_range: float, setup_aws_environment: pytest.fixture, manifest_filename: str) -> None:
+
+    #########################
+    #         Arrange       #
+    #########################
+
+    invalid_rules_sort_keys = itemgetter("rule_number", "resource_type", "resource_name")
+    created_assignments_sort_keys = itemgetter("PermissionSetArn", "PrincipalType", "PrincipalId", "TargetId")
+
     manifest_file = load_file(os.path.join(CWD, "..", "configs", "manifests", "valid_schema", manifest_filename))
+    rbac_rules = manifest_file.get("rbac_rules", [])
 
-    identity_center_arn = setup_aws_environment["identity_center_arn"]
-    sso_users = setup_aws_environment["sso_username_id_map"]
-    sso_groups = setup_aws_environment["sso_group_name_id_map"]
-    permission_sets = setup_aws_environment["sso_permissionset_name_id_map"]
+    # Generate expected account assignments
+    expected_account_assignments = generate_expected_account_assignments(
+        manifest_file["rbac_rules"],
+        setup_aws_environment["ou_accounts_map"],
+        setup_aws_environment["account_name_id_map"],
+        setup_aws_environment["sso_username_id_map"],
+        setup_aws_environment["sso_group_name_id_map"],
+        setup_aws_environment["sso_permission_set_name_id_map"],
+    )
+    expected_account_assignments.sort(key = created_assignments_sort_keys)
 
-    ou_accounts_map = setup_aws_environment["ou_accounts_map"]
-    account_name_id_map = setup_aws_environment["account_name_id_map"]
+    # Create expected account assignments
+    upper_bound_range = int(len(expected_account_assignments) * account_assignment_range)
+    existing_account_assignments = expected_account_assignments[0: upper_bound_range]
+    for assignment in existing_account_assignments:
+        sso_admin_client.create_account_assignment(**assignment)
 
-    # Create OU & Accounts map via class
-    aws_access_resolver = AwsAccessResolver(identity_center_arn)
-    setattr(aws_access_resolver, "rbac_rules", manifest_file["rbac_rules"])
-    setattr(aws_access_resolver, "sso_users", sso_users)
-    setattr(aws_access_resolver, "sso_groups", sso_groups)
-    setattr(aws_access_resolver, "permission_sets", permission_sets)
-    setattr(aws_access_resolver, "ou_accounts_map", ou_accounts_map)
-    setattr(aws_access_resolver, "account_name_id_map", account_name_id_map)
+    #########################
+    #           Act         #
+    #########################
+
+    ################# Run access control resolver #################
+    aws_access_resolver = AwsAccessResolver(setup_aws_environment["identity_center_arn"])
+    setattr(aws_access_resolver, "rbac_rules", rbac_rules)
+    setattr(aws_access_resolver, "sso_users", setup_aws_environment["sso_username_id_map"])
+    setattr(aws_access_resolver, "sso_groups", setup_aws_environment["sso_group_name_id_map"])
+    setattr(aws_access_resolver, "permission_sets", setup_aws_environment["sso_permission_set_name_id_map"])
+    setattr(aws_access_resolver, "ou_accounts_map", setup_aws_environment["ou_accounts_map"])
+    setattr(aws_access_resolver, "account_name_id_map", setup_aws_environment["account_name_id_map"])
     aws_access_resolver.run_access_control_resolver()
 
-    # Load AWS environment definitions
-    valid_unique_named_combinations = get_unique_combinations(manifest_file["rbac_rules"], ou_accounts_map, sso_users, sso_groups, permission_sets, account_name_id_map)
+    ############# Generate invalid assignments report #############
+    invalid_assignments = []
+    for i, rule in enumerate(rbac_rules):
+        # Check target names
+        target_reference = list(setup_aws_environment["ou_accounts_map"].keys()) if rule["target_type"] == "OU" else setup_aws_environment["account_name_id_map"].keys()
+        for target_name in rule["target_names"]:
+            if target_name not in target_reference:
+                invalid_assignments.append({
+                    "rule_number": i,
+                    "resource_type": rule["target_type"],
+                    "resource_name": target_name,
+                })
 
-    # Assert generated combinations matches the successful RBAC assignments
-    sort_keys = itemgetter("PermissionSetArn", "PrincipalType", "PrincipalId", "TargetId")
-    assert sorted(valid_unique_named_combinations, key=sort_keys) == sorted(aws_access_resolver.assignments_to_create, key=sort_keys)
+        # Check principal name
+        target_reference = setup_aws_environment["sso_group_name_id_map"].keys() if rule["principal_type"] == "GROUP" else setup_aws_environment["sso_username_id_map"]
+        if rule["principal_name"] not in target_reference:
+            invalid_assignments.append({
+                "rule_number": i,
+                "resource_type": rule["principal_type"],
+                "resource_name": rule["principal_name"],
+            })
+
+        # Check permission set name
+        if rule["permission_set_name"] not in setup_aws_environment["sso_permission_set_name_id_map"]:
+            invalid_assignments.append({
+                "rule_number": i,
+                "resource_type": "permission_set",
+                "resource_name": rule["permission_set_name"],
+            })
+
+    #########################
+    #         Assert        #
+    #########################
+
+    # Assert expected assignment to create matches actual created assignments
+    assert expected_account_assignments[upper_bound_range:] == sorted(aws_access_resolver.assignments_to_create, key=created_assignments_sort_keys)
+
+    # Assert test generated invalid report matches class generated invalid report matches
+    assert sorted(invalid_assignments, key=invalid_rules_sort_keys) == sorted(aws_access_resolver.invalid_manifest_rules_report, key=invalid_rules_sort_keys)

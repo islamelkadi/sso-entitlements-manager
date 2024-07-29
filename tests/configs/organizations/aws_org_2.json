@@ -25,6 +25,10 @@
                 {
                     "name": "workload_2_test",
                     "type": "ACCOUNT"
+                },
+                {
+                    "name": "workload_3_test",
+                    "type": "ACCOUNT"
                 }
             ]
         },
@@ -38,6 +42,10 @@
                 },
                 {
                     "name": "workload_2_prod",
+                    "type": "ACCOUNT"
+                },
+                {
+                    "name": "workload_3_prod",
                     "type": "ACCOUNT"
                 }
             ]
@@ -59,7 +67,7 @@
     ],
     "permission_sets": [
         {
-            "name": "Administration",
+            "name": "Administrator",
             "description": "Administration permission set"
         },
         {
@@ -75,14 +83,50 @@
             "description": "ViewOnly permission set"
         }
     ],
+    "sso_users": [
+        {
+            "type": "user",
+            "name": {
+                "Formatted": "user1",
+                "FamilyName": "user1",
+                "GivenName": "user1",
+                "MiddleName": "user1"
+            },
+            "username": "user1@testing.com",
+            "email": [
+                {
+                    "Value": "user1@testing.com",
+                    "Type": "Work",
+                    "Primary": true
+                }
+            ]
+        },
+        {
+            "type": "user",
+            "name": {
+                "Formatted": "user2",
+                "FamilyName": "user2",
+                "GivenName": "user2",
+                "MiddleName": "user2"
+            },
+            "username": "user2@testing.com",
+            "email": [
+                {
+                    "Value": "user2@testing.com",
+                    "Type": "Work",
+                    "Primary": true
+                }
+            ]
+        }
+    ],
     "sso_groups": [
         {
             "type": "group",
             "name": "group1",
             "description": "group1 description",
             "members": [
-                "user1@testing.com",
-                "user2@testing.com"
+                "user1",
+                "user2"
             ]
         },
         {
@@ -90,8 +134,8 @@
             "name": "group2",
             "description": "group2 description",
             "members": [
-                "user1@testing.com",
-                "user2@testing.com"
+                "user1",
+                "user2"
             ]
         }
     ]

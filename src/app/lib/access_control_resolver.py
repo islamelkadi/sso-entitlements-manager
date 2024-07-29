@@ -7,8 +7,8 @@ Module for resolving AWS resources and creating access
 control assignments based on ingested customer manifest file.
 """
 
+import itertools
 from typing import Optional
-from itertools import filterfalse
 import boto3
 
 # Global vars
@@ -201,13 +201,13 @@ class AwsAccessResolver:
         """
 
         # Create account assignment
-        assignments_to_create = list(filterfalse(lambda i: i in self._current_account_assignments, self._local_account_assignments))
+        assignments_to_create = list(itertools.filterfalse(lambda i: i in self._current_account_assignments, self._local_account_assignments))
         for assignment in assignments_to_create:
             self.assignments_to_create.append(assignment)
             self._sso_admin_client.create_account_assignment(**assignment)
 
         # Delete account assignment
-        assignments_to_delete = list(filterfalse(lambda i: i in self._local_account_assignments, self._current_account_assignments))
+        assignments_to_delete = list(itertools.filterfalse(lambda i: i in self._local_account_assignments, self._current_account_assignments))
         for assignment in assignments_to_delete:
             self.assignments_to_delete.append(assignment)
             self._sso_admin_client.delete_account_assignment(**assignment)

@@ -87,5 +87,5 @@ def test_list_identity_center_entities(setup_aws_environment: pytest.fixture, ex
     sso_groups_via_definitions = {groupname: groupid for groupname, groupid in setup_aws_environment["sso_group_name_id_map"].items() if groupname not in excluded_sso_groups}
     assert py_aws_sso.sso_groups == sso_groups_via_definitions
 
-    permission_sets_via_definitions = {permission_set_name: permission_set_id for permission_set_name, permission_set_id in setup_aws_environment["sso_permissionset_name_id_map"].items() if permission_set_name not in excluded_permission_sets}
+    permission_sets_via_definitions = {permission_set_name: permission_set_id for permission_set_name, permission_set_id in setup_aws_environment["sso_permission_set_name_id_map"].items() if permission_set_name not in excluded_permission_sets}
     assert py_aws_sso.permission_sets == permission_sets_via_definitions

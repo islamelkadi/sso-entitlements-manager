@@ -338,7 +338,7 @@ def setup_aws_environment(
             "identity_center_arn": identity_store_arn,
             "sso_group_name_id_map": created_sso_groups,
             "sso_username_id_map": created_sso_users,
-            "sso_permissionset_name_id_map": created_permission_sets,
+            "sso_permission_set_name_id_map": created_permission_sets,
             "account_name_id_map": account_name_id_map,
             "ou_accounts_map": ou_accounts_map
         }
