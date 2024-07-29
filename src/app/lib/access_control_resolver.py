@@ -202,8 +202,6 @@ class AwsAccessResolver:
 
         # Create account assignment
         assignments_to_create = list(filterfalse(lambda i: i in self._current_account_assignments, self._local_account_assignments))
-        # print("ASSIGNMENTS TO CREATE")
-        # print(assignments_to_create)
         for assignment in assignments_to_create:
             self.assignments_to_create.append(assignment)
             self._sso_admin_client.create_account_assignment(**assignment)

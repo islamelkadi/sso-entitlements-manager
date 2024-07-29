@@ -17,6 +17,8 @@ The module includes:
 import os
 import json
 import itertools
+from typing import Optional
+
 import moto
 import boto3
 import pytest
@@ -31,12 +33,14 @@ MONKEYPATCH = pytest.MonkeyPatch()
 #               Helper functions               #
 ################################################
 
-
 def create_aws_ous_accounts(
     orgs_client: boto3.client,
     aws_organization_definitions: list[dict],
     root_ou_id: str,
     parent_ou_id: str = "",
+    account_name_id_map: Optional[dict] = None,
+    ou_accounts_map: Optional[dict] = None,
+    parent_ou_name: str = "root"
 ) -> None:
     """
     Fixture helper function to setup AWS mock organizations:
@@ -54,24 +58,37 @@ def create_aws_ous_accounts(
         Root organizational unit ID.
     - parent_ou_id: str, optional
         Parent organizational unit ID for nested setup.
+    - account_name_id_map: dict, optional
+        Dictionary to keep track of account names and their IDs.
+    - ou_accounts_map: dict, optional
+        Dictionary to keep track of OUs and their accounts.
+    - parent_ou_name: str, optional
+        Name of the parent OU for nested setup.
     """
+    if account_name_id_map is None:
+        account_name_id_map = {}
+
+    if ou_accounts_map is None:
+        ou_accounts_map = {}
+
     for organization_resource in aws_organization_definitions:
         if organization_resource["type"] == "ORGANIZATIONAL_UNIT":
             # Create OU
             nested_ou_id = orgs_client.create_organizational_unit(
                 ParentId=parent_ou_id if parent_ou_id else root_ou_id,
                 Name=organization_resource["name"],
-            )[
-                "OrganizationalUnit"
-            ]["Id"]
+            )["OrganizationalUnit"]["Id"]
 
             # Recursively setup OU
-            if organization_resource["children"]:
+            if organization_resource.get("children"):
                 create_aws_ous_accounts(
                     orgs_client,
                     organization_resource["children"],
                     root_ou_id,
                     nested_ou_id,
+                    account_name_id_map,
+                    ou_accounts_map,
+                    organization_resource["name"]
                 )
 
         elif organization_resource["type"] == "ACCOUNT":
@@ -79,9 +96,7 @@ def create_aws_ous_accounts(
             account_id = orgs_client.create_account(
                 Email=f"{organization_resource['name']}@testing.com",
                 AccountName=organization_resource["name"],
-            )[
-                "CreateAccountStatus"
-            ]["AccountId"]
+            )["CreateAccountStatus"]["AccountId"]
 
             # Move account to OU
             orgs_client.move_account(
@@ -90,6 +105,16 @@ def create_aws_ous_accounts(
                 DestinationParentId=parent_ou_id,
             )
 
+            # Update the account_name_id_map with the new account
+            account_name_id_map[organization_resource["name"]] = account_id
+
+            # Update the ou_accounts_map with the new account under the correct OU
+            if parent_ou_name not in ou_accounts_map:
+                ou_accounts_map[parent_ou_name] = []
+            
+            ou_accounts_map[parent_ou_name].append({"Id": account_id, "Name": organization_resource["name"]})
+
+    return account_name_id_map, ou_accounts_map
 
 def delete_aws_ous_accounts(orgs_client: boto3.client, root_ou_id: str, parent_ou_id: str = "") -> None:
     """
@@ -268,35 +293,41 @@ def setup_aws_environment(
         organizations_client.create_organization()
         root_ou_id = organizations_client.list_roots()["Roots"][0]["Id"]
 
-        create_aws_ous_accounts(
+        account_name_id_map, ou_accounts_map = create_aws_ous_accounts(
             orgs_client=organizations_client,
             aws_organization_definitions=aws_organizations_definitions,
             root_ou_id=root_ou_id,
         )
 
         # Setup AWS Identity center
+        created_sso_users = {}
         for user in sso_users:
-            identity_store_client.create_user(
+            user_details = identity_store_client.create_user(
                 IdentityStoreId=identity_store_id,
                 UserName=user["username"],
                 DisplayName=user["name"]["Formatted"],
                 Name=user["name"],
                 Emails=user["email"],
             )
+            created_sso_users[user["username"]] = user_details["UserId"]
 
+        created_sso_groups = {}
         for group in sso_groups:
-            identity_store_client.create_group(
+            group_details = identity_store_client.create_group(
                 IdentityStoreId=identity_store_id,
                 DisplayName=group["name"],
                 Description=group["description"],
             )
+            created_sso_groups[group["name"]] = group_details["GroupId"]
 
+        created_permission_sets = {}
         for permission_set in permission_set_definitions:
-            sso_admin_client.create_permission_set(
+            permission_set_details = sso_admin_client.create_permission_set(
                 InstanceArn=identity_store_arn,
                 Name=permission_set["name"],
                 Description=permission_set["description"],
-            )
+            )["PermissionSet"]
+            created_permission_sets[permission_set["name"]] = permission_set_details["PermissionSetArn"]
 
         # Set Root OU ID env var
         MONKEYPATCH.setenv("ROOT_OU_ID", root_ou_id)
@@ -305,10 +336,11 @@ def setup_aws_environment(
             "root_ou_id": root_ou_id,
             "identity_center_id": identity_store_id,
             "identity_center_arn": identity_store_arn,
-            "aws_organization_definitions": aws_organizations_definitions,
-            "aws_sso_group_definitions": sso_groups,
-            "aws_sso_user_definitions": sso_users,
-            "aws_permission_set_definitions": permission_set_definitions,
+            "sso_group_name_id_map": created_sso_groups,
+            "sso_username_id_map": created_sso_users,
+            "sso_permissionset_name_id_map": created_permission_sets,
+            "account_name_id_map": account_name_id_map,
+            "ou_accounts_map": ou_accounts_map
         }
     finally:
         # Teardown logic

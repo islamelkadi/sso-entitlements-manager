@@ -1,7 +1,3 @@
-ignore:
-  - target_type: OU
-    target_names:
-      - suspended
 rbac_rules:
   - target_type: OU
     target_names:
@@ -22,9 +18,7 @@ rbac_rules:
     target_names:
       - workload_1_dev
       - workload_2_dev
-      - invalid_account_1
-      - invalid_account_2
-      - invalid_account_3
+      - workload_2_test
     permission_set_name: Administrator
-    principal_name: user2@testing.com
+    principal_name: user1@testing.com
     principal_type: USER

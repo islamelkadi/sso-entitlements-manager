@@ -71,15 +71,14 @@ def test_list_active_included_aws_accounts(
     specified accounts and OUs, does not match boto3's list_accounts.
     """
     # Arrange
-    root_ou_id = setup_aws_environment["root_ou_id"]
-    organization_map = setup_aws_environment["aws_organization_definitions"]
-
-    # Gather account names to exclude from specified OUs
-    excluded_ou_accounts = [item["name"] for ou in organization_map if ou["name"] in excluded_ous for item in ou["children"] if item["type"] == "ACCOUNT"]
+    excluded_ou_accounts = []
+    for ou, accounts in setup_aws_environment["ou_accounts_map"].items():
+        if ou in excluded_ous:
+            excluded_ou_accounts.extend([x["Name"] for x in accounts])
     accounts_to_filter_out = set(excluded_ou_accounts + excluded_accounts)
 
     # Act
-    py_aws_organizations = AwsOrganizations(root_ou_id)
+    py_aws_organizations = AwsOrganizations(setup_aws_environment["root_ou_id"])
     setattr(py_aws_organizations, "exclude_ou_name_list", excluded_ous)
     setattr(py_aws_organizations, "exclude_account_name_list", excluded_accounts)
     py_aws_organizations.run_ous_accounts_mapper()
