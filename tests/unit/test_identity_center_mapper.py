@@ -1,6 +1,6 @@
 # pylint: disable=E1120
 """
-Unit tests to validate functionality of AwsIdentityCentre from identity_center_mapper.
+Unit tests to validate functionality of AwsIdentityCenter from identity_center_mapper.
 
 Tests:
 - test_missing_default_constructor_parameters:
@@ -12,30 +12,30 @@ Tests:
 
 from typing import List
 import pytest
-from app.lib.identity_center_mapper import AwsIdentityCentre
+from app.lib.identity_center_mapper import AwsIdentityCenter
 
 
 @pytest.mark.parametrize("setup_aws_environment", ["aws_org_1.json"])
 def test_missing_default_constructor_parameters(setup_aws_environment: pytest.fixture) -> None:
     """
     Test case for missing identity_store_arn or identity_store_id parameter
-    in AwsIdentityCentre constructor.
+    in AwsIdentityCenter constructor.
 
     Raises:
     ------
     TypeError: If identity_store_arn or identity_store_id parameter is missing
-    during AwsIdentityCentre instantiation.
+    during AwsIdentityCenter instantiation.
     """
 
     # Assert
     with pytest.raises(TypeError):
-        AwsIdentityCentre()
+        AwsIdentityCenter()
 
     with pytest.raises(TypeError):
-        AwsIdentityCentre(identity_store_id=setup_aws_environment["identity_center_id"])
+        AwsIdentityCenter(identity_store_id=setup_aws_environment["identity_center_id"])
 
     with pytest.raises(TypeError):
-        AwsIdentityCentre(identity_store_arn=setup_aws_environment["identity_center_arn"])
+        AwsIdentityCenter(identity_store_arn=setup_aws_environment["identity_center_arn"])
 
 
 @pytest.mark.parametrize(
@@ -71,7 +71,7 @@ def test_list_identity_center_entities(setup_aws_environment: pytest.fixture, ex
     """
 
     # Arrange
-    py_aws_sso = AwsIdentityCentre(setup_aws_environment["identity_center_id"], setup_aws_environment["identity_center_arn"])
+    py_aws_sso = AwsIdentityCenter(setup_aws_environment["identity_center_id"], setup_aws_environment["identity_center_arn"])
     setattr(py_aws_sso, "exclude_sso_users", excluded_sso_users)
     setattr(py_aws_sso, "exclude_sso_groups", excluded_sso_groups)
     setattr(py_aws_sso, "exclude_permission_sets", excluded_permission_sets)

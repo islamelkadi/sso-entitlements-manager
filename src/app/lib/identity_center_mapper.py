@@ -6,7 +6,7 @@ including mapping SSO users, groups, and permission sets.
 
 Classes:
 --------
-AwsIdentityCentre
+AwsIdentityCenter
     A class to interact with AWS IAM Identity Store service.
 
     Attributes:
@@ -35,7 +35,7 @@ AwsIdentityCentre
     Methods:
     --------
     __init__(identity_store_id: str, identity_store_arn: str) -> None
-        Initializes the AwsIdentityCentre instance with the identity store ID and ARN.
+        Initializes the AwsIdentityCenter instance with the identity store ID and ARN.
     _map_sso_groups() -> None
         Lists all groups in the identity store and maps DisplayName to GroupId.
     _map_sso_users() -> None
@@ -49,7 +49,7 @@ AwsIdentityCentre
 import boto3
 
 
-class AwsIdentityCentre:
+class AwsIdentityCenter:
     """
     A class to interact with AWS IAM Identity Store service.
 
@@ -79,7 +79,7 @@ class AwsIdentityCentre:
     Methods:
     --------
     __init__(identity_store_id: str, identity_store_arn: str) -> None
-        Initializes the AwsIdentityCentre instance with the identity store ID and ARN.
+        Initializes the AwsIdentityCenter instance with the identity store ID and ARN.
     _map_sso_groups() -> None
         Lists all groups in the identity store and maps DisplayName to GroupId.
     _map_sso_users() -> None
@@ -92,7 +92,7 @@ class AwsIdentityCentre:
 
     def __init__(self, identity_store_id: str, identity_store_arn: str) -> None:
         """
-        Initializes the AwsIdentityCentre instance with the identity store ID and ARN.
+        Initializes the AwsIdentityCenter instance with the identity store ID and ARN.
 
         Parameters:
         ----------
@@ -103,7 +103,7 @@ class AwsIdentityCentre:
 
         Usage:
         ------
-        aws_identity_centre = AwsIdentityCentre("identity_store_id", "identity_store_arn")
+        aws_identity_centre = AwsIdentityCenter("identity_store_id", "identity_store_arn")
         """
         self.identity_store_id = identity_store_id
         self.identity_store_arn = identity_store_arn
