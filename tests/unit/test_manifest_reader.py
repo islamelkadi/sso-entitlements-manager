@@ -24,6 +24,7 @@ MANIFEST_SCHEMA_DEFINITION_FILEPATH = os.path.join(
     "manifest_schema_definition.json",
 )
 
+
 # Helper function to get all filenames in a directory
 def get_filenames_from_directory(directory: str, extension: str) -> list:
     """
@@ -43,14 +44,12 @@ def get_filenames_from_directory(directory: str, extension: str) -> list:
     pattern = os.path.join(directory, f"*{extension}")
     return glob.glob(pattern)
 
-# Dynamic generation of filenames
-valid_manifest_files = get_filenames_from_directory(
-    os.path.join(CWD, "..", "configs", "manifests", "valid_schema"), ".yaml"
-)
 
-invalid_manifest_files = get_filenames_from_directory(
-    os.path.join(CWD, "..", "configs", "manifests", "invalid_schema"), ".yaml"
-)
+# Dynamic generation of filenames
+valid_manifest_files = get_filenames_from_directory(os.path.join(CWD, "..", "configs", "manifests", "valid_schema"), ".yaml")
+
+invalid_manifest_files = get_filenames_from_directory(os.path.join(CWD, "..", "configs", "manifests", "invalid_schema"), ".yaml")
+
 
 # Test cases
 @pytest.mark.parametrize("manifest_filename", invalid_manifest_files)
@@ -75,6 +74,7 @@ def test_rules_invalid_manifest_schema(manifest_filename: str) -> None:
         # Act
         AccessManifestReader(MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_filename)
 
+
 @pytest.mark.parametrize("manifest_filename", valid_manifest_files)
 def test_rules_valid_manifest_schema(manifest_filename: str) -> None:
     """
@@ -91,12 +91,7 @@ def test_rules_valid_manifest_schema(manifest_filename: str) -> None:
 
     # Extract excluded lists from the manifest loaded via local
     def get_excluded_names(manifest, target_type):
-        return [
-            name
-            for item in manifest.get("ignore", [])
-            if item["target_type"] == target_type
-            for name in item.get("target_names", [])
-        ]
+        return [name for item in manifest.get("ignore", []) if item["target_type"] == target_type for name in item.get("target_names", [])]
 
     excluded_ou_names_local = get_excluded_names(manifest_file_via_local, "OU")
     excluded_account_names_local = get_excluded_names(manifest_file_via_local, "ACCOUNT")

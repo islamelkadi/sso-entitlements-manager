@@ -1,7 +1,3 @@
-
-
-
-
 """
 Module for resolving AWS resources and creating access
 control assignments based on ingested customer manifest file.
@@ -56,6 +52,8 @@ class AwsAccessResolver:
 
         self._sso_admin_client = boto3.client("sso-admin")
 
+        self.dry_run = True
+
     def _list_current_account_assignments(self) -> None:
         """
         Lists current account assignments.
@@ -65,13 +63,10 @@ class AwsAccessResolver:
         principal_assignments_paginator = self._sso_admin_client.get_paginator("list_account_assignments_for_principal")
         for principal_type, principals in principal_type_map.items():
             for principal_id in principals:
-                assignments_iterator = principal_assignments_paginator.paginate(
-                    PrincipalId=principal_id, 
-                    InstanceArn=self.identity_store_arn, 
-                    PrincipalType=principal_type)
+                assignments_iterator = principal_assignments_paginator.paginate(PrincipalId=principal_id, InstanceArn=self.identity_store_arn, PrincipalType=principal_type)
                 for page in assignments_iterator:
                     self._current_account_assignments.extend(page["AccountAssignments"])
-        
+
         for i in range(len(self._current_account_assignments)):
             self._current_account_assignments[i]["InstanceArn"] = self.identity_store_arn
             self._current_account_assignments[i]["TargetType"] = "AWS_ACCOUNT"
@@ -145,8 +140,8 @@ class AwsAccessResolver:
             """
             Adds a unique assignment to the list of valid resolved account assignments.
 
-            This method creates an assignment dictionary by combining the `target_id` with 
-            `base_item` and adds it to `_local_account_assignments` if it is not 
+            This method creates an assignment dictionary by combining the `target_id` with
+            `base_item` and adds it to `_local_account_assignments` if it is not
             already present in the list.
 
             Parameters:
@@ -160,15 +155,8 @@ class AwsAccessResolver:
             ------
             self.add_unique_assignment("target-id", base_item_dict)
             """
-            
-            assignment = {
-                "TargetId": target_id,
-                "TargetType": "AWS_ACCOUNT",
-                "PrincipalId": rule["principal_id"],
-                "PrincipalType": rule["principal_type"],
-                "PermissionSetArn": rule["permission_set_arn"],
-                "InstanceArn": self.identity_store_arn
-            }
+
+            assignment = {"TargetId": target_id, "TargetType": "AWS_ACCOUNT", "PrincipalId": rule["principal_id"], "PrincipalType": rule["principal_type"], "PermissionSetArn": rule["permission_set_arn"], "InstanceArn": self.identity_store_arn}
 
             if assignment not in self._local_account_assignments:
                 self._local_account_assignments.append(assignment)
@@ -204,13 +192,15 @@ class AwsAccessResolver:
         assignments_to_create = list(itertools.filterfalse(lambda i: i in self._current_account_assignments, self._local_account_assignments))
         for assignment in assignments_to_create:
             self.assignments_to_create.append(assignment)
-            self._sso_admin_client.create_account_assignment(**assignment)
+            if self.dry_run:
+                self._sso_admin_client.create_account_assignment(**assignment)
 
         # Delete account assignment
         assignments_to_delete = list(itertools.filterfalse(lambda i: i in self._local_account_assignments, self._current_account_assignments))
         for assignment in assignments_to_delete:
             self.assignments_to_delete.append(assignment)
-            self._sso_admin_client.delete_account_assignment(**assignment)
+            if self.dry_run:
+                self._sso_admin_client.delete_account_assignment(**assignment)
 
     def run_access_control_resolver(self) -> None:
         self._list_current_account_assignments()

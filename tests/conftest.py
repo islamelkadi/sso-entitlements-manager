@@ -33,14 +33,9 @@ MONKEYPATCH = pytest.MonkeyPatch()
 #               Helper functions               #
 ################################################
 
+
 def create_aws_ous_accounts(
-    orgs_client: boto3.client,
-    aws_organization_definitions: list[dict],
-    root_ou_id: str,
-    parent_ou_id: str = "",
-    account_name_id_map: Optional[dict] = None,
-    ou_accounts_map: Optional[dict] = None,
-    parent_ou_name: str = "root"
+    orgs_client: boto3.client, aws_organization_definitions: list[dict], root_ou_id: str, parent_ou_id: str = "", account_name_id_map: Optional[dict] = None, ou_accounts_map: Optional[dict] = None, parent_ou_name: str = "root"
 ) -> None:
     """
     Fixture helper function to setup AWS mock organizations:
@@ -77,26 +72,22 @@ def create_aws_ous_accounts(
             nested_ou_id = orgs_client.create_organizational_unit(
                 ParentId=parent_ou_id if parent_ou_id else root_ou_id,
                 Name=organization_resource["name"],
-            )["OrganizationalUnit"]["Id"]
+            )[
+                "OrganizationalUnit"
+            ]["Id"]
 
             # Recursively setup OU
             if organization_resource.get("children"):
-                create_aws_ous_accounts(
-                    orgs_client,
-                    organization_resource["children"],
-                    root_ou_id,
-                    nested_ou_id,
-                    account_name_id_map,
-                    ou_accounts_map,
-                    organization_resource["name"]
-                )
+                create_aws_ous_accounts(orgs_client, organization_resource["children"], root_ou_id, nested_ou_id, account_name_id_map, ou_accounts_map, organization_resource["name"])
 
         elif organization_resource["type"] == "ACCOUNT":
             # Create account
             account_id = orgs_client.create_account(
                 Email=f"{organization_resource['name']}@testing.com",
                 AccountName=organization_resource["name"],
-            )["CreateAccountStatus"]["AccountId"]
+            )[
+                "CreateAccountStatus"
+            ]["AccountId"]
 
             # Move account to OU
             orgs_client.move_account(
@@ -111,10 +102,11 @@ def create_aws_ous_accounts(
             # Update the ou_accounts_map with the new account under the correct OU
             if parent_ou_name not in ou_accounts_map:
                 ou_accounts_map[parent_ou_name] = []
-            
+
             ou_accounts_map[parent_ou_name].append({"Id": account_id, "Name": organization_resource["name"]})
 
     return account_name_id_map, ou_accounts_map
+
 
 def delete_aws_ous_accounts(orgs_client: boto3.client, root_ou_id: str, parent_ou_id: str = "") -> None:
     """
@@ -340,7 +332,7 @@ def setup_aws_environment(
             "sso_username_id_map": created_sso_users,
             "sso_permission_set_name_id_map": created_permission_sets,
             "account_name_id_map": account_name_id_map,
-            "ou_accounts_map": ou_accounts_map
+            "ou_accounts_map": ou_accounts_map,
         }
     finally:
         # Teardown logic

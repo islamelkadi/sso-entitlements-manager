@@ -46,6 +46,7 @@ USER_PRINCIPAL_TYPE_LABEL = "USER"
 GROUP_PRINCIPAL_TYPE_LABEL = "GROUP"
 PERMISSION_SET_TYPE_LABEL = "PERMISSION_SET"
 
+
 class AccessManifestReader:
     """
     A class to read and process access manifest files for AWS SSO.
@@ -145,7 +146,7 @@ class AccessManifestReader:
             ACCOUNT_TARGET_TYPE_LABEL: self.excluded_account_names,
             USER_PRINCIPAL_TYPE_LABEL: self.excluded_sso_user_names,
             GROUP_PRINCIPAL_TYPE_LABEL: self.excluded_sso_group_names,
-            PERMISSION_SET_TYPE_LABEL: self.excluded_permission_set_names
+            PERMISSION_SET_TYPE_LABEL: self.excluded_permission_set_names,
         }
 
         for item in self._manifest_definition.get("ignore", []):
