@@ -1,11 +1,12 @@
 import os
 import glob
+import operator
 import itertools
 import concurrent.futures
-from operator import itemgetter
 from typing import Dict, List, Set, Tuple, Any
 
 import pytest
+from .utils import generate_expected_account_assignments
 from app.lib.utils import load_file
 from app.lib.access_control_resolver import AwsAccessResolver
 
@@ -22,72 +23,25 @@ VALID_MANIFEST_DEFINITION_FILES_PATH = os.path.join(CWD, "..", "configs", "manif
 VALID_MANIFEST_DEFINITION_FILES = [os.path.basename(x) for x in glob.glob(VALID_MANIFEST_DEFINITION_FILES_PATH)]
 
 
-# Helper functions
-def generate_expected_account_assignments(
-    rbac_rules,
-    ou_map,
-    valid_accounts: List[str],
-    sso_users_map: Dict[str, str],
-    sso_groups_map: Dict[str, str],
-    sso_permission_sets: Dict[str, str],
-):
-    expected_assignments = []
-    for rule in rbac_rules:
-        if rule["principal_type"] == "USER" and rule["principal_name"] not in sso_users_map:
-            continue
-
-        if rule["principal_type"] == "GROUP" and rule["principal_name"] not in sso_groups_map:
-            continue
-
-        if rule["permission_set_name"] not in sso_permission_sets:
-            continue
-
-        target_names = rule["target_names"]
-        if rule["target_type"] == "ACCOUNT":
-            valid_targets = []
-            for account_name in target_names:
-                if account_name in valid_accounts:
-                    valid_targets.append(valid_accounts[account_name])
-
-        elif rule["target_type"] == "OU":
-            valid_targets = []
-            for ou_name in target_names:
-                for account in ou_map.get(ou_name, []):
-                    if account["Name"] in valid_accounts:
-                        valid_targets.append(valid_accounts[account["Name"]])
-
-        for target in valid_targets:
-            target_assignment_item = {
-                "PrincipalId": sso_users_map[rule["principal_name"]] if rule["principal_type"] == "USER" else sso_groups_map[rule["principal_name"]],
-                "PrincipalType": rule["principal_type"],
-                "PermissionSetArn": sso_permission_sets[rule["permission_set_name"]],
-                "TargetId": target,
-                "TargetType": "AWS_ACCOUNT",
-                "InstanceArn": "arn:aws:sso:::instance/ssoins-instanceId",
-            }
-
-            if target_assignment_item not in expected_assignments:
-                expected_assignments.append(target_assignment_item)
-
-    return expected_assignments
-
-
 # Test cases
 @pytest.mark.parametrize(
-    "account_assignment_range, setup_aws_environment, manifest_filename", list(itertools.product(PRE_TEST_ACCOUNT_ASSIGNMENT_PERCENTAGES, AWS_ORG_DEFINITION_FILES, VALID_MANIFEST_DEFINITION_FILES)), indirect=["setup_aws_environment"]
+    "account_assignment_range, setup_aws_environment, manifest_filename",
+    list(itertools.product(PRE_TEST_ACCOUNT_ASSIGNMENT_PERCENTAGES, AWS_ORG_DEFINITION_FILES, VALID_MANIFEST_DEFINITION_FILES)),
+    indirect=["setup_aws_environment"]
 )
 def test_create_assignments(sso_admin_client, account_assignment_range: float, setup_aws_environment: pytest.fixture, manifest_filename: str) -> None:
+
     #########################
     #         Arrange       #
     #########################
 
-    sort_keys = itemgetter("PermissionSetArn", "PrincipalType", "PrincipalId", "TargetId")
+    sort_keys = operator.itemgetter("PermissionSetArn", "PrincipalType", "PrincipalId", "TargetId")
     manifest_file = load_file(os.path.join(CWD, "..", "configs", "manifests", "valid_schema", manifest_filename))
     rbac_rules = manifest_file.get("rbac_rules", [])
 
     # Generate expected account assignments
     expected_account_assignments = generate_expected_account_assignments(
-        rbac_rules,
+        manifest_file,
         setup_aws_environment["ou_accounts_map"],
         setup_aws_environment["account_name_id_map"],
         setup_aws_environment["sso_username_id_map"],
@@ -125,11 +79,12 @@ def test_create_assignments(sso_admin_client, account_assignment_range: float, s
 
 @pytest.mark.parametrize("setup_aws_environment, manifest_filename", list(itertools.product(AWS_ORG_DEFINITION_FILES, VALID_MANIFEST_DEFINITION_FILES)), indirect=["setup_aws_environment"])
 def test_generate_invalid_assignments_report(setup_aws_environment: pytest.fixture, manifest_filename: str) -> None:
+
     #########################
     #         Arrange       #
     #########################
 
-    sort_keys = itemgetter("rule_number", "resource_type", "resource_name")
+    sort_keys = operator.itemgetter("rule_number", "resource_type", "resource_name")
     manifest_file = load_file(os.path.join(CWD, "..", "configs", "manifests", "valid_schema", manifest_filename))
     rbac_rules = manifest_file.get("rbac_rules", [])
 
@@ -193,17 +148,18 @@ def test_generate_invalid_assignments_report(setup_aws_environment: pytest.fixtu
 
 @pytest.mark.parametrize("setup_aws_environment, manifest_filename", list(itertools.product(AWS_ORG_DEFINITION_FILES, VALID_MANIFEST_DEFINITION_FILES)), indirect=["setup_aws_environment"])
 def test_delete_account_assignments(sso_admin_client: pytest.fixture, setup_aws_environment: pytest.fixture, manifest_filename: str) -> None:
+
     #########################
     #         Arrange       #
     #########################
 
-    sort_keys = itemgetter("PermissionSetArn", "PrincipalType", "PrincipalId", "TargetId")
+    sort_keys = operator.itemgetter("PermissionSetArn", "PrincipalType", "PrincipalId", "TargetId")
     manifest_file = load_file(os.path.join(CWD, "..", "configs", "manifests", "valid_schema", manifest_filename))
     rbac_rules = manifest_file.get("rbac_rules", [])
 
     # Generate expected account assignments
     expected_account_assignments = generate_expected_account_assignments(
-        rbac_rules,
+        manifest_file,
         setup_aws_environment["ou_accounts_map"],
         setup_aws_environment["account_name_id_map"],
         setup_aws_environment["sso_username_id_map"],

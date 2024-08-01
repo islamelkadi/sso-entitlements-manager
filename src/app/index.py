@@ -17,9 +17,9 @@ from .lib.identity_center_mapper import AwsIdentityCenter
 from .lib.access_control_resolver import AwsAccessResolver
 from .lib.access_manifest_reader import AccessManifestReader
 
-
 # Globals
 ROOT_OU_ID = os.getenv("ROOT_OU_ID")
+IS_DRY_RUN = os.getenv("DRY_RUN", True)
 IDENTITY_STORE_ID = os.getenv("IDENTITY_STORE_ID")
 IDENTITY_STORE_ARN = os.getenv("IDENTITY_STORE_ARN")
 MANIFEST_FILE_S3_LOCATION = os.getenv("MANIFEST_FILE_S3_LOCATION")
@@ -28,6 +28,7 @@ MANIFEST_SCHEMA_DEFINITION_FILEPATH = os.path.join(os.path.dirname(os.path.realp
 # AWS Lambda powertool objects & class instances
 TRACER = Tracer()
 LOGGER = Logger()
+
 
 # Lambda handler
 @TRACER.capture_lambda_handler
@@ -72,6 +73,7 @@ def lambda_handler(event: EventBridgeEvent, context: LambdaContext):  # pylint: 
 
     # Create account assignments
     aws_access_resolver = AwsAccessResolver(IDENTITY_STORE_ARN)
+    setattr(aws_access_resolver, "dry_run", IS_DRY_RUN)
     setattr(aws_access_resolver, "rbac_rules", manifest_file.rbac_rules)
     setattr(aws_access_resolver, "sso_users", aws_idc.sso_users)
     setattr(aws_access_resolver, "sso_groups", aws_idc.sso_groups)
@@ -87,5 +89,5 @@ def lambda_handler(event: EventBridgeEvent, context: LambdaContext):  # pylint: 
             "created": aws_access_resolver.assignments_to_create,
             "deleted": aws_access_resolver.assignments_to_delete,
             "invalid": aws_access_resolver.invalid_manifest_rules_report,
-        }
+        },
     )
