@@ -1,0 +1,52 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CFN Template to create and deploy the SSO manager solution
+
+Parameters:
+
+  AppName:
+    Type:        String
+    Description: Application's name
+    Default:     sso-manager
+
+  AppPrefix:
+    Type:        String
+    Description: Application's name prefix
+    Default:     permia-id
+
+Resources:
+
+  ########################################
+  #                Wave 1                #
+  ########################################
+
+  KMS:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - W3002
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./kms.yaml
+      Parameters:
+        AppName:   !Ref AppName
+        AppPrefix: !Ref AppPrefix
+
+  ########################################
+  #                Wave 2                #
+  ########################################
+
+  # CWL:
+  #   Metadata:
+  #     cfn-lint:
+  #       config:
+  #         ignore_checks:
+  #           - W3002
+  #   DependsOn:
+  #     - KMS
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties:
+  #     TemplateURL: ./cwl.yaml
+  #     Parameters:
+  #       AppName:      !Ref AppName
+  #       CwlKmsKeyArn: !Sub /cfn/${AppName}/kms/logs/arn

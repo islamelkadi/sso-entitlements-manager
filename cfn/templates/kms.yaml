@@ -1,0 +1,146 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CFN Template to create KMS Encryption Keys
+
+Parameters:
+
+  AppName:
+    Type:        String
+    Description: Application name
+
+  AppPrefix:
+    Type:        String
+    Description: Application's name prefix
+    Default:     permia-id
+
+Resources:
+
+  ######################################
+  #                 Keys               #
+  ######################################
+
+  # CloudWatch
+  CloudWatchLogsKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: KMS Key to access CloudWatch logs
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: 2012-10-17
+        Id: CwlKmsPolicy
+        Statement:
+          - Sid: Enable key administration
+            Effect: Allow
+            Principal:
+              AWS: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:root
+            Action:
+              - kms:Create*
+              - kms:Describe*
+              - kms:Enable*
+              - kms:List*
+              - kms:Put*
+              - kms:Update*
+              - kms:Revoke*
+              - kms:Disable*
+              - kms:Get*
+              - kms:Delete*
+              - kms:TagResource
+              - kms:UntagResource
+              - kms:ScheduleKeyDeletion
+              - kms:CancelKeyDeletion
+            Resource: "*"
+          - Sid: Enable key usage by cloudwatch logs
+            Effect: Allow
+            Principal:
+              Service:
+                - !Sub logs.${AWS::Region}.amazonaws.com
+            Action:
+              - kms:Encrypt*
+              - kms:Decrypt*
+              - kms:ReEncrypt*
+              - kms:GenerateDataKey*
+              - kms:Describe*
+            Resource: "*"
+            Condition:
+              ArnLike:
+                kms:EncryptionContext:aws:logs:arn: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:*
+
+  # S3
+  S3Key:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: KMS Key to access S3 data store
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: 2012-10-17
+        Id: S3KmsPolicy
+        Statement:
+          - Sid: Enable key administration
+            Effect: Allow
+            Principal:
+              AWS: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:root
+            Action:
+              - kms:Create*
+              - kms:Describe*
+              - kms:Enable*
+              - kms:List*
+              - kms:Put*
+              - kms:Update*
+              - kms:Revoke*
+              - kms:Disable*
+              - kms:Get*
+              - kms:Delete*
+              - kms:ScheduleKeyDeletion
+              - kms:CancelKeyDeletion
+            Resource: "*"
+          - Sid: Enable use of key
+            Effect: Allow
+            Principal:
+              AWS: "*"
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:DescribeKey
+              - kms:ReEncrypt*
+              - kms:GenerateDataKey*
+            Resource: "*"
+            Condition:
+              StringEquals:
+                kms:CallerAccount: !Ref AWS::AccountId
+
+  ######################################
+  #                 SSM                #
+  ######################################
+
+  # CloudWatch logs
+  CloudWatchLogsKeyArnSsm:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type:        String
+      Name:        !Sub /${AppPrefix}/${AppName}/kms/logs/arn
+      Value:       !GetAtt CloudWatchLogsKey.Arn
+      Description: CloudWatch logs key arn
+
+  CloudWatchLogsKeyIdSsm:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type:        String
+      Name:        !Sub /${AppPrefix}/${AppName}/kms/logs/id
+      Value:       !Ref CloudWatchLogsKey
+      Description: CloudWatch logs key ID
+
+  # S3 logs
+  S3KeyArnSsm:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type:        String
+      Name:        !Sub /${AppPrefix}/${AppName}/kms/S3/arn
+      Value:       !GetAtt S3Key.Arn
+      Description: S3 key arn
+
+  S3KeyIdSsm:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type:        String
+      Name:        !Sub /${AppPrefix}/${AppName}/kms/S3/id
+      Value:       !Ref S3Key
+      Description: S3 key ID
