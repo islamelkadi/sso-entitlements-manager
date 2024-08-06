@@ -25,7 +25,7 @@ env:
 unittest:
 
 	@echo "Generating coverage report"
-	@pytest --cov=tests/ --cov-report=html
+	@pytest --cov=tests/ --cov-report=xml:coverage.xml
 
 # Formatting & Linting
 .PHONY: format

@@ -8,4 +8,5 @@ src/layers/python/utils/**
 **.egg-info**
 sandbox/** */
 **.coverage
+**coverage.xml
 **htmlcov
