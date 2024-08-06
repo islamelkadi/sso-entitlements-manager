@@ -47,7 +47,7 @@ def setup_s3_environment(manifest_definition_filepath: str, manifest_filename: s
     boto3.client
         The boto3 S3 client.
     """
-    s3_client = boto3.client("s3", region_name="us-east-1")
+    s3_client = boto3.client("s3")
     s3_client.create_bucket(Bucket=BUCKET_NAME)
     upload_file_to_s3(BUCKET_NAME, manifest_definition_filepath)
 

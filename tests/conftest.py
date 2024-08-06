@@ -156,10 +156,10 @@ def set_aws_creds() -> None:
     """
     Fixture to set AWS credentials using MonkeyPatch for session scope.
     """
-    MONKEYPATCH.setenv("AWS_REGION", "us-east-1")
     MONKEYPATCH.setenv("AWS_SESSION_TOKEN", "test")
     MONKEYPATCH.setenv("AWS_ACCESS_KEY_ID", "test")
     MONKEYPATCH.setenv("AWS_SECRET_ACCESS_KEY", "test")
+    MONKEYPATCH.setenv("AWS_DEFAULT_REGION", "us-east-1")
     yield
 
 
