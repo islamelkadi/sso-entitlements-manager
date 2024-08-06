@@ -1,9 +1,12 @@
 # aws-cloud-pass
-[![Linting](https://github.com/mykoriza-cloud-security/sso-manager/actions/workflows/linting.yaml/badge.svg)](https://github.com/mykoriza-cloud-security/sso-manager/actions/workflows/linting.yaml)
+<!-- Pytest Coverage Comment:Begin -->
+<!-- Pytest Coverage Comment:End -->
 
-[![Testing](https://github.com/mykoriza-cloud-security/sso-manager/actions/workflows/testing.yaml/badge.svg)](https://github.com/mykoriza-cloud-security/sso-manager/actions/workflows/testing.yaml)
+[![Testing](https://github.com/permia-cloud-security/sso-manager/actions/workflows/testing.yaml/badge.svg)](https://github.com/permia-cloud-security/sso-manager/actions/workflows/testing.yaml)
 
-[![Scanning](https://github.com/mykoriza-cloud-security/sso-manager/actions/workflows/scanning.yaml/badge.svg)](https://github.com/mykoriza-cloud-security/sso-manager/actions/workflows/scanning.yaml)
+[![Linting](https://github.com/permia-cloud-security/sso-manager/actions/workflows/linting.yaml/badge.svg)](https://github.com/permia-cloud-security/sso-manager/actions/workflows/linting.yaml)
+
+[![Scanning](https://github.com/permia-cloud-security/sso-manager/actions/workflows/scanning.yaml/badge.svg)](https://github.com/permia-cloud-security/sso-manager/actions/workflows/scanning.yaml)
 
 ## Explicit assignment use cases
 - Single Account ID
