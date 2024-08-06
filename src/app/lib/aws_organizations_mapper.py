@@ -1,12 +1,12 @@
 """
 Module to interact with the AWS Organizations service.
 
-This module provides a class to facilitate interactions with AWS Organizations, 
+This module provides a class to facilitate interactions with AWS Organizations,
 including mapping organizational units (OUs) and accounts.
 
 Classes:
 --------
-AwsOrganizations
+AwsOrganizationsMapper
     A class to manage interactions with the AWS Organizations service.
 
     Attributes:
@@ -29,7 +29,7 @@ AwsOrganizations
     Methods:
     --------
     __init__(root_ou_id: str, exclude_ou_name_list: list = None, exclude_account_name_list: list = []) -> None
-        Initializes the AwsOrganizations instance with the root OU ID and optional exclusion lists.
+        Initializes the AwsOrganizationsMapper instance with the root OU ID and optional exclusion lists.
     _map_aws_organizational_units(parent_ou_id: str = "") -> None
         Maps AWS organizational units starting from the given parent OU ID.
     _map_aws_ou_to_accounts() -> None
@@ -43,7 +43,7 @@ AwsOrganizations
 import boto3
 
 
-class AwsOrganizations:
+class AwsOrganizationsMapper:
     """
     Class to manage interactions with the AWS Organizations service.
 
@@ -67,7 +67,7 @@ class AwsOrganizations:
     Methods:
     --------
     __init__(root_ou_id: str, exclude_ou_name_list: list = None, exclude_account_name_list: list = []) -> None
-        Initializes the AwsOrganizations instance with the root OU ID and optional exclusion lists.
+        Initializes the AwsOrganizationsMapper instance with the root OU ID and optional exclusion lists.
     _map_aws_organizational_units(parent_ou_id: str = "") -> None
         Maps AWS organizational units starting from the given parent OU ID.
     _map_aws_ou_to_accounts() -> None
@@ -80,7 +80,7 @@ class AwsOrganizations:
 
     def __init__(self, root_ou_id: str) -> None:
         """
-        Initializes the AwsOrganizations instance with the root OU ID and optional exclusion lists.
+        Initializes the AwsOrganizationsMapper instance with the root OU ID and optional exclusion lists.
 
         Parameters:
         ----------
@@ -93,7 +93,7 @@ class AwsOrganizations:
 
         Usage:
         ------
-        aws_orgs = AwsOrganizations("root-ou-id", ["ExcludeOU1"], ["ExcludeAccount1"])
+        aws_orgs = AwsOrganizationsMapper("root-ou-id", ["ExcludeOU1"], ["ExcludeAccount1"])
         """
         self.root_ou_id = root_ou_id
         self.exclude_ou_name_list = []

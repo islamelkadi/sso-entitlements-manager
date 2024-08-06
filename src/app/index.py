@@ -12,14 +12,14 @@ from aws_lambda_powertools.utilities.typing import LambdaContext
 from aws_lambda_powertools.utilities.data_classes import EventBridgeEvent, event_source
 
 from .lib.utils import download_file_from_s3
-from .lib.ous_accounts_mapper import AwsOrganizations
-from .lib.identity_center_mapper import AwsIdentityCenter
-from .lib.access_control_resolver import AwsAccessResolver
-from .lib.access_manifest_reader import AccessManifestReader
+from .lib.aws_organizations_mapper import AwsOrganizationsMapper
+from .lib.aws_identity_center_mapper import AwsIdentityCenterMapper
+from .lib.aws_access_control_resolver import AwsAccessControlResolver
+from .lib.access_manifest_file_reader import AccessManifestReader
 
 # Globals
 ROOT_OU_ID = os.getenv("ROOT_OU_ID")
-IS_DRY_RUN = os.getenv("DRY_RUN", True)
+IS_DRY_RUN = os.getenv("DRY_RUN")
 IDENTITY_STORE_ID = os.getenv("IDENTITY_STORE_ID")
 IDENTITY_STORE_ARN = os.getenv("IDENTITY_STORE_ARN")
 MANIFEST_FILE_S3_LOCATION = os.getenv("MANIFEST_FILE_S3_LOCATION")
@@ -59,20 +59,20 @@ def lambda_handler(event: EventBridgeEvent, context: LambdaContext):  # pylint: 
     manifest_file = AccessManifestReader(MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_file_local_path)
 
     # Initialize OU & Accounts map
-    aws_org = AwsOrganizations(ROOT_OU_ID)
+    aws_org = AwsOrganizationsMapper(ROOT_OU_ID)
     setattr(aws_org, "exclude_ou_name_list", manifest_file.excluded_ou_names)
     setattr(aws_org, "exclude_account_name_list", manifest_file.excluded_account_names)
     aws_org.run_ous_accounts_mapper()
 
     # Initialize SSO Groups, Users, & Permission sets map
-    aws_idc = AwsIdentityCenter(IDENTITY_STORE_ID, IDENTITY_STORE_ARN)
+    aws_idc = AwsIdentityCenterMapper(IDENTITY_STORE_ID, IDENTITY_STORE_ARN)
     setattr(aws_idc, "exclude_sso_users", manifest_file.excluded_sso_user_names)
     setattr(aws_idc, "exclude_sso_groups", manifest_file.excluded_sso_group_names)
     setattr(aws_idc, "exclude_permission_sets", manifest_file.excluded_permission_set_names)
     aws_idc.run_identity_center_mapper()
 
     # Create account assignments
-    aws_access_resolver = AwsAccessResolver(IDENTITY_STORE_ARN)
+    aws_access_resolver = AwsAccessControlResolver(IDENTITY_STORE_ARN)
     setattr(aws_access_resolver, "dry_run", IS_DRY_RUN)
     setattr(aws_access_resolver, "rbac_rules", manifest_file.rbac_rules)
     setattr(aws_access_resolver, "sso_users", aws_idc.sso_users)

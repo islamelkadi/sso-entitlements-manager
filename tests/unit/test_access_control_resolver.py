@@ -1,15 +1,27 @@
+"""
+Unit tests for the AwsAccessControlResolver class.
+
+This module contains tests for the AWS Access Control Resolver, verifying the creation,
+deletion, and reporting of account assignments based on the provided manifest files and
+AWS environment setup. The tests utilize pytest for parameterization and fixtures for
+mocking AWS resources.
+
+Functions:
+    test_create_assignments: Test the creation of account assignments.
+    test_generate_invalid_assignments_report: Test the generation of a report for invalid assignments.
+    test_delete_account_assignments: Test the deletion of account assignments.
+"""
 import os
 import glob
 import operator
 import itertools
 import concurrent.futures
-from typing import Dict, List, Set, Tuple, Any
+from typing import Dict, List, Any
 
 import pytest
-from .utils import generate_expected_account_assignments
 from app.lib.utils import load_file
-from app.lib.access_control_resolver import AwsAccessResolver
-
+from app.lib.aws_access_control_resolver import AwsAccessControlResolver
+from tests.utils import generate_expected_account_assignments
 
 # Globals vars
 CWD = os.path.dirname(os.path.realpath(__file__))
@@ -23,18 +35,22 @@ VALID_MANIFEST_DEFINITION_FILES_PATH = os.path.join(CWD, "..", "configs", "manif
 VALID_MANIFEST_DEFINITION_FILES = [os.path.basename(x) for x in glob.glob(VALID_MANIFEST_DEFINITION_FILES_PATH)]
 
 
-# Test cases
 @pytest.mark.parametrize(
-    "account_assignment_range, setup_aws_environment, manifest_filename",
-    list(itertools.product(PRE_TEST_ACCOUNT_ASSIGNMENT_PERCENTAGES, AWS_ORG_DEFINITION_FILES, VALID_MANIFEST_DEFINITION_FILES)),
-    indirect=["setup_aws_environment"]
+    "account_assignment_range, setup_aws_environment, manifest_filename", list(itertools.product(PRE_TEST_ACCOUNT_ASSIGNMENT_PERCENTAGES, AWS_ORG_DEFINITION_FILES, VALID_MANIFEST_DEFINITION_FILES)), indirect=["setup_aws_environment"]
 )
 def test_create_assignments(sso_admin_client, account_assignment_range: float, setup_aws_environment: pytest.fixture, manifest_filename: str) -> None:
+    """
+    Test the creation of account assignments based on the provided manifest file and setup environment.
 
-    #########################
-    #         Arrange       #
-    #########################
+    Args:
+        sso_admin_client: Mock AWS SSO admin client.
+        account_assignment_range (float): Percentage of assignments to pre-create.
+        setup_aws_environment (pytest.fixture): Fixture setting up the AWS test environment.
+        manifest_filename (str): Filename of the manifest file to be loaded.
 
+    Asserts:
+        Verifies that the assignments created match the expected assignments.
+    """
     sort_keys = operator.itemgetter("PermissionSetArn", "PrincipalType", "PrincipalId", "TargetId")
     manifest_file = load_file(os.path.join(CWD, "..", "configs", "manifests", "valid_schema", manifest_filename))
     rbac_rules = manifest_file.get("rbac_rules", [])
@@ -56,11 +72,8 @@ def test_create_assignments(sso_admin_client, account_assignment_range: float, s
     for assignment in existing_account_assignments:
         sso_admin_client.create_account_assignment(**assignment)
 
-    #########################
-    #           Act         #
-    #########################
-
-    aws_access_resolver = AwsAccessResolver(setup_aws_environment["identity_center_arn"])
+    # Act
+    aws_access_resolver = AwsAccessControlResolver(setup_aws_environment["identity_center_arn"])
     setattr(aws_access_resolver, "rbac_rules", rbac_rules)
     setattr(aws_access_resolver, "sso_users", setup_aws_environment["sso_username_id_map"])
     setattr(aws_access_resolver, "sso_groups", setup_aws_environment["sso_group_name_id_map"])
@@ -69,31 +82,28 @@ def test_create_assignments(sso_admin_client, account_assignment_range: float, s
     setattr(aws_access_resolver, "account_name_id_map", setup_aws_environment["account_name_id_map"])
     aws_access_resolver.run_access_control_resolver()
 
-    #########################
-    #         Assert        #
-    #########################
-
-    # Assert expected assignment to create matches actual created assignments
+    # Assert
     assert expected_account_assignments[upper_bound_range:] == sorted(aws_access_resolver.assignments_to_create, key=sort_keys)
 
 
 @pytest.mark.parametrize("setup_aws_environment, manifest_filename", list(itertools.product(AWS_ORG_DEFINITION_FILES, VALID_MANIFEST_DEFINITION_FILES)), indirect=["setup_aws_environment"])
 def test_generate_invalid_assignments_report(setup_aws_environment: pytest.fixture, manifest_filename: str) -> None:
+    """
+    Test the generation of a report for invalid account assignments based on the provided manifest file and setup environment.
 
-    #########################
-    #         Arrange       #
-    #########################
+    Args:
+        setup_aws_environment (pytest.fixture): Fixture setting up the AWS test environment.
+        manifest_filename (str): Filename of the manifest file to be loaded.
 
+    Asserts:
+        Verifies that the generated invalid assignments report matches the expected invalid assignments.
+    """
     sort_keys = operator.itemgetter("rule_number", "resource_type", "resource_name")
     manifest_file = load_file(os.path.join(CWD, "..", "configs", "manifests", "valid_schema", manifest_filename))
     rbac_rules = manifest_file.get("rbac_rules", [])
 
-    #########################
-    #           Act         #
-    #########################
-
-    ################# Run access control resolver #################
-    aws_access_resolver = AwsAccessResolver(setup_aws_environment["identity_center_arn"])
+    # Act
+    aws_access_resolver = AwsAccessControlResolver(setup_aws_environment["identity_center_arn"])
     setattr(aws_access_resolver, "rbac_rules", rbac_rules)
     setattr(aws_access_resolver, "sso_users", setup_aws_environment["sso_username_id_map"])
     setattr(aws_access_resolver, "sso_groups", setup_aws_environment["sso_group_name_id_map"])
@@ -102,7 +112,7 @@ def test_generate_invalid_assignments_report(setup_aws_environment: pytest.fixtu
     setattr(aws_access_resolver, "account_name_id_map", setup_aws_environment["account_name_id_map"])
     aws_access_resolver.run_access_control_resolver()
 
-    ############# Generate invalid assignments report #############
+    # Generate invalid assignments report
     invalid_assignments = []
     for i, rule in enumerate(rbac_rules):
         # Check target names
@@ -138,21 +148,23 @@ def test_generate_invalid_assignments_report(setup_aws_environment: pytest.fixtu
                 }
             )
 
-    #########################
-    #         Assert        #
-    #########################
-
-    # Assert test generated invalid report matches class generated invalid report matches
+    # Assert
     assert sorted(invalid_assignments, key=sort_keys) == sorted(aws_access_resolver.invalid_manifest_rules_report, key=sort_keys)
 
 
 @pytest.mark.parametrize("setup_aws_environment, manifest_filename", list(itertools.product(AWS_ORG_DEFINITION_FILES, VALID_MANIFEST_DEFINITION_FILES)), indirect=["setup_aws_environment"])
 def test_delete_account_assignments(sso_admin_client: pytest.fixture, setup_aws_environment: pytest.fixture, manifest_filename: str) -> None:
+    """
+    Test the deletion of account assignments based on the provided manifest file and setup environment.
 
-    #########################
-    #         Arrange       #
-    #########################
+    Args:
+        sso_admin_client (pytest.fixture): Mock AWS SSO admin client.
+        setup_aws_environment (pytest.fixture): Fixture setting up the AWS test environment.
+        manifest_filename (str): Filename of the manifest file to be loaded.
 
+    Asserts:
+        Verifies that the assignments to be deleted match the expected assignments to delete.
+    """
     sort_keys = operator.itemgetter("PermissionSetArn", "PrincipalType", "PrincipalId", "TargetId")
     manifest_file = load_file(os.path.join(CWD, "..", "configs", "manifests", "valid_schema", manifest_filename))
     rbac_rules = manifest_file.get("rbac_rules", [])
@@ -200,11 +212,8 @@ def test_delete_account_assignments(sso_admin_client: pytest.fixture, setup_aws_
     current_account_assignments = create_assignments(sso_user_ids, "USER")
     current_account_assignments += create_assignments(sso_group_ids, "GROUP")
 
-    #########################
-    #           Act         #
-    #########################
-
-    aws_access_resolver = AwsAccessResolver(setup_aws_environment["identity_center_arn"])
+    # Act
+    aws_access_resolver = AwsAccessControlResolver(setup_aws_environment["identity_center_arn"])
     setattr(aws_access_resolver, "rbac_rules", rbac_rules)
     setattr(aws_access_resolver, "sso_users", setup_aws_environment["sso_username_id_map"])
     setattr(aws_access_resolver, "sso_groups", setup_aws_environment["sso_group_name_id_map"])
@@ -213,9 +222,6 @@ def test_delete_account_assignments(sso_admin_client: pytest.fixture, setup_aws_
     setattr(aws_access_resolver, "account_name_id_map", setup_aws_environment["account_name_id_map"])
     aws_access_resolver.run_access_control_resolver()
 
-    #########################
-    #         Assert        #
-    #########################
-
+    # Assert
     assignments_to_delete = list(itertools.filterfalse(lambda i: i in expected_account_assignments, current_account_assignments))
     assert sorted(assignments_to_delete, key=sort_keys) == sorted(aws_access_resolver.assignments_to_delete, key=sort_keys)

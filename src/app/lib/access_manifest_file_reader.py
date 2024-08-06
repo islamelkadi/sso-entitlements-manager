@@ -26,11 +26,11 @@ AccessManifestReader
     --------
     __init__(schema_definition_filepath: str, manifest_file_s3_uri: str) -> None
         Initializes the AccessManifestReader with the schema definition filepath and manifest file S3 URI.
-    _load_sso_manifest() -> None
+    _load_sso_manifest_file() -> None
         Loads schema and manifest files, converts specific keys to uppercase.
-    _validate_sso_manifest() -> None
+    _validate_sso_manifest_file() -> None
         Validates the manifest against the schema.
-    _generate_excluded_lists() -> None
+    _generate_excluded_targets_lists() -> None
         Creates lists of excluded OUs, account names, user principals, group principals, and permission sets.
     rbac_rules() -> list
         Returns the RBAC rules from the manifest.
@@ -71,11 +71,11 @@ class AccessManifestReader:
     --------
     __init__(schema_definition_filepath: str, manifest_file_s3_uri: str) -> None
         Initializes the AccessManifestReader with the schema definition filepath and manifest file S3 URI.
-    _load_sso_manifest() -> None
+    _load_sso_manifest_file() -> None
         Loads schema and manifest files, converts specific keys to uppercase.
-    _validate_sso_manifest() -> None
+    _validate_sso_manifest_file() -> None
         Validates the manifest against the schema.
-    _generate_excluded_lists() -> None
+    _generate_excluded_targets_lists() -> None
         Creates lists of excluded OUs, account names, user principals, group principals, and permission sets.
     rbac_rules() -> list
         Returns the RBAC rules from the manifest.
@@ -103,11 +103,11 @@ class AccessManifestReader:
         self.excluded_permission_set_names = []
 
         # Load and validate manifest on initialization
-        self._load_sso_manifest()
-        self._validate_sso_manifest()
-        self._generate_excluded_lists()
+        self._load_sso_manifest_file()
+        self._validate_sso_manifest_file()
+        self._generate_excluded_targets_lists()
 
-    def _load_sso_manifest(self) -> None:
+    def _load_sso_manifest_file(self) -> None:
         """
         Loads schema and manifest files, and converts specific keys to uppercase.
 
@@ -118,7 +118,7 @@ class AccessManifestReader:
         manifest_data = load_file(self._manifest_definition_filepath)
         self._manifest_definition = convert_specific_keys_to_uppercase(manifest_data, self._manifest_file_keys_to_uppercase)
 
-    def _validate_sso_manifest(self) -> None:
+    def _validate_sso_manifest_file(self) -> None:
         """
         Validates the manifest against the schema.
 
@@ -134,7 +134,7 @@ class AccessManifestReader:
         except jsonschema.ValidationError as e:
             raise jsonschema.ValidationError(f"Validation error: {e.message}")
 
-    def _generate_excluded_lists(self) -> None:
+    def _generate_excluded_targets_lists(self) -> None:
         """
         Creates lists of excluded OUs, account names, user principals, group principals, and permission sets.
 

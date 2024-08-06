@@ -1,12 +1,12 @@
 """
 Module to interact with the AWS IAM Identity Store service.
 
-This module provides a class to facilitate interactions with AWS IAM Identity Store, 
+This module provides a class to facilitate interactions with AWS IAM Identity Store,
 including mapping SSO users, groups, and permission sets.
 
 Classes:
 --------
-AwsIdentityCenter
+AwsIdentityCenterMapper
     A class to interact with AWS IAM Identity Store service.
 
     Attributes:
@@ -35,7 +35,7 @@ AwsIdentityCenter
     Methods:
     --------
     __init__(identity_store_id: str, identity_store_arn: str) -> None
-        Initializes the AwsIdentityCenter instance with the identity store ID and ARN.
+        Initializes the AwsIdentityCenterMapper instance with the identity store ID and ARN.
     _map_sso_groups() -> None
         Lists all groups in the identity store and maps DisplayName to GroupId.
     _map_sso_users() -> None
@@ -49,7 +49,7 @@ AwsIdentityCenter
 import boto3
 
 
-class AwsIdentityCenter:
+class AwsIdentityCenterMapper:
     """
     A class to interact with AWS IAM Identity Store service.
 
@@ -79,7 +79,7 @@ class AwsIdentityCenter:
     Methods:
     --------
     __init__(identity_store_id: str, identity_store_arn: str) -> None
-        Initializes the AwsIdentityCenter instance with the identity store ID and ARN.
+        Initializes the AwsIdentityCenterMapper instance with the identity store ID and ARN.
     _map_sso_groups() -> None
         Lists all groups in the identity store and maps DisplayName to GroupId.
     _map_sso_users() -> None
@@ -92,7 +92,7 @@ class AwsIdentityCenter:
 
     def __init__(self, identity_store_id: str, identity_store_arn: str) -> None:
         """
-        Initializes the AwsIdentityCenter instance with the identity store ID and ARN.
+        Initializes the AwsIdentityCenterMapper instance with the identity store ID and ARN.
 
         Parameters:
         ----------
@@ -103,7 +103,7 @@ class AwsIdentityCenter:
 
         Usage:
         ------
-        aws_identity_centre = AwsIdentityCenter("identity_store_id", "identity_store_arn")
+        aws_identity_centre = AwsIdentityCenterMapper("identity_store_id", "identity_store_arn")
         """
         self.identity_store_id = identity_store_id
         self.identity_store_arn = identity_store_arn

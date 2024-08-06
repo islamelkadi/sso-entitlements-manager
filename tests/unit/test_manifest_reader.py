@@ -10,7 +10,7 @@ import glob
 import pytest
 import jsonschema
 from app.lib.utils import load_file
-from app.lib.access_manifest_reader import AccessManifestReader
+from app.lib.access_manifest_file_reader import AccessManifestReader
 
 # Constants
 CWD = os.path.dirname(os.path.realpath(__file__))
