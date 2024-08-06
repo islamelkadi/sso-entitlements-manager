@@ -2,8 +2,9 @@ name: Linting
 
 on:
   schedule:
-      - cron: "0 3 * * *"
-  pull_request:
+    - cron: 0 3 * * *
+  
+  workflow_dispatch:
 
 jobs:
   lint:
