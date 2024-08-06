@@ -1,4 +1,4 @@
-name: Testing
+name: Automated Testing
 
 on:
   schedule:
@@ -7,7 +7,7 @@ on:
 
 jobs:
 
-  automated_testing:
+  tests:
     runs-on: ubuntu-latest
     steps:
 
