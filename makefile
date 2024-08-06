@@ -23,9 +23,6 @@ env:
 # Automated Testing
 .PHONY: unittest
 unittest:
-	# @echo "Setting default region for testing"
-	# @AWS_DEFAULT_REGION=us-east-1
-
 	@echo "Generating coverage report"
 	@pytest --cov=tests/ --cov-report=xml:coverage.xml
 
