@@ -1,6 +1,7 @@
 [MESSAGE CONTROL]
 
 disable=
+    duplicate-code,
     line-too-long,
     too-many-instance-attributes,
     too-few-public-methods,

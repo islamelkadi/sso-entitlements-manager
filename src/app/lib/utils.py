@@ -201,3 +201,31 @@ def download_file_from_s3(s3_object_uri: str, download_path: str = "/tmp") -> No
     local_destination_filepath = os.path.join(download_path, base_filename)
     s3_client.download_file(s3_bucket_name, s3_object_key, local_destination_filepath)
     return local_destination_filepath
+
+
+def upload_file_to_s3(bucket_name: str, filepath: str) -> str:
+    """
+    Upload a file to an S3 bucket.
+
+    Parameters
+    ----------
+    s3_client : boto3.client
+        The boto3 S3 client.
+
+    bucket_name : str
+        The name of the S3 bucket.
+
+    filepath : str
+        The local file path to upload.
+
+    Returns
+    -------
+    str
+        The object key of the uploaded file.
+    """
+    s3_client = boto3.client("s3")
+
+    with open(filepath, "rb") as f:
+        object_key = os.path.basename(filepath)
+        s3_client.upload_fileobj(f, bucket_name, object_key)
+    return object_key

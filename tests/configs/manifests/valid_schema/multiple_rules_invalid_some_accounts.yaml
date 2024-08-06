@@ -26,5 +26,5 @@ rbac_rules:
       - invalid_account_2
       - invalid_account_3
     permission_set_name: Administrator
-    principal_name: user1@testing.com
+    principal_name: user2@testing.com
     principal_type: USER

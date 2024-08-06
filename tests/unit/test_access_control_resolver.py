@@ -1,301 +1,122 @@
-# pylint: disable=R0801,W0613
 """
-Unit tests to test manifest file ingestion and validate different
-YAML configuration files against a JSON schema definition.
+Unit tests for the AwsAccessControlResolver class.
 
-Tests:
-- test_single_rule_invalid_rules_target_type:
-    Validate a single rule with invalid rules target type.
-- test_multiple_rules_invalid_rules_target_type:
-    Validate multiple rules with invalid rules target type.
-- test_single_rule_missing_permission_set_name:
-    Validate a single rule with missing permission set name.
-- test_multiple_rules_missing_permission_set_name:
-    Validate multiple rules with missing permission set name.
-- test_single_rule_missing_principal_name:
-    Validate a single rule with missing principal name.
-- test_multiple_rules_missing_principal_name:
-    Validate multiple rules with missing principal name.
-- test_single_rule_invalid_principal_type:
-    Validate a single rule with invalid principal type.
-- test_multiple_rules_invalid_principal_type:
-    Validate multiple rules with invalid principal type.
-- test_single_rule_invalid_rule_type:
-    Validate a single rule with invalid rule type.
-- test_multiple_rules_invalid_rule_type:
-    Validate multiple rules with invalid rule type.
+This module contains tests for the AWS Access Control Resolver, verifying the creation,
+deletion, and reporting of account assignments based on the provided manifest files and
+AWS environment setup. The tests utilize pytest for parameterization and fixtures for
+mocking AWS resources.
+
+Functions:
+    test_create_assignments: Test the creation of account assignments.
+    test_generate_invalid_assignments_report: Test the generation of a report for invalid assignments.
+    test_delete_account_assignments: Test the deletion of account assignments.
 """
-
 import os
-from operator import itemgetter
-from typing import Dict, List, Set, Tuple
+import glob
+import operator
+import itertools
+import concurrent.futures
+from typing import Dict, List, Any
 
 import pytest
-import jsonschema
-from app.lib.access_control_resolver import AwsAccessResolver
-from app.lib.utils import load_file, convert_list_to_dict
-
+from app.lib.utils import load_file
+from app.lib.aws_access_control_resolver import AwsAccessControlResolver
+from tests.utils import generate_expected_account_assignments
 
 # Globals vars
 CWD = os.path.dirname(os.path.realpath(__file__))
-MANIFEST_SCHEMA_DEFINITION_FILEPATH = os.path.join(
-    CWD,
-    "..",
-    "..",
-    "src",
-    "app",
-    "schemas",
-    "manifest_schema_definition.json",
-)
 
-# Type Definitions
-OuMap = Dict[str, Dict[str, List[Dict[str, str]]]]
-SsoMap = Dict[str, Dict[str, str]]
-ManifestFile = Dict[str, List[Dict[str, List[str]]]]
-AccountAssignment = Set[Tuple[str, str, str]]
+PRE_TEST_ACCOUNT_ASSIGNMENT_PERCENTAGES = [round(i * 0.2, 2) for i in range(6)]  # 20% increments
+
+AWS_ORG_DEFINITIONS_FILES_PATH = os.path.join(CWD, "..", "configs", "organizations", "*.json")
+AWS_ORG_DEFINITION_FILES = [os.path.basename(x) for x in glob.glob(AWS_ORG_DEFINITIONS_FILES_PATH)]
+
+VALID_MANIFEST_DEFINITION_FILES_PATH = os.path.join(CWD, "..", "configs", "manifests", "valid_schema", "*.yaml")
+VALID_MANIFEST_DEFINITION_FILES = [os.path.basename(x) for x in glob.glob(VALID_MANIFEST_DEFINITION_FILES_PATH)]
 
 
-# Helper functions
-def get_valid_accounts(ou_map: OuMap) -> List[str]:
-    """
-    Extract a list of valid account names from the organizational unit map.
-
-    Parameters:
-    ----------
-        ou_map (OuMap): A dictionary representing the organizational units and their children.
-
-
-    Returns:
-    -------
-        List[str]: A list of valid account names.
-    """
-    valid_accounts = []
-    for ou in ou_map.values():
-        for child in ou["children"]:
-            if child["type"] == "ACCOUNT":
-                valid_accounts.append(child["name"])
-    return valid_accounts
-
-
-def get_ignore_accounts(manifest_file: ManifestFile, ou_map: OuMap) -> Set[str]:
-    """
-    Determine which accounts should be ignored based on the manifest file
-    and organizational unit map.
-
-    Parameters:
-    ----------
-        manifest_file (ManifestFile): A dictionary representing the manifest file configuration.
-        ou_map (OuMap): A dictionary representing the organizational units and their children.
-
-
-    Returns:
-    -------
-        Set[str]: A set of account names to ignore.
-    """
-    ignore_accounts = set()
-    for ignore_rule in manifest_file.get("ignore", []):
-        if ignore_rule["target_type"] == "ACCOUNT":
-            ignore_accounts.update(ignore_rule["target_names"])
-        elif ignore_rule["target_type"] == "OU":
-            for ou_name in ignore_rule["target_names"]:
-                if ou_name in ou_map:
-                    ignore_accounts.update(account["name"] for account in ou_map[ou_name]["children"] if account["type"] == "ACCOUNT")
-    return ignore_accounts
-
-
-def get_unique_combinations(
-    manifest_file: ManifestFile,
-    sso_user_map: SsoMap,
-    sso_group_map: SsoMap,
-    permission_set_map: SsoMap,
-    ou_map: OuMap,
-    valid_accounts: List[str],
-    ignore_accounts: Set[str],
-) -> AccountAssignment:
-    """
-    Generate a set of unique combinations of principal names, permission sets, and
-    target accounts based on the manifest file.
-
-    Parameters:
-    ----------
-        manifest_file (ManifestFile): A dictionary representing the manifest file configuration.
-        sso_user_map (SsoMap): A dictionary mapping SSO users.
-        sso_group_map (SsoMap): A dictionary mapping SSO groups.
-        permission_set_map (SsoMap): A dictionary mapping permission sets.
-        ou_map (OuMap): A dictionary representing the organizational units and their children.
-        valid_accounts (List[str]): A list of valid account names.
-        ignore_accounts (Set[str]): A set of account names to ignore.
-
-    Returns:
-    -------
-        UniqueCombination: A set of unique (principal_name, permission_set_name, target) tuples.
-    """
-    unique_combinations = []
-    for rule in manifest_file.get("rbac_rules", []):
-        if rule["principal_type"] == "USER" and rule["principal_name"] not in sso_user_map:
-            continue
-
-        if rule["principal_type"] == "GROUP" and rule["principal_name"] not in sso_group_map:
-            continue
-
-        if rule["permission_set_name"] not in permission_set_map:
-            continue
-
-        target_names = rule["target_names"]
-        if rule["target_type"] == "ACCOUNT":
-            valid_targets = [name for name in target_names if name not in ignore_accounts and name in valid_accounts]
-        elif rule["target_type"] == "OU":
-            valid_targets = []
-            for ou_name in target_names:
-                if ou_name in ou_map:
-                    for account in ou_map[ou_name]["children"]:
-                        if account["name"] not in ignore_accounts and account["name"] in valid_accounts:
-                            valid_targets.append(account["name"])
-
-        for target in valid_targets:
-            target_assignment_item = {
-                "principal_name": rule["principal_name"],
-                "principal_type": rule["principal_type"],
-                "permission_set_name": rule["permission_set_name"],
-                "target_type": "AWS_ACCOUNT",
-                "account_name": target,
-            }
-
-            if target_assignment_item not in unique_combinations:
-                unique_combinations.append(target_assignment_item)
-
-    return unique_combinations
-
-
-# Test cases
 @pytest.mark.parametrize(
-    "manifest_filename",
-    [
-        "single_rule_invalid_target_type.yaml",
-        "single_rule_invalid_target_type_datatype.yaml",
-        "multiple_rules_invalid_target_type.yaml",
-        "multiple_rules_invalid_target_type_datatype.yaml",
-        "single_rule_missing_permission_set_name.yaml",
-        "single_rule_invalid_permission_set_name_datatype.yaml",
-        "multiple_rules_missing_permission_set_name.yaml",
-        "multiple_rules_invalid_permission_set_name_datatype.yaml",
-        "single_rule_missing_principal_name.yaml",
-        "single_rule_invalid_principal_name_datatype.yaml",
-        "multiple_rules_missing_principal_name.yaml",
-        "multiple_rules_invalid_principal_name_datatype.yaml",
-        "single_rule_invalid_principal_type.yaml",
-        "single_rule_invalid_principal_type_datatype.yaml",
-        "multiple_rules_invalid_principal_type.yaml",
-        "multiple_rules_invalid_principal_type_datatype.yaml",
-        "single_rule_invalid_rule_type.yaml",
-        "single_rule_invalid_rule_type_datatype.yaml",
-        "multiple_rules_invalid_rule_type.yaml",
-        "multiple_rules_invalid_rule_type_datatype.yaml",
-    ],
+    "account_assignment_range, setup_aws_environment, manifest_filename", list(itertools.product(PRE_TEST_ACCOUNT_ASSIGNMENT_PERCENTAGES, AWS_ORG_DEFINITION_FILES, VALID_MANIFEST_DEFINITION_FILES)), indirect=["setup_aws_environment"]
 )
-def test_rules_invalid_manifest_schema(manifest_filename: str) -> None:
+def test_create_assignments(sso_admin_client, account_assignment_range: float, setup_aws_environment: pytest.fixture, manifest_filename: str) -> None:
     """
-    Test to validate manifest files with invalid schema definitions.
+    Test the creation of account assignments based on the provided manifest file and setup environment.
 
-    This test checks if manifest files with various invalid schema
-    configurations raise a jsonschema.ValidationError when processed
-    by the AwsAccessResolver.
-
-    Parameters:
-    ----------
-        setup_aws_environment (pytest.fixture): Fixture to set up the AWS environment.
-        manifest_filename (str): Name of the manifest file to validate.
+    Args:
+        sso_admin_client: Mock AWS SSO admin client.
+        account_assignment_range (float): Percentage of assignments to pre-create.
+        setup_aws_environment (pytest.fixture): Fixture setting up the AWS test environment.
+        manifest_filename (str): Filename of the manifest file to be loaded.
 
     Asserts:
-    -------
-        jsonschema.ValidationError: If the manifest file schema is invalid.
+        Verifies that the assignments created match the expected assignments.
     """
-    # Arrange
-    manifest_definition_filepath = os.path.join(
-        CWD,
-        "..",
-        "configs",
-        "manifests",
-        "invalid_schema",
-        manifest_filename,
+    sort_keys = operator.itemgetter("PermissionSetArn", "PrincipalType", "PrincipalId", "TargetId")
+    manifest_file = load_file(os.path.join(CWD, "..", "configs", "manifests", "valid_schema", manifest_filename))
+    rbac_rules = manifest_file.get("rbac_rules", [])
+
+    # Generate expected account assignments
+    expected_account_assignments = generate_expected_account_assignments(
+        manifest_file,
+        setup_aws_environment["ou_accounts_map"],
+        setup_aws_environment["account_name_id_map"],
+        setup_aws_environment["sso_username_id_map"],
+        setup_aws_environment["sso_group_name_id_map"],
+        setup_aws_environment["sso_permission_set_name_id_map"],
     )
+    expected_account_assignments.sort(key=sort_keys)
+
+    # Create expected account assignments
+    upper_bound_range = int(len(expected_account_assignments) * account_assignment_range)
+    existing_account_assignments = expected_account_assignments[0:upper_bound_range]
+    for assignment in existing_account_assignments:
+        sso_admin_client.create_account_assignment(**assignment)
+
+    # Act
+    aws_access_resolver = AwsAccessControlResolver(setup_aws_environment["identity_center_arn"])
+    setattr(aws_access_resolver, "rbac_rules", rbac_rules)
+    setattr(aws_access_resolver, "sso_users", setup_aws_environment["sso_username_id_map"])
+    setattr(aws_access_resolver, "sso_groups", setup_aws_environment["sso_group_name_id_map"])
+    setattr(aws_access_resolver, "permission_sets", setup_aws_environment["sso_permission_set_name_id_map"])
+    setattr(aws_access_resolver, "ou_accounts_map", setup_aws_environment["ou_accounts_map"])
+    setattr(aws_access_resolver, "account_name_id_map", setup_aws_environment["account_name_id_map"])
+    aws_access_resolver.run_access_control_resolver()
 
     # Assert
-    with pytest.raises(jsonschema.ValidationError):
-        # Act
-        AwsAccessResolver(MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath)
+    assert expected_account_assignments[upper_bound_range:] == sorted(aws_access_resolver.assignments_to_create, key=sort_keys)
 
 
-@pytest.mark.parametrize(
-    "setup_aws_environment, manifest_filename",
-    [
-        ("aws_org_1.json", "multiple_rules_valid.yaml"),
-        ("aws_org_1.json", "multiple_rules_invalid_some_ous.yaml"),
-        ("aws_org_1.json", "multiple_rules_invalid_all_ous.yaml"),
-        ("aws_org_1.json", "multiple_rules_invalid_some_accounts.yaml"),
-        ("aws_org_1.json", "multiple_rules_invalid_all_accounts.yaml"),
-        ("aws_org_1.json", "multiple_rules_invalid_some_permission_sets.yaml"),
-        ("aws_org_1.json", "multiple_rules_invalid_all_permission_sets.yaml"),
-    ],
-    indirect=["setup_aws_environment"],
-)
-def test_rules_valid_manifest_schema(setup_aws_environment: pytest.fixture, manifest_filename: str) -> None:
+@pytest.mark.parametrize("setup_aws_environment, manifest_filename", list(itertools.product(AWS_ORG_DEFINITION_FILES, VALID_MANIFEST_DEFINITION_FILES)), indirect=["setup_aws_environment"])
+def test_generate_invalid_assignments_report(setup_aws_environment: pytest.fixture, manifest_filename: str) -> None:
     """
-    Test to validate manifest files with valid schema definitions.
+    Test the generation of a report for invalid account assignments based on the provided manifest file and setup environment.
 
-    This test checks if manifest files with various valid schema
-    configurations are correctly processed by the AwsAccessResolver,
-    and the unique RBAC assignments are properly calculated.
-
-    Parameters:
-    ----------
-        setup_aws_environment (pytest.fixture): Fixture to set up the AWS environment.
-        manifest_filename (str): Name of the manifest file to validate.
+    Args:
+        setup_aws_environment (pytest.fixture): Fixture setting up the AWS test environment.
+        manifest_filename (str): Filename of the manifest file to be loaded.
 
     Asserts:
-    -------
-        The number of unique combinations matches the number of successful RBAC assignments.
+        Verifies that the generated invalid assignments report matches the expected invalid assignments.
     """
-    # Load AWS environment definitions
-    ou_map = convert_list_to_dict(setup_aws_environment["aws_organization_definitions"], "name")
-    sso_user_map = convert_list_to_dict(setup_aws_environment["aws_sso_user_definitions"], "username")
-    sso_group_map = convert_list_to_dict(setup_aws_environment["aws_sso_group_definitions"], "name")
-    permission_set_map = convert_list_to_dict(setup_aws_environment["aws_permission_set_definitions"], "name")
-
-    # Load manifest file
-    manifest_definition_filepath = os.path.join(
-        CWD,
-        "..",
-        "configs",
-        "manifests",
-        "valid_schema",
-        manifest_filename,
-    )
-    manifest_file = load_file(manifest_definition_filepath)
-    aws_access_resolver = AwsAccessResolver(MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_definition_filepath)
-
-    valid_accounts = get_valid_accounts(ou_map)
-    ignore_accounts = get_ignore_accounts(manifest_file, ou_map)
-    valid_unique_named_combinations = get_unique_combinations(
-        manifest_file,
-        sso_user_map,
-        sso_group_map,
-        permission_set_map,
-        ou_map,
-        valid_accounts,
-        ignore_accounts,
-    )
-
-    # Assert generated combinations matches the successful RBAC assignments
-    sort_keys = itemgetter("permission_set_name", "principal_type", "principal_name", "account_name")
-    assert valid_unique_named_combinations.sort(key=sort_keys) == aws_access_resolver.valid_named_account_assignments.sort(key=sort_keys)
-
-    # Assert test generated invalid report matches class generated invalid report matches
-    invalid_assignments = []
+    sort_keys = operator.itemgetter("rule_number", "resource_type", "resource_name")
+    manifest_file = load_file(os.path.join(CWD, "..", "configs", "manifests", "valid_schema", manifest_filename))
     rbac_rules = manifest_file.get("rbac_rules", [])
+
+    # Act
+    aws_access_resolver = AwsAccessControlResolver(setup_aws_environment["identity_center_arn"])
+    setattr(aws_access_resolver, "rbac_rules", rbac_rules)
+    setattr(aws_access_resolver, "sso_users", setup_aws_environment["sso_username_id_map"])
+    setattr(aws_access_resolver, "sso_groups", setup_aws_environment["sso_group_name_id_map"])
+    setattr(aws_access_resolver, "permission_sets", setup_aws_environment["sso_permission_set_name_id_map"])
+    setattr(aws_access_resolver, "ou_accounts_map", setup_aws_environment["ou_accounts_map"])
+    setattr(aws_access_resolver, "account_name_id_map", setup_aws_environment["account_name_id_map"])
+    aws_access_resolver.run_access_control_resolver()
+
+    # Generate invalid assignments report
+    invalid_assignments = []
     for i, rule in enumerate(rbac_rules):
         # Check target names
-        target_reference = list(ou_map.keys()) if rule["target_type"] == "OU" else valid_accounts
+        target_reference = list(setup_aws_environment["ou_accounts_map"].keys()) if rule["target_type"] == "OU" else setup_aws_environment["account_name_id_map"].keys()
         for target_name in rule["target_names"]:
             if target_name not in target_reference:
                 invalid_assignments.append(
@@ -307,7 +128,7 @@ def test_rules_valid_manifest_schema(setup_aws_environment: pytest.fixture, mani
                 )
 
         # Check principal name
-        target_reference = sso_group_map.keys() if rule["principal_type"] == "GROUP" else sso_user_map.keys()
+        target_reference = setup_aws_environment["sso_group_name_id_map"].keys() if rule["principal_type"] == "GROUP" else setup_aws_environment["sso_username_id_map"]
         if rule["principal_name"] not in target_reference:
             invalid_assignments.append(
                 {
@@ -318,7 +139,7 @@ def test_rules_valid_manifest_schema(setup_aws_environment: pytest.fixture, mani
             )
 
         # Check permission set name
-        if rule["permission_set_name"] not in permission_set_map:
+        if rule["permission_set_name"] not in setup_aws_environment["sso_permission_set_name_id_map"]:
             invalid_assignments.append(
                 {
                     "rule_number": i,
@@ -327,5 +148,80 @@ def test_rules_valid_manifest_schema(setup_aws_environment: pytest.fixture, mani
                 }
             )
 
-    sort_keys = itemgetter("rule_number", "resource_type", "resource_name")
-    assert invalid_assignments.sort(key=sort_keys) == aws_access_resolver.invalid_manifest_rules_report.sort(key=sort_keys)
+    # Assert
+    assert sorted(invalid_assignments, key=sort_keys) == sorted(aws_access_resolver.invalid_manifest_rules_report, key=sort_keys)
+
+
+@pytest.mark.parametrize("setup_aws_environment, manifest_filename", list(itertools.product(AWS_ORG_DEFINITION_FILES, VALID_MANIFEST_DEFINITION_FILES)), indirect=["setup_aws_environment"])
+def test_delete_account_assignments(sso_admin_client: pytest.fixture, setup_aws_environment: pytest.fixture, manifest_filename: str) -> None:
+    """
+    Test the deletion of account assignments based on the provided manifest file and setup environment.
+
+    Args:
+        sso_admin_client (pytest.fixture): Mock AWS SSO admin client.
+        setup_aws_environment (pytest.fixture): Fixture setting up the AWS test environment.
+        manifest_filename (str): Filename of the manifest file to be loaded.
+
+    Asserts:
+        Verifies that the assignments to be deleted match the expected assignments to delete.
+    """
+    sort_keys = operator.itemgetter("PermissionSetArn", "PrincipalType", "PrincipalId", "TargetId")
+    manifest_file = load_file(os.path.join(CWD, "..", "configs", "manifests", "valid_schema", manifest_filename))
+    rbac_rules = manifest_file.get("rbac_rules", [])
+
+    # Generate expected account assignments
+    expected_account_assignments = generate_expected_account_assignments(
+        manifest_file,
+        setup_aws_environment["ou_accounts_map"],
+        setup_aws_environment["account_name_id_map"],
+        setup_aws_environment["sso_username_id_map"],
+        setup_aws_environment["sso_group_name_id_map"],
+        setup_aws_environment["sso_permission_set_name_id_map"],
+    )
+
+    def create_assignments(principal_ids: List[str], principal_type: str) -> List[Dict[str, Any]]:
+        """
+        Creates account assignments for the given principal IDs and principal type.
+
+        Args:
+            principal_ids (List[str]): List of principal IDs.
+            principal_type (str): Principal type (USER or GROUP).
+
+        Returns:
+            List[Dict[str, Any]]: List of created account assignments.
+        """
+        assignments = []
+        assignments_to_create = list(itertools.product(principal_ids, [principal_type], sso_permission_set_ids, account_ids))
+
+        def create_single_assignment(assignment):
+            sso_admin_client.create_account_assignment(InstanceArn=setup_aws_environment["identity_center_arn"], PermissionSetArn=assignment[2], PrincipalId=assignment[0], PrincipalType=assignment[1], TargetId=assignment[3], TargetType="AWS_ACCOUNT")
+            return {"PrincipalId": assignment[0], "PrincipalType": assignment[1], "PermissionSetArn": assignment[2], "TargetId": assignment[3], "TargetType": "AWS_ACCOUNT", "InstanceArn": setup_aws_environment["identity_center_arn"]}
+
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            assignments = list(executor.map(create_single_assignment, assignments_to_create))
+
+        return assignments
+
+    # Create SSO user and group assignments
+    sso_permission_set_ids = setup_aws_environment["sso_permission_set_name_id_map"].values()
+    account_ids = setup_aws_environment["account_name_id_map"].values()
+
+    sso_user_ids = setup_aws_environment["sso_username_id_map"].values()
+    sso_group_ids = setup_aws_environment["sso_group_name_id_map"].values()
+
+    current_account_assignments = create_assignments(sso_user_ids, "USER")
+    current_account_assignments += create_assignments(sso_group_ids, "GROUP")
+
+    # Act
+    aws_access_resolver = AwsAccessControlResolver(setup_aws_environment["identity_center_arn"])
+    setattr(aws_access_resolver, "rbac_rules", rbac_rules)
+    setattr(aws_access_resolver, "sso_users", setup_aws_environment["sso_username_id_map"])
+    setattr(aws_access_resolver, "sso_groups", setup_aws_environment["sso_group_name_id_map"])
+    setattr(aws_access_resolver, "permission_sets", setup_aws_environment["sso_permission_set_name_id_map"])
+    setattr(aws_access_resolver, "ou_accounts_map", setup_aws_environment["ou_accounts_map"])
+    setattr(aws_access_resolver, "account_name_id_map", setup_aws_environment["account_name_id_map"])
+    aws_access_resolver.run_access_control_resolver()
+
+    # Assert
+    assignments_to_delete = list(itertools.filterfalse(lambda i: i in expected_account_assignments, current_account_assignments))
+    assert sorted(assignments_to_delete, key=sort_keys) == sorted(aws_access_resolver.assignments_to_delete, key=sort_keys)

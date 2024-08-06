@@ -8,7 +8,7 @@
                 "type": "object",
                 "properties": {
                     "target_type": {
-                        "$ref": "#/$defs/target_type"
+                        "$ref": "#/$defs/exclude/target_type"
                     },
                     "target_names": {
                         "$ref": "#/$defs/target_names"
@@ -26,7 +26,7 @@
                 "type": "object",
                 "properties": {
                     "target_type": {
-                        "$ref": "#/$defs/target_type"
+                        "$ref": "#/$defs/include/target_type"
                     },
                     "target_names": {
                         "$ref": "#/$defs/target_names"
@@ -55,12 +55,26 @@
         }
     },
     "$defs": {
-        "target_type": {
-            "type": "string",
-            "enum": [
-                "OU",
-                "ACCOUNT"
-            ]
+        "exclude": {
+            "target_type": {
+                "type": "string",
+                "enum": [
+                    "OU",
+                    "ACCOUNT",
+                    "USER",
+                    "GROUP",
+                    "PERMISSION_SET"
+                ]
+            }
+        },
+        "include": {
+            "target_type": {
+                "type": "string",
+                "enum": [
+                    "OU",
+                    "ACCOUNT"
+                ]
+            }
         },
         "target_names": {
             "type": "array",
