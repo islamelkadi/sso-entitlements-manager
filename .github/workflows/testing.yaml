@@ -7,7 +7,7 @@ on:
 
 jobs:
 
-  unit_testing:
+  automated_testing:
     runs-on: ubuntu-latest
     steps:
 
