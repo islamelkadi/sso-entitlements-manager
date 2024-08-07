@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CFN Template to create S3 Buckets
+
+Parameters:
+
+  # General params
+  AppName:
+    Type:        String
+    Description: Environment name
+
+  AppPrefix:
+    Type:        String
+    Description: Application's name prefix
+
+  # KMS params
+  S3KmsKeyArn:
+    Type:        AWS::SSM::Parameter::Value<String>
+    Description: S3 KMS Key ARN
+
+
+Resources:
+
+  SsoManifestFileBucket:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - W3045
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${AppPrefix}-${AppName}-${AWS::AccountId}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              KMSMasterKeyID: !Ref S3KmsKeyArn
+              SSEAlgorithm:   aws:kms
+      VersioningConfiguration:
+        Status: Enabled
+
+  ######################################
+  #                 SSM                #
+  ######################################
+
+  SsoManifestFileBucketIdSsm:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type:        String
+      Name:        !Sub /${AppPrefix}/${AppName}/s3/sso-manifest/name
+      Value:       !Ref SsoManifestFileBucket
+      Description: SSO Manifest File Bucket ID
+
+  SsoManifestFileBucketArnSsm:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type:        String
+      Name:        !Sub /${AppPrefix}/${AppName}/s3/sso-manifest/arn
+      Value:       !GetAtt SsoManifestFileBucket.Arn
+      Description: SSO Manifest File Bucket Arn

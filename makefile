@@ -35,6 +35,36 @@ format:
 	@echo "Running python linter"
 	@pylint $(sources)
 
+# Build lambda
+.PHONY: build-backend
+build-backend:
+	@echo "Building lambdas"
+	@chmod +x ./tools/sam_build.sh
+	@./tools/sam_build.sh -p ./src
+
+# Clouformation Packaging
+.PHONY: cfn-package
+cfn-package: build-backend
+	@echo "Packging CloudFormation templates"
+	@mkdir ./cfn/templates/build | true
+	@aws cloudformation package \
+		--s3-bucket $$BUCKET \
+		--template-file ./cfn/templates/main.yaml \
+		--force-upload \
+		--output-template-file ./cfn/templates/build/main.yaml > /dev/null;
+
+# Clouformation Deployments
+.PHONY: cfn-deploy
+cfn-deploy: cfn-package
+	@echo "Deploying CloudFormation templates"
+	@aws cloudformation deploy \
+		--template-file ./cfn/templates/build/main.yaml \
+		--stack-name cloud-pass \
+		--s3-bucket $$BUCKET \
+		--force-upload \
+		--parameter-overrides file://cfn/params/main.json \
+		--capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND
+
 # Remove cached python folders
 .PHONY: cleanup
 cleanup:

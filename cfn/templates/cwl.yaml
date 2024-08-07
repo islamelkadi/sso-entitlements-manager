@@ -1,0 +1,43 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CFN Template to create cloudwatch logs
+
+Parameters:
+
+  # General params
+  AppName:
+    Type:        String
+    Description: Environment name
+
+  AppPrefix:
+    Type:        String
+    Description: Application's name prefix
+
+  # KMS params
+  CwlKmsKeyArn:
+    Type:        AWS::SSM::Parameter::Value<String>
+    Description: CloudWatch log KMS Key ID
+
+
+Resources:
+
+  ######################################
+  #                 CWL                #
+  ######################################
+
+  SsoManager:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      KmsKeyId:     !Ref CwlKmsKeyArn
+      LogGroupName: !Sub /aws/lambda/${AppPrefix}/${AppName}
+
+  ######################################
+  #                 SSM                #
+  ######################################
+
+  SsoManagerArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type:        String
+      Name:        !Sub /${AppPrefix}/${AppName}/cloudwatch/logroup/sso-manager/arn
+      Value:       !GetAtt SsoManager.Arn
+      Description: SSO manager lambda CloudWatch logs ARN

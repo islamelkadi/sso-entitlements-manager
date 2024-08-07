@@ -13,11 +13,52 @@ Parameters:
     Description: Application's name prefix
     Default:     permia-id
 
+  IsDryRun:
+    Type:        String
+    Description: Run the app in dry run mode or not
+    AllowedValues:
+      - true
+      - false
+    Default: false
+
+  RootOUId:
+    Type:        String
+    Description: AWS Organizations Root OU ID
+    NoEcho:      true
+
+  IdentityStoreId:
+    Type:        String
+    Description: AWS Identity Store ID
+    NoEcho:      true
+
+  IdentityStoreArn:
+    Type:        String
+    Description: AWS Identity Store ARN
+    NoEcho:      true
+
+  SsoManifetFileName:
+    Type:        String
+    Description: SSO Manifest file name
+    Default:     sso_manifest.yaml
+
 Resources:
 
   ########################################
   #                Wave 1                #
   ########################################
+
+  AppConfig:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - W3002
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./app-config.yaml
+      Parameters:
+        AppName:   !Ref AppName
+        AppPrefix: !Ref AppPrefix
 
   KMS:
     Metadata:
@@ -36,17 +77,65 @@ Resources:
   #                Wave 2                #
   ########################################
 
-  # CWL:
-  #   Metadata:
-  #     cfn-lint:
-  #       config:
-  #         ignore_checks:
-  #           - W3002
-  #   DependsOn:
-  #     - KMS
-  #   Type: AWS::CloudFormation::Stack
-  #   Properties:
-  #     TemplateURL: ./cwl.yaml
-  #     Parameters:
-  #       AppName:      !Ref AppName
-  #       CwlKmsKeyArn: !Sub /cfn/${AppName}/kms/logs/arn
+  CWL:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - W3002
+    DependsOn:
+      - KMS
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./cwl.yaml
+      Parameters:
+        AppName:      !Ref AppName
+        AppPrefix:    !Ref AppPrefix
+        CwlKmsKeyArn: !Sub /${AppPrefix}/${AppName}/kms/logs/arn
+
+  S3:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - W3002
+    DependsOn:
+      - KMS
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./s3.yaml
+      Parameters:
+        AppName:      !Ref AppName
+        AppPrefix:    !Ref AppPrefix
+        S3KmsKeyArn: !Sub /${AppPrefix}/${AppName}/kms/s3/arn  
+
+  ########################################
+  #                Wave 3                #
+  ########################################
+
+  Lambdas:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - W3002
+    DependsOn:
+      - S3
+      - KMS
+      - CWL
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./lambdas.yaml
+      Parameters:
+        IsDryRun:           !Ref IsDryRun
+        AppName:            !Ref AppName
+        AppPrefix:          !Ref AppPrefix
+        CwlKmsArn:          !Sub /${AppPrefix}/${AppName}/kms/logs/arn
+        S3KmsArn:           !Sub /${AppPrefix}/${AppName}/kms/s3/arn
+        LambdaKmsArn:       !Sub /${AppPrefix}/${AppName}/kms/lambdas/arn
+        S3BucketArn:        !Sub /${AppPrefix}/${AppName}/s3/sso-manifest/arn
+        S3BucketName:       !Sub /${AppPrefix}/${AppName}/s3/sso-manifest/name
+        IdentityStoreId:    !Ref IdentityStoreId
+        IdentityStoreArn:   !Ref IdentityStoreArn
+        RootOUId:           !Ref RootOUId
+        SsoManifetFileName: !Ref SsoManifetFileName
