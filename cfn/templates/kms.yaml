@@ -17,50 +17,6 @@ Resources:
   #                 Keys               #
   ######################################
 
-  # Lambda
-  LambdaKey:
-    Type: AWS::KMS::Key
-    Properties:
-      Description: KMS Key to access Lambda
-      EnableKeyRotation: true
-      KeyPolicy:
-        Version: 2012-10-17
-        Id: LambdaKmsPolicy
-        Statement:
-          - Sid: Enable key administration
-            Effect: Allow
-            Principal:
-              AWS: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:root
-            Action:
-              - kms:Create*
-              - kms:Describe*
-              - kms:Enable*
-              - kms:List*
-              - kms:Put*
-              - kms:Update*
-              - kms:Revoke*
-              - kms:Disable*
-              - kms:Get*
-              - kms:Delete*
-              - kms:ScheduleKeyDeletion
-              - kms:CancelKeyDeletion
-            Resource: "*"
-          - Sid: Allow Lambda to use the key
-            Effect: Allow
-            Principal:
-              Service:
-                - !Sub lambda.${AWS::Region}.amazonaws.com
-            Action:
-              - kms:Encrypt
-              - kms:Decrypt
-              - kms:ReEncrypt*
-              - kms:GenerateDataKey*
-              - kms:DescribeKey
-            Resource: "*"
-            Condition:
-              ArnLike:
-                kms:EncryptionContext:aws:lambda:arn: !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:*
-
   # CloudWatch
   CloudWatchLogsKey:
     Type: AWS::KMS::Key
@@ -153,23 +109,6 @@ Resources:
   ######################################
   #                 SSM                #
   ######################################
-
-  # Lambda
-  LambdaKeyArnSsm:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Type:        String
-      Name:        !Sub /${AppPrefix}/${AppName}/kms/Lambda/arn
-      Value:       !GetAtt LambdaKey.Arn
-      Description: Lambda key arn
-
-  LambdaKeyIdSsm:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Type:        String
-      Name:        !Sub /${AppPrefix}/${AppName}/kms/Lambda/id
-      Value:       !Ref LambdaKey
-      Description: Lambda key ID
 
   # CloudWatch logs
   CloudWatchLogsKeyArnSsm:

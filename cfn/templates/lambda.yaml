@@ -54,7 +54,7 @@ Parameters:
     Type: String
     Default: live
     Description: Lambda function alias name
-  
+
   LambdaRuntime:
     Type: String
     Default: python3.12
@@ -62,25 +62,21 @@ Parameters:
 
   # S3 params
   S3BucketName:
-    Type: String
+    Type:        AWS::SSM::Parameter::Value<String>
     Description: S3 Bucket Name
+
+  S3BucketArn:
+    Type:        AWS::SSM::Parameter::Value<String>
+    Description: S3 Bucket ARN
 
   # KMS params
   CwlKmsArn:
-    Type: String
+    Type:        AWS::SSM::Parameter::Value<String>
     Description: CloudWatch logs KMS ARN
 
-  LambdaKmsArn:
-    Type: String
-    Description: Lambda KMS ARN
-
-  S3BucketKmsArn:
-    Type: String
+  S3KmsArn:
+    Type:        AWS::SSM::Parameter::Value<String>
     Description: S3 Bucket KMS Key ARN
-
-  S3BucketArn:
-    Type: String
-    Description: S3 Bucket Name
 
 Resources:
 
@@ -91,7 +87,7 @@ Resources:
   # Managed Policy
   SsoManagerManagedPolicy:
     Type: AWS::IAM::ManagedPolicy
-    Properties: 
+    Properties:
       Description: String
       PolicyDocument:
         Version: 2012-10-17
@@ -99,25 +95,28 @@ Resources:
           - Effect: Allow
             Action:
               - kms:Decrypt
-            Resource:
-              - !Ref LambdaKmsArn
-          - Effect: Allow
-            Action:
-              - kms:Decrypt
               - kms:GenerateDataKey
-            Resource: !Ref S3BucketKmsArn
+            Resource: !Ref S3KmsArn
           - Effect: Allow
             Action:
               - s3:GetObject
               - s3:PutObject
-            Resource: 
-              - !Join [ / , [ !Ref S3BucketArn, "*" ] ]
+            Resource:
+              - !Join [ / , [ !Ref S3KmsArn, "*" ] ]
           - Effect: Allow
             Action:
               - s3:ListBucket
-            Resource: 
-              - !Ref S3BucketArn
-  
+            Resource:
+              - !Ref S3KmsArn
+          - Effect: Allow
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:GenerateDataKey*
+              - kms:DescribeKey
+            Resource:
+              - !Ref CwlKmsArn
+
   # IAM Roles
   SsoManagerLambdaExecutionRole:
     Type: AWS::IAM::Role
@@ -154,14 +153,13 @@ Resources:
           - id: W92
             reason: No need to set reserved concurrency
     Properties:
-      FunctionName: !Sub sso-manager-${AppPrefix}-${AppName}
+      FunctionName: !Sub ${AppPrefix}-${AppName}
       Code:         ../../src/build/app
       Handler:      index.lambda_handler
       Role:         !GetAtt SsoManagerLambdaExecutionRole.Arn
       Runtime:      !Ref LambdaRuntime
       Timeout:      !Ref LambdaTimeout
       MemorySize:   !Ref LambdaMemorySize
-      KmsKeyArn:    !Ref LambdaKmsArn
       Environment:
         Variables:
           IS_DRY_RUN:                !Ref IsDryRun
@@ -179,7 +177,7 @@ Resources:
     Type: AWS::Lambda::Version
     Properties:
       FunctionName: !Ref SsoManagerLambda
-  
+
   SsoManagerLambdaAlias:
     Type: AWS::Lambda::Alias
     Properties:

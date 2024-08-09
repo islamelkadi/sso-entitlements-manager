@@ -107,7 +107,7 @@ Resources:
       Parameters:
         AppName:      !Ref AppName
         AppPrefix:    !Ref AppPrefix
-        S3KmsKeyArn: !Sub /${AppPrefix}/${AppName}/kms/s3/arn  
+        S3KmsKeyArn: !Sub /${AppPrefix}/${AppName}/kms/s3/arn
 
   ########################################
   #                Wave 3                #
@@ -125,14 +125,13 @@ Resources:
       - CWL
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: ./lambdas.yaml
+      TemplateURL: ./lambda.yaml
       Parameters:
         IsDryRun:           !Ref IsDryRun
         AppName:            !Ref AppName
         AppPrefix:          !Ref AppPrefix
         CwlKmsArn:          !Sub /${AppPrefix}/${AppName}/kms/logs/arn
         S3KmsArn:           !Sub /${AppPrefix}/${AppName}/kms/s3/arn
-        LambdaKmsArn:       !Sub /${AppPrefix}/${AppName}/kms/lambdas/arn
         S3BucketArn:        !Sub /${AppPrefix}/${AppName}/s3/sso-manifest/arn
         S3BucketName:       !Sub /${AppPrefix}/${AppName}/s3/sso-manifest/name
         IdentityStoreId:    !Ref IdentityStoreId
