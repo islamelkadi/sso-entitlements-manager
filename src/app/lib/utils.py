@@ -62,7 +62,7 @@ def convert_list_to_dict(obj_list: list, key_attr: str) -> dict:
     return result_dict
 
 
-def convert_specific_keys_to_uppercase(item: dict, keys_to_uppercase: list = None) -> dict:
+def convert_specific_keys_to_uppercase(item: dict = None, keys_to_uppercase: list = None) -> dict:
     """
     Recursively traverse a dictionary and convert the values of specific keys to uppercase.
 
@@ -78,6 +78,7 @@ def convert_specific_keys_to_uppercase(item: dict, keys_to_uppercase: list = Non
     dict:
         Dictionary with specified string values converted to uppercase.
     """
+    item = {} if not item else item
     keys_to_uppercase = [] if not keys_to_uppercase else keys_to_uppercase
 
     def process_dict(data: dict) -> dict:

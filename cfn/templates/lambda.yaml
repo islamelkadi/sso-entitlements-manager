@@ -105,11 +105,6 @@ Resources:
               - !Join [ / , [ !Ref S3KmsArn, "*" ] ]
           - Effect: Allow
             Action:
-              - s3:ListBucket
-            Resource:
-              - !Ref S3KmsArn
-          - Effect: Allow
-            Action:
               - kms:Encrypt
               - kms:Decrypt
               - kms:GenerateDataKey*

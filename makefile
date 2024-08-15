@@ -17,6 +17,12 @@ dev-env:
 	@echo "Installing dependencies"
 	@pip3 install .[dev]
 
+	@echo "Creating requirements.txt file"
+	@pip install . && pip freeze > ./src/app/requirements.txt
+
+	@echo "Cleaning up requirements.txt file"
+	@sed -i '' '/@ file:\/\//d' ./src/app/requirements.txt
+
 	@echo "Install pre-commit hooks"
 	@pre-commit install
 
@@ -50,7 +56,7 @@ format:
 .PHONY: build-backend
 build-backend: env
 	@echo "Creating requirements.txt file"
-	@pip install . && pip freeze >> ./src/app/requirements.txt
+	@pip install . && pip freeze > ./src/app/requirements.txt
 
 	@echo "Cleaning up requirements.txt file"
 	@sed -i '' '/@ file:\/\//d' ./src/app/requirements.txt

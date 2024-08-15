@@ -23,3 +23,11 @@ Resources:
       MemorySize: 128
       Architectures:
         - x86_64
+      Environment:
+        Variables:
+          POWERTOOLS_LOG_LEVEL: ERROR
+          ROOT_OU_ID: r-tbu3
+          DRY_RUN: False
+          IDENTITY_STORE_ID: d-9d6761538c
+          IDENTITY_STORE_ARN: arn:aws:sso:::instance/ssoins-882471b84caa6a5a
+          MANIFEST_FILE_S3_LOCATION: s3://permia-id-sso-manager-026090521990/sso_manifest.yaml

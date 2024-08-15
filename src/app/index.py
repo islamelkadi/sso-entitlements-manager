@@ -3,6 +3,7 @@ Regex based rules engine for processing regex input for the
 purpose of assiging permission sets.
 """
 import os
+import sys
 from http import HTTPStatus
 
 from aws_lambda_powertools import Logger, Tracer
@@ -11,11 +12,13 @@ from aws_lambda_powertools.event_handler import Response, content_types
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from aws_lambda_powertools.utilities.data_classes import EventBridgeEvent, event_source
 
-from .lib.utils import download_file_from_s3
-from .lib.aws_organizations_mapper import AwsOrganizationsMapper
-from .lib.aws_identity_center_mapper import AwsIdentityCenterMapper
-from .lib.aws_access_control_resolver import AwsAccessControlResolver
-from .lib.access_manifest_file_reader import AccessManifestReader
+sys.path.append(os.path.join(os.path.dirname(__file__)))
+
+from lib.utils import download_file_from_s3
+from lib.aws_organizations_mapper import AwsOrganizationsMapper
+from lib.aws_identity_center_mapper import AwsIdentityCenterMapper
+from lib.aws_access_control_resolver import AwsAccessControlResolver
+from lib.access_manifest_file_reader import AccessManifestReader
 
 # Globals
 ROOT_OU_ID = os.getenv("ROOT_OU_ID")
@@ -82,12 +85,23 @@ def lambda_handler(event: EventBridgeEvent, context: LambdaContext):  # pylint: 
     setattr(aws_access_resolver, "ou_accounts_map", aws_org.ou_accounts_map)
     aws_access_resolver.run_access_control_resolver()
 
-    return Response(
-        status_code=HTTPStatus.OK.value,
-        content_type=content_types.APPLICATION_JSON,
-        body={
-            "created": aws_access_resolver.assignments_to_create,
-            "deleted": aws_access_resolver.assignments_to_delete,
-            "invalid": aws_access_resolver.invalid_manifest_rules_report,
-        },
-    )
+    LOGGER.info("Lambda execution complete")
+    LOGGER.info("Created %s assignments", len(aws_access_resolver.assignments_to_create))
+    LOGGER.info("Deleted %s assignments", len(aws_access_resolver.assignments_to_delete))
+    LOGGER.info("Invalid %s assignments", len(aws_access_resolver.invalid_manifest_rules_report))
+
+    return {
+        "created": aws_access_resolver.assignments_to_create,
+        "deleted": aws_access_resolver.assignments_to_delete,
+        "invalid": aws_access_resolver.invalid_manifest_rules_report,
+    }
+    # return True
+    # return Response(
+    #     status_code=HTTPStatus.OK.value,
+    #     content_type=content_types.APPLICATION_JSON,
+    #     body={
+    #         "created": aws_access_resolver.assignments_to_create,
+    #         "deleted": aws_access_resolver.assignments_to_delete,
+    #         "invalid": aws_access_resolver.invalid_manifest_rules_report,
+    #     },
+    # )

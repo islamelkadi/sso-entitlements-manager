@@ -15,7 +15,8 @@ authors = [
 dependencies = [
     "jsonschema==4.22.0",
     "boto3==1.34.136",
-    "aws-lambda-powertools[tracer,validation]==2.27.1"
+    "aws-lambda-powertools[tracer,validation]==2.27.1",
+    "PyYAML==6.0.2"
 ]
 
 [project.optional-dependencies]

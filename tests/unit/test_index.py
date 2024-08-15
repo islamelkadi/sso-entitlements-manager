@@ -185,8 +185,8 @@ def test_lambda_handler(sso_admin_client: boto3.client, account_assignment_range
     importlib.reload(index)
     lambda_response = index.lambda_handler(EventBridgeEvent(data={}), context=generate_lambda_context())
 
-    assert expected_account_assignments[upper_bound_range:] == sorted(lambda_response.body["created"], key=created_assignments_sort_keys)
-    assert sorted(invalid_assignments, key=invalid_assignments_report_sort_keys) == sorted(lambda_response.body["invalid"], key=invalid_assignments_report_sort_keys)
+    assert expected_account_assignments[upper_bound_range:] == sorted(lambda_response["created"], key=created_assignments_sort_keys)
+    assert sorted(invalid_assignments, key=invalid_assignments_report_sort_keys) == sorted(lambda_response["invalid"], key=invalid_assignments_report_sort_keys)
 
 
 @pytest.mark.parametrize(
@@ -239,4 +239,4 @@ def test_delete(sso_admin_client: boto3.client, setup_aws_environment: Dict[str,
     lambda_response = index.lambda_handler(EventBridgeEvent(data={}), context=generate_lambda_context())
 
     assignments_to_delete = list(itertools.filterfalse(lambda i: i in expected_account_assignments, current_account_assignments))
-    assert sorted(assignments_to_delete, key=sort_keys) == sorted(lambda_response.body["deleted"], key=sort_keys)
+    assert sorted(assignments_to_delete, key=sort_keys) == sorted(lambda_response["deleted"], key=sort_keys)
