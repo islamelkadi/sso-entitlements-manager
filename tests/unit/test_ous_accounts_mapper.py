@@ -33,7 +33,7 @@ def test_missing_constructor_parameter() -> None:
 
 
 @pytest.mark.parametrize(
-    "setup_aws_environment, excluded_ous, excluded_accounts",
+    "setup_mock_aws_environment, excluded_ous, excluded_accounts",
     [
         ("aws_org_1.json", [], []),
         ("aws_org_1.json", ["suspended"], []),
@@ -42,11 +42,11 @@ def test_missing_constructor_parameter() -> None:
         ("aws_org_1.json", [], ["workload_1_dev", "workload_2_test", "workload_2_prod"]),
         ("aws_org_1.json", ["suspended", "prod"], ["workload_1_dev", "workload_2_test"]),
     ],
-    indirect=["setup_aws_environment"],
+    indirect=["setup_mock_aws_environment"],
 )
 def test_list_active_included_aws_accounts(
     organizations_client: boto3.client,
-    setup_aws_environment: pytest.fixture,
+    setup_mock_aws_environment: pytest.fixture,
     excluded_ous: List[str],
     excluded_accounts: List[str],
 ) -> None:
@@ -58,7 +58,7 @@ def test_list_active_included_aws_accounts(
     ----------
     organizations_client: boto3.client
         Fixture providing an AWS Organizations client.
-    setup_aws_environment: pytest.fixture
+    setup_mock_aws_environment: pytest.fixture
         Fixture providing setup data including root_ou_id and aws_organization_definitions.
     excluded_ous: list
         List of specific OU names to exclude from account listing.
@@ -72,13 +72,13 @@ def test_list_active_included_aws_accounts(
     """
     # Arrange
     excluded_ou_accounts = []
-    for ou, accounts in setup_aws_environment["ou_accounts_map"].items():
+    for ou, accounts in setup_mock_aws_environment["ou_accounts_map"].items():
         if ou in excluded_ous:
             excluded_ou_accounts.extend([x["Name"] for x in accounts])
     accounts_to_filter_out = set(excluded_ou_accounts + excluded_accounts)
 
     # Act
-    py_aws_organizations = AwsOrganizationsMapper(setup_aws_environment["root_ou_id"])
+    py_aws_organizations = AwsOrganizationsMapper(setup_mock_aws_environment["root_ou_id"])
     setattr(py_aws_organizations, "exclude_ou_name_list", excluded_ous)
     setattr(py_aws_organizations, "exclude_account_name_list", excluded_accounts)
     py_aws_organizations.run_ous_accounts_mapper()

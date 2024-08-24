@@ -25,34 +25,16 @@ MANIFEST_SCHEMA_DEFINITION_FILEPATH = os.path.join(
 )
 
 
-# Helper function to get all filenames in a directory
-def get_filenames_from_directory(directory: str, extension: str) -> list:
-    """
-    Retrieve all filenames with a specific extension from a given directory.
-
-    Args:
-    ----
-    directory: str
-        Path to the directory.
-    extension: str
-        File extension to match (e.g., '.yaml').
-
-    Returns:
-    -------
-    list of str: List of file paths.
-    """
-    pattern = os.path.join(directory, f"*{extension}")
-    return glob.glob(pattern)
-
-
 # Dynamic generation of filenames
-valid_manifest_files = get_filenames_from_directory(os.path.join(CWD, "..", "configs", "manifests", "valid_schema"), ".yaml")
+VALID_MANIFEST_DEFINITION_FILES_PATH = os.path.join(CWD, "manifests", "valid_schema", "*.yaml")
+VALID_MANIFEST_DEFINITION_FILES = [os.path.abspath(x) for x in glob.glob(VALID_MANIFEST_DEFINITION_FILES_PATH)]
 
-invalid_manifest_files = get_filenames_from_directory(os.path.join(CWD, "..", "configs", "manifests", "invalid_schema"), ".yaml")
+INVALID_MANIFEST_DEFINITION_FILES_PATH = os.path.join(CWD, "manifests", "invalid_schema", "*.yaml")
+INVALID_MANIFEST_DEFINITION_FILES = [os.path.abspath(x) for x in glob.glob(INVALID_MANIFEST_DEFINITION_FILES_PATH)]
 
 
 # Test cases
-@pytest.mark.parametrize("manifest_filename", invalid_manifest_files)
+@pytest.mark.parametrize("manifest_filename", INVALID_MANIFEST_DEFINITION_FILES)
 def test_rules_invalid_manifest_schema(manifest_filename: str) -> None:
     """
     Test to validate manifest files with invalid schema definitions.
@@ -75,7 +57,7 @@ def test_rules_invalid_manifest_schema(manifest_filename: str) -> None:
         AccessManifestReader(MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_filename)
 
 
-@pytest.mark.parametrize("manifest_filename", valid_manifest_files)
+@pytest.mark.parametrize("manifest_filename", VALID_MANIFEST_DEFINITION_FILES)
 def test_rules_valid_manifest_schema(manifest_filename: str) -> None:
     """
     Test the lambda_handler function with a mocked S3 environment.

@@ -41,7 +41,7 @@ env:
 .PHONY: unittest
 unittest:
 	@echo "Generating coverage report"
-	@pytest --cov=tests/ --cov-report=xml:coverage.xml
+	@pytest --cov=tests/unit/ --cov-report=xml:coverage.xml
 
 # Formatting & Linting
 .PHONY: format

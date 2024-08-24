@@ -5,7 +5,6 @@ various python modules in this repository.
 import os
 import json
 import logging
-import dataclasses
 from urllib.parse import urlparse
 
 import yaml
@@ -129,54 +128,6 @@ def load_file(filepath: str) -> dict:
         raise ValueError("Unsupported file format. Only .yaml, .yml, and .json are supported.")
 
 
-def generate_lambda_context() -> dataclasses.dataclass:
-    """
-    Creates an AWS Lambda context object instance.
-
-    Returns:
-    -------
-    LambdaContext:
-        Dataclass object representing AWS Lambda context.
-    """
-
-    @dataclasses.dataclass
-    class LambdaContext:
-        """
-        AWS Lambda context class mock attributes.
-
-        Attributes:
-        ----------
-        function_name: str
-            Default: "test"
-        function_version: str
-            Default: "$LATEST"
-        invoked_function_arn: str
-            Default: "arn:aws:lambda:us-east-1:123456789101:function:test"
-        memory_limit_in_mb: int
-            Default: 256
-        aws_request_id: str
-            Default: "43723370-e382-466b-848e-5400507a5e86"
-        log_group_name: str
-            Default: "/aws/lambda/test"
-        log_stream_name: str
-            Default: "my-log-stream"
-        """
-
-        function_name: str = "test"
-        function_version: str = "$LATEST"
-        invoked_function_arn: str = f"arn:aws:lambda:us-east-1:123456789101:function:{function_name}"
-        memory_limit_in_mb: int = 256
-        aws_request_id: str = "43723370-e382-466b-848e-5400507a5e86"
-        log_group_name: str = f"/aws/lambda/{function_name}"
-        log_stream_name: str = "my-log-stream"
-
-        def get_remaining_time_in_millis(self) -> int:
-            """Returns mock remaining time in milliseconds for Lambda."""
-            return 5
-
-    return LambdaContext()
-
-
 def download_file_from_s3(s3_object_uri: str, download_path: str = "/tmp") -> None:
     """
     Downloads a file from an S3 bucket to the specified local path.
@@ -202,31 +153,3 @@ def download_file_from_s3(s3_object_uri: str, download_path: str = "/tmp") -> No
     local_destination_filepath = os.path.join(download_path, base_filename)
     s3_client.download_file(s3_bucket_name, s3_object_key, local_destination_filepath)
     return local_destination_filepath
-
-
-def upload_file_to_s3(bucket_name: str, filepath: str) -> str:
-    """
-    Upload a file to an S3 bucket.
-
-    Parameters
-    ----------
-    s3_client : boto3.client
-        The boto3 S3 client.
-
-    bucket_name : str
-        The name of the S3 bucket.
-
-    filepath : str
-        The local file path to upload.
-
-    Returns
-    -------
-    str
-        The object key of the uploaded file.
-    """
-    s3_client = boto3.client("s3")
-
-    with open(filepath, "rb") as f:
-        object_key = os.path.basename(filepath)
-        s3_client.upload_fileobj(f, bucket_name, object_key)
-    return object_key

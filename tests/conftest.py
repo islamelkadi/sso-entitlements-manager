@@ -16,7 +16,6 @@ The module includes:
 
 import os
 import json
-import itertools
 from typing import Optional
 
 import moto
@@ -151,36 +150,26 @@ def delete_aws_ous_accounts(orgs_client: boto3.client, root_ou_id: str, parent_o
 ################################################
 
 
-@pytest.fixture(scope="session", autouse=True)
-def set_aws_creds() -> None:
-    """
-    Fixture to set AWS credentials using MonkeyPatch for session scope.
-    """
-    MONKEYPATCH.setenv("AWS_SESSION_TOKEN", "test")
-    MONKEYPATCH.setenv("AWS_ACCESS_KEY_ID", "test")
-    MONKEYPATCH.setenv("AWS_SECRET_ACCESS_KEY", "test")
-    MONKEYPATCH.setenv("AWS_DEFAULT_REGION", "us-east-1")
-    yield
-
-
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="session")
 def setup_env_vars() -> None:
     """
     Fixture to set environment variables using MonkeyPatch for session scope.
     """
+    # Set credential vars
+    MONKEYPATCH.setenv("AWS_SESSION_TOKEN", "test")
+    MONKEYPATCH.setenv("AWS_ACCESS_KEY_ID", "test")
+    MONKEYPATCH.setenv("AWS_SECRET_ACCESS_KEY", "test")
+    MONKEYPATCH.setenv("AWS_DEFAULT_REGION", "us-east-1")
+
+    # Set app vars
     MONKEYPATCH.setenv("LOG_LEVEL", "INFO")
     MONKEYPATCH.setenv("IDENTITY_STORE_ID", "d-1234567890")
     MONKEYPATCH.setenv("IDENTITY_STORE_ARN", "arn:aws:sso:::instance/ssoins-instanceId")
     yield
 
 
-################################################
-#          Fixtures - Setup AWS clients        #
-################################################
-
-
 @pytest.fixture(scope="session")
-def organizations_client() -> boto3.client:
+def organizations_client(setup_env_vars: pytest.fixture) -> boto3.client:
     """
     Fixture to mock AWS Organizations client using moto for session scope.
 
@@ -193,7 +182,7 @@ def organizations_client() -> boto3.client:
 
 
 @pytest.fixture(scope="session")
-def identity_store_client() -> boto3.client:
+def identity_store_client(setup_env_vars: pytest.fixture) -> boto3.client:
     """
     Fixture to mock AWS Identity Store client using moto for session scope.
 
@@ -206,7 +195,7 @@ def identity_store_client() -> boto3.client:
 
 
 @pytest.fixture(scope="session")
-def sso_admin_client() -> boto3.client:
+def sso_admin_client(setup_env_vars: pytest.fixture) -> boto3.client:
     """
     Fixture to mock AWS SSO Admin client using moto for session scope.
 
@@ -219,12 +208,12 @@ def sso_admin_client() -> boto3.client:
 
 
 ################################################
-#         Fixtures - AWS organizations         #
+#         Fixtures - Local Unit Testing        #
 ################################################
 
 
 @pytest.fixture(scope="session")
-def setup_aws_environment(
+def setup_mock_aws_environment(
     request: str,
     organizations_client: boto3.client,  # pylint: disable=W0621
     identity_store_client: boto3.client,  # pylint: disable=W0621
@@ -261,8 +250,6 @@ def setup_aws_environment(
         - aws_permission_set_definitions: list
             List of dictionaries defining AWS permission sets.
     """
-    # Load parameter from pytest marker or fixture definition
-    param_value = request.param
 
     # Load env vars
     identity_store_id = os.getenv("IDENTITY_STORE_ID")
@@ -270,7 +257,7 @@ def setup_aws_environment(
 
     # Load JSON definitions
     cwd = os.path.dirname(os.path.realpath(__file__))
-    organizations_map_path = os.path.join(cwd, "configs", "organizations", param_value)
+    organizations_map_path = os.path.join(cwd, "configs", "organizations", request.param)
     with open(organizations_map_path, "r", encoding="utf-8") as fp:
         aws_environment_details = json.load(fp)
 
@@ -280,6 +267,10 @@ def setup_aws_environment(
     sso_groups = aws_environment_details.get("sso_groups", [])
 
     root_ou_id = None
+    created_sso_users = {}
+    created_sso_groups = {}
+    created_permission_sets = {}
+
     try:
         # Setup AWS organizations
         organizations_client.create_organization()
@@ -292,7 +283,6 @@ def setup_aws_environment(
         )
 
         # Setup AWS Identity center
-        created_sso_users = {}
         for user in sso_users:
             user_details = identity_store_client.create_user(
                 IdentityStoreId=identity_store_id,
@@ -303,7 +293,6 @@ def setup_aws_environment(
             )
             created_sso_users[user["username"]] = user_details["UserId"]
 
-        created_sso_groups = {}
         for group in sso_groups:
             group_details = identity_store_client.create_group(
                 IdentityStoreId=identity_store_id,
@@ -312,7 +301,6 @@ def setup_aws_environment(
             )
             created_sso_groups[group["name"]] = group_details["GroupId"]
 
-        created_permission_sets = {}
         for permission_set in permission_set_definitions:
             permission_set_details = sso_admin_client.create_permission_set(
                 InstanceArn=identity_store_arn,
@@ -334,32 +322,123 @@ def setup_aws_environment(
             "account_name_id_map": account_name_id_map,
             "ou_accounts_map": ou_accounts_map,
         }
+
     finally:
         # Teardown logic
-        if root_ou_id:
-            # Remove AWS accounts from organization
-            delete_aws_ous_accounts(orgs_client=organizations_client, root_ou_id=root_ou_id)
+        # Remove AWS accounts from organization
+        delete_aws_ous_accounts(orgs_client=organizations_client, root_ou_id=root_ou_id)
 
-            # Delete AWS resources or undo changes as needed
-            organizations_client.delete_organization(OrganizationId=root_ou_id)
+        # Delete AWS resources or undo changes as needed
+        organizations_client.delete_organization(OrganizationId=root_ou_id)
 
-            # Delete SSO users
-            sso_users_paginator = identity_store_client.get_paginator("list_users")
-            sso_users_iterator = sso_users_paginator.paginate(IdentityStoreId=identity_store_id)
-            sso_users = list(itertools.chain.from_iterable((page["Users"] for page in sso_users_iterator)))
-            for user in sso_users:
-                identity_store_client.delete_user(IdentityStoreId=identity_store_id, UserId=user["UserId"])
+        # Delete SSO users
+        for user_id in created_sso_users.values():
+            identity_store_client.delete_user(IdentityStoreId=identity_store_id, UserId=user_id)
 
-            # Delete SSO groups
-            sso_groups_paginator = identity_store_client.get_paginator("list_groups")
-            sso_groups_iterator = sso_groups_paginator.paginate(IdentityStoreId=identity_store_id)
-            sso_groups = list(itertools.chain.from_iterable((page["Groups"] for page in sso_groups_iterator)))
-            for group in sso_groups:
-                identity_store_client.delete_group(IdentityStoreId=identity_store_id, GroupId=group["GroupId"])
+        # Delete SSO groups
+        for group_id in created_sso_groups.values():
+            identity_store_client.delete_group(IdentityStoreId=identity_store_id, GroupId=group_id)
 
-            # Delete permission sets
-            permission_sets_paginator = sso_admin_client.get_paginator("list_permission_sets")
-            permission_sets_iterator = permission_sets_paginator.paginate(InstanceArn=identity_store_arn)
-            permission_sets = list(itertools.chain.from_iterable((page["PermissionSets"] for page in permission_sets_iterator)))
-            for permission_set in permission_sets:
-                sso_admin_client.delete_permission_set(InstanceArn=identity_store_arn, PermissionSetArn=permission_set)
+        # Delete permission sets
+        for permission_set_arn in created_permission_sets.values():
+            sso_admin_client.delete_permission_set(InstanceArn=identity_store_arn, PermissionSetArn=permission_set_arn)
+
+
+################################################
+#      Fixtures - Live Integration Testing     #
+################################################
+
+
+@pytest.fixture(scope="session")
+def setup_live_aws_environment(
+    request: str,
+) -> dict:
+    """
+    Fixture to setup AWS environment:
+        1. Create AWS organization
+        2. Setup AWS mock organizations with OUs and accounts
+        3. Setup AWS Identity Center with users, groups, and permission sets
+
+    Parameters:
+    ----------
+    - request: str
+        Parameter from pytest marker or fixture definition.
+    - organizations_client: boto3.client
+        AWS Organizations client.
+    - identity_store_client: boto3.client
+        AWS Identity Store client.
+    """
+
+    created_sso_users = {}
+    created_sso_groups = {}
+    created_permission_sets = {}
+
+    try:
+        # Set boto3 clients
+        sso_admin_client = boto3.client("sso-admin")
+        organizations_client = boto3.client("organizations")
+        identity_store_client = boto3.client("identitystore")
+
+        # Set environment variables
+        identity_store_instances = sso_admin_client.list_instances()["Instances"][0]
+
+        identity_store_arn = identity_store_instances["InstanceArn"]
+        MONKEYPATCH.setenv("IDENTITY_STORE_ARN", identity_store_arn)
+
+        identity_store_id = identity_store_instances["IdentityStoreId"]
+        MONKEYPATCH.setenv("IDENTITY_STORE_ID", identity_store_id)
+
+        root_ou_id = organizations_client.list_roots()["Roots"][0]["Id"]
+        MONKEYPATCH.setenv("ROOT_OU_ID", root_ou_id)
+
+        # Load JSON definitions
+        organizations_map_filepath = request.param
+        with open(organizations_map_filepath, "r", encoding="utf-8") as fp:
+            aws_environment_details = json.load(fp)
+
+        sso_users = aws_environment_details.get("sso_users", [])
+        sso_groups = aws_environment_details.get("sso_groups", [])
+        permission_set_definitions = aws_environment_details.get("permission_sets", [])
+
+        # Setup AWS Identity center
+        for user in sso_users:
+            user_details = identity_store_client.create_user(
+                IdentityStoreId=identity_store_id,
+                UserName=user["username"],
+                DisplayName=user["name"]["Formatted"],
+                Name=user["name"],
+                Emails=user["email"],
+            )
+            created_sso_users[user["username"]] = user_details["UserId"]
+
+        for group in sso_groups:
+            group_details = identity_store_client.create_group(
+                IdentityStoreId=identity_store_id,
+                DisplayName=group["name"],
+                Description=group["description"],
+            )
+            created_sso_groups[group["name"]] = group_details["GroupId"]
+
+        for permission_set in permission_set_definitions:
+            permission_set_details = sso_admin_client.create_permission_set(
+                InstanceArn=identity_store_arn,
+                Name=permission_set["name"],
+                Description=permission_set["description"],
+            )["PermissionSet"]
+            created_permission_sets[permission_set["name"]] = permission_set_details["PermissionSetArn"]
+
+        yield {
+            "sso_group_name_id_map": created_sso_groups,
+            "sso_username_id_map": created_sso_users,
+            "sso_permission_set_name_id_map": created_permission_sets,
+        }
+
+    finally:
+        for user_id in created_sso_users.values():
+            identity_store_client.delete_user(IdentityStoreId=identity_store_id, UserId=user_id)
+
+        for group_id in created_sso_groups.values():
+            identity_store_client.delete_group(IdentityStoreId=identity_store_id, GroupId=group_id)
+
+        for permission_set_arn in created_permission_sets.values():
+            sso_admin_client.delete_permission_set(InstanceArn=identity_store_arn, PermissionSetArn=permission_set_arn)
