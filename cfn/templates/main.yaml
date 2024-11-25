@@ -44,70 +44,69 @@ Parameters:
 Resources:
 
   ########################################
-  #                Wave 1                #
+  #              App config              #
   ########################################
 
-  AppConfig:
-    Metadata:
-      cfn-lint:
-        config:
-          ignore_checks:
-            - W3002
-    Type: AWS::CloudFormation::Stack
+  SsoManagerApplication:
+    Type: AWS::AppConfig::Application
     Properties:
-      TemplateURL: ./app-config.yaml
-      Parameters:
-        AppName:   !Ref AppName
-        AppPrefix: !Ref AppPrefix
-
-  KMS:
-    Metadata:
-      cfn-lint:
-        config:
-          ignore_checks:
-            - W3002
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: ./kms.yaml
-      Parameters:
-        AppName:   !Ref AppName
-        AppPrefix: !Ref AppPrefix
+      Name: !Sub ${AppPrefix}-${AppName}
+      Description: !Sub ${AppPrefix}-${AppName} application
+      Tags:
+        - Key: app-name
+          Value: !Sub ${AppPrefix}-${AppName}
+        - Key: managed-by
+          Value: permira-id
 
   ########################################
-  #                Wave 2                #
+  #               KMS Keys               #
   ########################################
 
-  CWL:
-    Metadata:
-      cfn-lint:
-        config:
-          ignore_checks:
-            - W3002
-    DependsOn:
-      - KMS
-    Type: AWS::CloudFormation::Stack
+  # CloudWatch
+  CloudWatchLogsKey:
+    Type: AWS::KMS::Key
     Properties:
-      TemplateURL: ./cwl.yaml
-      Parameters:
-        AppName:      !Ref AppName
-        AppPrefix:    !Ref AppPrefix
-        CwlKmsKeyArn: !Sub /${AppPrefix}/${AppName}/kms/logs/arn
-
-  S3:
-    Metadata:
-      cfn-lint:
-        config:
-          ignore_checks:
-            - W3002
-    DependsOn:
-      - KMS
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: ./s3.yaml
-      Parameters:
-        AppName:      !Ref AppName
-        AppPrefix:    !Ref AppPrefix
-        S3KmsKeyArn: !Sub /${AppPrefix}/${AppName}/kms/s3/arn
+      Description: KMS Key to access CloudWatch logs
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: 2012-10-17
+        Id: CwlKmsPolicy
+        Statement:
+          - Sid: Enable key administration
+            Effect: Allow
+            Principal:
+              AWS: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:root
+            Action:
+              - kms:Create*
+              - kms:Describe*
+              - kms:Enable*
+              - kms:List*
+              - kms:Put*
+              - kms:Update*
+              - kms:Revoke*
+              - kms:Disable*
+              - kms:Get*
+              - kms:Delete*
+              - kms:TagResource
+              - kms:UntagResource
+              - kms:ScheduleKeyDeletion
+              - kms:CancelKeyDeletion
+            Resource: "*"
+          - Sid: Enable key usage by cloudwatch logs
+            Effect: Allow
+            Principal:
+              Service:
+                - !Sub logs.${AWS::Region}.amazonaws.com
+            Action:
+              - kms:Encrypt*
+              - kms:Decrypt*
+              - kms:ReEncrypt*
+              - kms:GenerateDataKey*
+              - kms:Describe*
+            Resource: "*"
+            Condition:
+              ArnLike:
+                kms:EncryptionContext:aws:logs:arn: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:*
 
   ########################################
   #                Wave 3                #
