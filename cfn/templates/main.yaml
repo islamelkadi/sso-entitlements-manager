@@ -41,7 +41,7 @@ Parameters:
     Type: String
     Description: SSO Manifest file name
     Default: sso_manifest.yaml
-  
+
   # ECS params
   AppContainerImage:
     Type: String
@@ -89,7 +89,7 @@ Parameters:
   EcsTaskSubnetIds:
     Type: String
     Description: Comma separated string of subnet IDs
-  
+
   EcsTaskSecurityGroupIds:
     Type: String
     Description: Comma separated string of security group IDs
@@ -97,7 +97,7 @@ Parameters:
 Resources:
 
 # ---------------------------------------------------------------
-#                            App config 
+#                            App config
 # ---------------------------------------------------------------
 
   SsoManagerApplication:
@@ -107,9 +107,9 @@ Resources:
       Description: !Sub ${AppPrefix}-${AppName} application
       Tags:
         - Key: app-name
-          Value: !Sub ${AppPrefix}-${AppName}
+          Value: !Ref AppName
         - Key: managed-by
-          Value: permira-id
+          Value: !Ref AppPrefix
 
 # ---------------------------------------------------------------
 #                            EventBridge
@@ -238,40 +238,21 @@ Resources:
       ContainerDefinitions:
         - Essential: true
           Image: !Ref AppContainerImage
-          LogConfiguration: 
+          LogConfiguration:
             LogDriver: awslogs
-            Options: 
+            Options:
               awslogs-group : !Sub /ecs-task/${AppPrefix}/${AppName}
               awslogs-region: !Ref AWS::Region
               awslogs-stream-prefix: /cron-task/access-vendor/
           Name: !Sub ${AppPrefix}-${AppName}-sso-access-vendor-service
-
-  ########################################
-  #                Wave 3                #
-  ########################################
-
-  Lambdas:
-    Metadata:
-      cfn-lint:
-        config:
-          ignore_checks:
-            - W3002
-    DependsOn:
-      - S3
-      - KMS
-      - CWL
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: ./lambda.yaml
-      Parameters:
-        IsDryRun:           !Ref IsDryRun
-        AppName:            !Ref AppName
-        AppPrefix:          !Ref AppPrefix
-        CwlKmsArn:          !Sub /${AppPrefix}/${AppName}/kms/logs/arn
-        S3KmsArn:           !Sub /${AppPrefix}/${AppName}/kms/s3/arn
-        S3BucketArn:        !Sub /${AppPrefix}/${AppName}/s3/sso-manifest/arn
-        S3BucketName:       !Sub /${AppPrefix}/${AppName}/s3/sso-manifest/name
-        IdentityStoreId:    !Ref IdentityStoreId
-        IdentityStoreArn:   !Ref IdentityStoreArn
-        RootOUId:           !Ref RootOUId
-        SsoManifetFileName: !Ref SsoManifetFileName
+          Environment:
+            - Name: IS_DRY_RUN
+              Value: !Ref IsDryRun
+            - Name: IDENTITY_STORE_ID
+              Value: !Ref IdentityStoreId
+            - Name: IDENTITY_STORE_ARN
+              Value: !Ref IdentityStoreArn
+            - Name: ROOT_OU_ID
+              Value: !Ref RootOUId
+            - Name: SSO_MANIFEST_FILENAME
+              Value: !Ref SsoManifetFileName
