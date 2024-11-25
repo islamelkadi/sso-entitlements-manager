@@ -230,7 +230,6 @@ Resources:
       Memory: !Ref TaskDefinitionMemory
       NetworkMode: awsvpc
       ExecutionRoleArn: !GetAtt EcsTaskExecutionRole.Arn
-      TaskRoleArn: !GetAtt EcsTaskExecutionRole.Arn
       RequiresCompatibilities:
         - FARGATE
       RuntimePlatform:
