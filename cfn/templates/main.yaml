@@ -4,17 +4,17 @@ Description: CFN Template to create and deploy the SSO manager solution
 Parameters:
 
   AppName:
-    Type:        String
+    Type: String
     Description: Application's name
-    Default:     sso-manager
+    Default: sso-manager
 
   AppPrefix:
-    Type:        String
+    Type: String
     Description: Application's name prefix
-    Default:     permia-id
+    Default: permia-id
 
   IsDryRun:
-    Type:        String
+    Type: String
     Description: Run the app in dry run mode or not
     AllowedValues:
       - true
@@ -22,92 +22,280 @@ Parameters:
     Default: false
 
   RootOUId:
-    Type:        String
+    Type: String
     Description: AWS Organizations Root OU ID
-    NoEcho:      true
+    NoEcho: true
 
+  # SSO params
   IdentityStoreId:
-    Type:        String
+    Type: String
     Description: AWS Identity Store ID
-    NoEcho:      true
+    NoEcho: true
 
   IdentityStoreArn:
-    Type:        String
+    Type: String
     Description: AWS Identity Store ARN
-    NoEcho:      true
+    NoEcho: true
 
   SsoManifetFileName:
-    Type:        String
+    Type: String
     Description: SSO Manifest file name
-    Default:     sso_manifest.yaml
+    Default: sso_manifest.yaml
+  
+  # ECS params
+  AppContainerImage:
+    Type: String
+    Description: Container repo image name
+
+  TaskDefinitionCpu:
+    Type: String
+    Description: CPU Size
+    Default: "256"
+
+  TaskDefinitionMemory:
+    Type: String
+    Description: Memory Size
+    Default: "512"
+
+  CpuArchitecture:
+    Type: String
+    Description: CPU Architecture of task definition
+    Default: ARM64
+
+  OperatingSystemFamily:
+    Type: String
+    Description: OS of task definition
+    Default: LINUX
+
+  # EventBridge scheduler params
+  ScheduledRemindersFrequencyInHours:
+    Type: String
+    Description: The schedule expression for the notification frequency
+    Default: cron(0 * * * *)
+
+  IsScheduledRemindersEnabled:
+    Type: String
+    AllowedValues:
+      - DISABLED
+      - ENABLED
+    Default: ENABLED
+    Description: Flag to enable or disable scheduled reminders
+
+  ScheduledRemindersRuleDescription:
+    Type: String
+    Description: Description for the scheduled reminders rule
+
+  # VPC params
+  EcsTaskSubnetIds:
+    Type: String
+    Description: Comma separated string of subnet IDs
+  
+  EcsTaskSecurityGroupIds:
+    Type: String
+    Description: Comma separated string of security group IDs
 
 Resources:
 
-  ########################################
-  #                Wave 1                #
-  ########################################
+# ---------------------------------------------------------------
+#                            App config 
+# ---------------------------------------------------------------
 
-  AppConfig:
-    Metadata:
-      cfn-lint:
-        config:
-          ignore_checks:
-            - W3002
-    Type: AWS::CloudFormation::Stack
+  SsoManagerApplication:
+    Type: AWS::AppConfig::Application
     Properties:
-      TemplateURL: ./app-config.yaml
-      Parameters:
-        AppName:   !Ref AppName
-        AppPrefix: !Ref AppPrefix
+      Name: !Sub ${AppPrefix}-${AppName}
+      Description: !Sub ${AppPrefix}-${AppName} application
+      Tags:
+        - Key: app-name
+          Value: !Sub ${AppPrefix}-${AppName}
+        - Key: managed-by
+          Value: permira-id
 
-  KMS:
-    Metadata:
-      cfn-lint:
-        config:
-          ignore_checks:
-            - W3002
-    Type: AWS::CloudFormation::Stack
+# ---------------------------------------------------------------
+#                            EventBridge
+# ---------------------------------------------------------------
+
+  # IAM
+  SsoAccessVendorSchedulerPolicy:
+    Type: AWS::IAM::ManagedPolicy
     Properties:
-      TemplateURL: ./kms.yaml
-      Parameters:
-        AppName:   !Ref AppName
-        AppPrefix: !Ref AppPrefix
+      ManagedPolicyName: !Sub ${AppPrefix}-${AppName}-sso-access-vendor-scheduler
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - ecs:RunTask
+            Resource:
+              - !GetAtt SsoAccessVendorEcsCluster.TaskDefinitionArn
+              - !Join [ ":", [ !GetAtt SsoAccessVendorEcsCluster.TaskDefinitionArn, "*" ] ]
+            Condition:
+              ArnLike:
+                "ecs:Cluster": !GetAtt SsoAccessVendorEcsCluster.Arn
+          - Effect: Allow
+            Action:
+              - iam:PassRole
+            Resource: "*"
+            Condition:
+              StringLike:
+                "iam:PassedToService": "ecs-tasks.amazonaws.com"
 
-  ########################################
-  #                Wave 2                #
-  ########################################
-
-  CWL:
-    Metadata:
-      cfn-lint:
-        config:
-          ignore_checks:
-            - W3002
-    DependsOn:
-      - KMS
-    Type: AWS::CloudFormation::Stack
+  SsoAccessVendorSchedulerRole:
+    Type: AWS::IAM::Role
     Properties:
-      TemplateURL: ./cwl.yaml
-      Parameters:
-        AppName:      !Ref AppName
-        AppPrefix:    !Ref AppPrefix
-        CwlKmsKeyArn: !Sub /${AppPrefix}/${AppName}/kms/logs/arn
+      RoleName: !Sub ${AppPrefix}-${AppName}-sso-access-vendor-scheduler
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Ref SsoAccessVendorSchedulerPolicy
 
-  S3:
-    Metadata:
-      cfn-lint:
-        config:
-          ignore_checks:
-            - W3002
-    DependsOn:
-      - KMS
-    Type: AWS::CloudFormation::Stack
+  # EventBridge
+  SsoAccessVendorScheduler:
+    Type: AWS::Events::Rule
     Properties:
-      TemplateURL: ./s3.yaml
-      Parameters:
-        AppName:      !Ref AppName
-        AppPrefix:    !Ref AppPrefix
-        S3KmsKeyArn: !Sub /${AppPrefix}/${AppName}/kms/s3/arn
+      Description: !Ref ScheduledRemindersRuleDescription
+      State: !Ref IsScheduledRemindersEnabled
+      ScheduleExpression: !Ref ScheduledRemindersFrequencyInHours
+      Targets:
+        - Arn: !GetAtt SsoAccessVendorEcsCluster.Arn
+          RoleArn: !GetAtt SsoAccessVendorSchedulerRole.Arn
+          Id: RemindersCronTask
+          EcsParameters:
+            TaskDefinitionArn: !GetAtt SsoAccessVendorEcsCluster.TaskDefinitionArn
+            NetworkConfiguration:
+              AwsVpcConfiguration:
+                SecurityGroups: !Split [ ",", !Ref EcsTaskSecurityGroupIds ]
+                Subnets: !Split [ ",", !Ref EcsTaskSubnetIds ]
+            LaunchType: FARGATE
+            EnableExecuteCommand: true
+
+# ---------------------------------------------------------------
+#                               ECS
+# ---------------------------------------------------------------
+
+  # IAM
+  SsoAccessVendorReadWritePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub ${AppPrefix}-${AppName}-sso-access-vendor-read-write
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:Query
+              - dynamodb:UpdateItem
+              - dynamodb:BatchWriteItem
+            # Avoided doing !GetAtt EndUsersDataTable.Arn below to avoid circular dependency issues
+            Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${EnvName}_${AppName}_end_user_table
+
+  SsoAccessVendorEcsTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${AppPrefix}-${AppName}-sso-access-vendor-ecs-task-execution
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Ref SsoAccessVendorReadWritePolicy
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  # ECS
+  SsoAccessVendorEcsCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub ${AppPrefix}-${AppName}-sso-access-vendor
+      CapacityProviders:
+        - FARGATE
+      DefaultCapacityProviderStrategy:
+        - CapacityProvider: FARGATE
+          Weight: 1
+      Configuration:
+        ExecuteCommandConfiguration:
+          Logging: DEFAULT
+
+  SsoAccessVendorEcsTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Cpu: !Ref TaskDefinitionCpu
+      Memory: !Ref TaskDefinitionMemory
+      NetworkMode: awsvpc
+      ExecutionRoleArn: !GetAtt EcsTaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt EcsTaskExecutionRole.Arn
+      RequiresCompatibilities:
+        - FARGATE
+      RuntimePlatform:
+        CpuArchitecture: !Ref CpuArchitecture
+        OperatingSystemFamily: !Ref OperatingSystemFamily
+      ContainerDefinitions:
+        - Essential: true
+          Image: !Ref AppContainerImage
+          LogConfiguration: 
+            LogDriver: awslogs
+            Options: 
+              awslogs-group : !Sub /ecs/${EnvName}/${AppName}
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: /cron-task/access-vendor/
+          Name: !Sub ${AppPrefix}-${AppName}-sso-access-vendor-service
+
+# ---------------------------------------------------------------
+#                            KMS Keys
+# ---------------------------------------------------------------
+
+  # CloudWatch
+  CloudWatchLogsKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: KMS Key to access CloudWatch logs
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: 2012-10-17
+        Id: CwlKmsPolicy
+        Statement:
+          - Sid: Enable key administration
+            Effect: Allow
+            Principal:
+              AWS: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:root
+            Action:
+              - kms:Create*
+              - kms:Describe*
+              - kms:Enable*
+              - kms:List*
+              - kms:Put*
+              - kms:Update*
+              - kms:Revoke*
+              - kms:Disable*
+              - kms:Get*
+              - kms:Delete*
+              - kms:TagResource
+              - kms:UntagResource
+              - kms:ScheduleKeyDeletion
+              - kms:CancelKeyDeletion
+            Resource: "*"
+          - Sid: Enable key usage by cloudwatch logs
+            Effect: Allow
+            Principal:
+              Service:
+                - !Sub logs.${AWS::Region}.amazonaws.com
+            Action:
+              - kms:Encrypt*
+              - kms:Decrypt*
+              - kms:ReEncrypt*
+              - kms:GenerateDataKey*
+              - kms:Describe*
+            Resource: "*"
+            Condition:
+              ArnLike:
+                kms:EncryptionContext:aws:logs:arn: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:*
 
   ########################################
   #                Wave 3                #
