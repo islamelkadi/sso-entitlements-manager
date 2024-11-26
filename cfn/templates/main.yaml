@@ -71,19 +71,15 @@ Parameters:
   ScheduledRemindersFrequencyInHours:
     Type: String
     Description: The schedule expression for the notification frequency
-    Default: cron(0 * * * *)
+    Default: rate(30 minutes)
 
-  IsScheduledRemindersEnabled:
+  IsSsoAccessVendorSchedulerEnabled:
     Type: String
     AllowedValues:
       - DISABLED
       - ENABLED
     Default: ENABLED
     Description: Flag to enable or disable scheduled reminders
-
-  ScheduledRemindersRuleDescription:
-    Type: String
-    Description: Description for the scheduled reminders rule
 
   # VPC params
   EcsTaskSubnetIds:
@@ -149,30 +145,32 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Service: events.amazonaws.com
+              Service: scheduler.amazonaws.com
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - !Ref SsoAccessVendorSchedulerPolicy
 
   # EventBridge
   SsoAccessVendorScheduler:
-    Type: AWS::Events::Rule
+    Type: AWS::Scheduler::Schedule
     Properties:
-      Description: !Ref ScheduledRemindersRuleDescription
-      State: !Ref IsScheduledRemindersEnabled
+      Name: !Sub ${AppPrefix}-${AppName}-sso-access-vendor
+      Description: EventBridge scheduler schedule to execute sso access vendor ECS task
       ScheduleExpression: !Ref ScheduledRemindersFrequencyInHours
-      Targets:
-        - Arn: !GetAtt SsoAccessVendorEcsCluster.Arn
-          RoleArn: !GetAtt SsoAccessVendorSchedulerRole.Arn
-          Id: RemindersCronTask
-          EcsParameters:
-            TaskDefinitionArn: !GetAtt SsoAccessVendorEcsCluster.TaskDefinitionArn
-            NetworkConfiguration:
-              AwsVpcConfiguration:
-                SecurityGroups: !Split [ ",", !Ref EcsTaskSecurityGroupIds ]
-                Subnets: !Split [ ",", !Ref EcsTaskSubnetIds ]
-            LaunchType: FARGATE
-            EnableExecuteCommand: true
+      FlexibleTimeWindow:
+        Mode: OFF
+      State: !Ref IsSsoAccessVendorSchedulerEnabled
+      Target:
+        Arn: !GetAtt SsoAccessVendorEcsCluster.Arn
+        RoleArn: !GetAtt SsoAccessVendorSchedulerRole.Arn
+        EcsParameters:
+          TaskDefinitionArn: !GetAtt SsoAccessVendorEcsCluster.TaskDefinitionArn
+          NetworkConfiguration:
+            AwsVpcConfiguration:
+              SecurityGroups: !Split [ ",", !Ref EcsTaskSecurityGroupIds ]
+              Subnets: !Split [ ",", !Ref EcsTaskSubnetIds ]
+          LaunchType: FARGATE
+          EnableExecuteCommand: true
 
 # ---------------------------------------------------------------
 #                               ECS
