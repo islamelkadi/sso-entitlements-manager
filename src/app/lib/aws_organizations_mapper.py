@@ -100,7 +100,6 @@ class AwsOrganizationsMapper:
         self.exclude_account_name_list = []
         self.account_name_id_map = {}
         self.ou_accounts_map = {}
-
         self._ou_name_id_map = {}
         self._organizations_client = boto3.client("organizations")
 

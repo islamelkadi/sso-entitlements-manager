@@ -1,5 +1,9 @@
 [
   {
+    "ParameterKey": "IsDryRun",
+    "ParameterValue": true
+  },
+  {
     "ParameterKey": "RootOUId",
     "ParameterValue": "r-tbu3"
   },
@@ -10,5 +14,25 @@
   {
     "ParameterKey": "IdentityStoreArn",
     "ParameterValue": "arn:aws:sso:::instance/ssoins-882471b84caa6a5a"
+  },
+  {
+    "ParameterKey": "AppContainerImage",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "SsoAccessVendorSchedule",
+    "ParameterValue": "rate(1 minute)"
+  },
+  {
+    "ParameterKey": "IsSsoAccessVendorSchedulerEnabled",
+    "ParameterValue": "ENABLED"
+  },
+  {
+    "ParameterKey": "EcsTaskSubnetIds",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "EcsTaskSecurityGroupIds",
+    "ParameterValue": ""
   }
 ]
