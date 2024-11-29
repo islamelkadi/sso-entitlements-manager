@@ -93,19 +93,87 @@ Parameters:
 Resources:
 
 # ---------------------------------------------------------------
-#                            App config
+#                               ECS
 # ---------------------------------------------------------------
 
-  SsoManagerApplication:
-    Type: AWS::AppConfig::Application
+  # IAM
+  SsoAccessVendorReadWritePolicy:
+    Type: AWS::IAM::ManagedPolicy
     Properties:
-      Name: !Sub ${AppPrefix}-${AppName}
-      Description: !Sub ${AppPrefix}-${AppName} application
-      Tags:
-        - Key: app-name
-          Value: !Ref AppName
-        - Key: managed-by
-          Value: !Ref AppPrefix
+      ManagedPolicyName: !Sub ${AppPrefix}-${AppName}-sso-access-vendor-read-write
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:Query
+              - dynamodb:UpdateItem
+              - dynamodb:BatchWriteItem
+            # Avoided doing !GetAtt EndUsersDataTable.Arn below to avoid circular dependency issues
+            Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${AppPrefix}_${AppName}_end_user_table
+
+  SsoAccessVendorEcsTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${AppPrefix}-${AppName}-sso-access-vendor-ecs-task-execution
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        # - !Ref SsoAccessVendorReadWritePolicy
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  # ECS
+  SsoAccessVendorEcsCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub ${AppPrefix}-${AppName}-sso-access-vendor
+      CapacityProviders:
+        - FARGATE
+      DefaultCapacityProviderStrategy:
+        - CapacityProvider: FARGATE
+          Weight: 1
+      Configuration:
+        ExecuteCommandConfiguration:
+          Logging: DEFAULT
+
+  SsoAccessVendorEcsTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Cpu: !Ref TaskDefinitionCpu
+      Memory: !Ref TaskDefinitionMemory
+      NetworkMode: awsvpc
+      ExecutionRoleArn: !GetAtt SsoAccessVendorEcsTaskExecutionRole.Arn
+      RequiresCompatibilities:
+        - FARGATE
+      RuntimePlatform:
+        CpuArchitecture: !Ref CpuArchitecture
+        OperatingSystemFamily: !Ref OperatingSystemFamily
+      ContainerDefinitions:
+        - Essential: true
+          Image: !Ref AppContainerImage
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group : !Sub /ecs-task/${AppPrefix}/${AppName}
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: /cron-task/access-vendor/
+          Name: !Sub ${AppPrefix}-${AppName}-sso-access-vendor-service
+          Environment:
+            - Name: IS_DRY_RUN
+              Value: !Ref IsDryRun
+            - Name: IDENTITY_STORE_ID
+              Value: !Ref IdentityStoreId
+            - Name: IDENTITY_STORE_ARN
+              Value: !Ref IdentityStoreArn
+            - Name: ROOT_OU_ID
+              Value: !Ref RootOUId
+            - Name: SSO_MANIFEST_FILENAME
+              Value: !Ref SsoManifetFileName
 
 # ---------------------------------------------------------------
 #                            EventBridge
@@ -123,8 +191,8 @@ Resources:
             Action:
               - ecs:RunTask
             Resource:
-              - !GetAtt SsoAccessVendorEcsCluster.TaskDefinitionArn
-              - !Join [ ":", [ !GetAtt SsoAccessVendorEcsCluster.TaskDefinitionArn, "*" ] ]
+              - !GetAtt SsoAccessVendorEcsTaskDefinition.TaskDefinitionArn
+              - !Join [ ":", [ !GetAtt SsoAccessVendorEcsTaskDefinition.TaskDefinitionArn, "*" ] ]
             Condition:
               ArnLike:
                 "ecs:Cluster": !GetAtt SsoAccessVendorEcsCluster.Arn
@@ -158,99 +226,16 @@ Resources:
       Description: EventBridge scheduler schedule to execute sso access vendor ECS task
       ScheduleExpression: !Ref SsoAccessVendorSchedule
       FlexibleTimeWindow:
-        Mode: OFF
+        Mode: "OFF"
       State: !Ref IsSsoAccessVendorSchedulerEnabled
       Target:
         Arn: !GetAtt SsoAccessVendorEcsCluster.Arn
         RoleArn: !GetAtt SsoAccessVendorSchedulerRole.Arn
         EcsParameters:
-          TaskDefinitionArn: !GetAtt SsoAccessVendorEcsCluster.TaskDefinitionArn
+          TaskDefinitionArn: !GetAtt SsoAccessVendorEcsTaskDefinition.TaskDefinitionArn
           NetworkConfiguration:
-            AwsVpcConfiguration:
+            AwsvpcConfiguration:
               SecurityGroups: !Split [ ",", !Ref EcsTaskSecurityGroupIds ]
               Subnets: !Split [ ",", !Ref EcsTaskSubnetIds ]
           LaunchType: FARGATE
           EnableExecuteCommand: true
-
-# ---------------------------------------------------------------
-#                               ECS
-# ---------------------------------------------------------------
-
-  # IAM
-  SsoAccessVendorReadWritePolicy:
-    Type: AWS::IAM::ManagedPolicy
-    Properties:
-      ManagedPolicyName: !Sub ${AppPrefix}-${AppName}-sso-access-vendor-read-write
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Action:
-              - dynamodb:Query
-              - dynamodb:UpdateItem
-              - dynamodb:BatchWriteItem
-            # Avoided doing !GetAtt EndUsersDataTable.Arn below to avoid circular dependency issues
-            Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${AppPrefix}_${AppName}_end_user_table
-
-  SsoAccessVendorEcsTaskExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: !Sub ${AppPrefix}-${AppName}-sso-access-vendor-ecs-task-execution
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: ecs-tasks.amazonaws.com
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - !Ref SsoAccessVendorReadWritePolicy
-        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
-
-  # ECS
-  SsoAccessVendorEcsCluster:
-    Type: AWS::ECS::Cluster
-    Properties:
-      ClusterName: !Sub ${AppPrefix}-${AppName}-sso-access-vendor
-      CapacityProviders:
-        - FARGATE
-      DefaultCapacityProviderStrategy:
-        - CapacityProvider: FARGATE
-          Weight: 1
-      Configuration:
-        ExecuteCommandConfiguration:
-          Logging: DEFAULT
-
-  SsoAccessVendorEcsTaskDefinition:
-    Type: AWS::ECS::TaskDefinition
-    Properties:
-      Cpu: !Ref TaskDefinitionCpu
-      Memory: !Ref TaskDefinitionMemory
-      NetworkMode: awsvpc
-      ExecutionRoleArn: !GetAtt EcsTaskExecutionRole.Arn
-      RequiresCompatibilities:
-        - FARGATE
-      RuntimePlatform:
-        CpuArchitecture: !Ref CpuArchitecture
-        OperatingSystemFamily: !Ref OperatingSystemFamily
-      ContainerDefinitions:
-        - Essential: true
-          Image: !Ref AppContainerImage
-          LogConfiguration:
-            LogDriver: awslogs
-            Options:
-              awslogs-group : !Sub /ecs-task/${AppPrefix}/${AppName}
-              awslogs-region: !Ref AWS::Region
-              awslogs-stream-prefix: /cron-task/access-vendor/
-          Name: !Sub ${AppPrefix}-${AppName}-sso-access-vendor-service
-          Environment:
-            - Name: IS_DRY_RUN
-              Value: !Ref IsDryRun
-            - Name: IDENTITY_STORE_ID
-              Value: !Ref IdentityStoreId
-            - Name: IDENTITY_STORE_ARN
-              Value: !Ref IdentityStoreArn
-            - Name: ROOT_OU_ID
-              Value: !Ref RootOUId
-            - Name: SSO_MANIFEST_FILENAME
-              Value: !Ref SsoManifetFileName

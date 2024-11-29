@@ -1,6 +1,13 @@
+# Define Colors
+GREEN  := \033[0;32m
+YELLOW := \033[0;33m
+NC     := \033[0m  # No Color
+
+# Define variables
+STACK_NAME = permia-sso-manager
+
 .ONESHELL:
 sources = src tests
-stack_name = permira-sso-manager
 
 # Environment Setup
 .PHONY: dev-env
@@ -65,28 +72,31 @@ build-backend: env
 	@chmod +x ./tools/sam_build.sh
 	@./tools/sam_build.sh -p ./src
 
+
 # Clouformation Packaging
 .PHONY: cfn-package
-cfn-package: build-backend
-	@echo "Packging CloudFormation templates"
+cfn-package:
+	@echo "$(GREEN)Packging CloudFormation templates$(NC)\n"
 	@mkdir ./cfn/templates/build | true
 	@aws cloudformation package \
 		--s3-bucket $$BUCKET \
 		--template-file ./cfn/templates/main.yaml \
 		--force-upload \
 		--output-template-file ./cfn/templates/build/main.yaml > /dev/null;
+	@echo "$(GREEN)Successfully packged CloudFormation templates$(NC)"
 
 # Clouformation Deployments
 .PHONY: cfn-deploy
 cfn-deploy: cfn-package
-	@echo "Deploying CloudFormation templates"
+	@echo "$(GREEN)Deploying CloudFormation templates$(NC)"
 	@aws cloudformation deploy \
 		--template-file ./cfn/templates/build/main.yaml \
-		--stack-name $(stack_name) \
+		--stack-name $(STACK_NAME) \
 		--s3-bucket $$BUCKET \
 		--force-upload \
 		--parameter-overrides file://cfn/params/main.json \
 		--capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND
+	@echo "$(GREEN)Successfully deployed CloudFormation templates$(NC)\n"
 
 # Remove cached python folders
 .PHONY: cleanup

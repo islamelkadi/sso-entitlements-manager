@@ -1,7 +1,7 @@
 [
   {
     "ParameterKey": "IsDryRun",
-    "ParameterValue": true
+    "ParameterValue": "true"
   },
   {
     "ParameterKey": "RootOUId",
@@ -9,30 +9,30 @@
   },
   {
     "ParameterKey": "IdentityStoreId",
-    "ParameterValue": "d-9d6761538c"
+    "ParameterValue": "d-9067db88f4"
   },
   {
     "ParameterKey": "IdentityStoreArn",
-    "ParameterValue": "arn:aws:sso:::instance/ssoins-882471b84caa6a5a"
+    "ParameterValue": "arn:aws:sso:::instance/ssoins-7223b2b36d80d336"
   },
   {
     "ParameterKey": "AppContainerImage",
-    "ParameterValue": ""
+    "ParameterValue": "gcr.io/distroless/python3"
   },
   {
     "ParameterKey": "SsoAccessVendorSchedule",
-    "ParameterValue": "rate(1 minute)"
+    "ParameterValue": "rate(30 minutes)"
   },
   {
     "ParameterKey": "IsSsoAccessVendorSchedulerEnabled",
     "ParameterValue": "ENABLED"
   },
   {
-    "ParameterKey": "EcsTaskSubnetIds",
-    "ParameterValue": ""
-  },
-  {
     "ParameterKey": "EcsTaskSecurityGroupIds",
-    "ParameterValue": ""
-  }
+    "ParameterValue": "sg-02ed2daca983be386"
+},
+{
+    "ParameterKey": "EcsTaskSubnetIds",
+    "ParameterValue": "subnet-0addca20359fae8fb,subnet-04a952e5763176e65,subnet-0fe6456f59994020e,subnet-0cedfe4ed82ec1296,subnet-096783204a3f1b07f,subnet-056fe2a4f9150657e"
+}
 ]
