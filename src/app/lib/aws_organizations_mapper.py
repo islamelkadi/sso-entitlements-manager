@@ -78,7 +78,7 @@ class AwsOrganizationsMapper:
         Runs all mapping methods to update OUs and accounts.
     """
 
-    def __init__(self, root_ou_id: str) -> None:
+    def __init__(self) -> None:
         """
         Initializes the AwsOrganizationsMapper instance with the root OU ID and optional exclusion lists.
 
@@ -95,13 +95,13 @@ class AwsOrganizationsMapper:
         ------
         aws_orgs = AwsOrganizationsMapper("root-ou-id", ["ExcludeOU1"], ["ExcludeAccount1"])
         """
-        self.root_ou_id = root_ou_id
         self.exclude_ou_name_list = []
         self.exclude_account_name_list = []
         self.account_name_id_map = {}
         self.ou_accounts_map = {}
         self._ou_name_id_map = {}
         self._organizations_client = boto3.client("organizations")
+        self.root_ou_id = self._organizations_client.list_roots()["Roots"][0]["Id"]
 
     def _map_aws_organizational_units(self, parent_ou_id: str = "") -> None:
         """

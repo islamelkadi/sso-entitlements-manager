@@ -5,44 +5,23 @@ NC     := \033[0m  # No Color
 
 # Define variables
 STACK_NAME = permia-sso-manager
+LOCAL_DOCKER_IMAGE_NAME = sso_manager_image
 
 .ONESHELL:
 sources = src tests
 
-# Environment Setup
 .PHONY: dev-env
 dev-env:
-	@echo "Creating Python virtual environment"
-	@python3 -m venv .dev-venv
+	@echo "Building Docker image"
+	docker build -t $(LOCAL_DOCKER_IMAGE_NAME) .
 
-	@echo "Activating virtual environment"
-	@. .venv/bin/activate
-
-	@echo "Upgrading pip3"
-	@pip3 install --upgrade pip
-
-	@echo "Installing dependencies"
-	@pip3 install .[dev]
-
-	@echo "Creating requirements.txt file"
-	@pip install . && pip freeze > ./src/app/requirements.txt
-
-	@echo "Cleaning up requirements.txt file"
-	@sed -i '' '/@ file:\/\//d' ./src/app/requirements.txt
-
-	@echo "Install pre-commit hooks"
-	@pre-commit install
-
-.PHONY: env
-env:
-	@echo "Creating Python virtual environment"
-	@python3 -m venv .venv
-
-	@echo "Activating virtual environment"
-	@. .venv/bin/activate
-
-	@echo "Upgrading pip3"
-	@pip3 install --upgrade pip
+	@echo "Starting the container"
+	docker run -it \
+		-v $(shell pwd)/src:/app/src \
+		-v $(shell pwd)/tests:/app/tests \
+		-v $(shell pwd)/pyproject.toml:/app/pyproject.toml \
+		-v $(shell pwd)/makefile:/app/makefile \
+		$(LOCAL_DOCKER_IMAGE_NAME)
 
 # Automated Testing
 .PHONY: unittest
