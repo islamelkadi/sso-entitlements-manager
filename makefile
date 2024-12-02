@@ -5,7 +5,7 @@ NC     := \033[0m  # No Color
 
 # Define variables
 STACK_NAME = permia-sso-manager
-LOCAL_DOCKER_IMAGE_NAME = sso_manager_image
+LOCAL_DOCKER_IMAGE_NAME = sso-manager
 
 .ONESHELL:
 sources = src tests
@@ -50,7 +50,6 @@ build-backend: env
 	@echo "Building lambdas"
 	@chmod +x ./tools/sam_build.sh
 	@./tools/sam_build.sh -p ./src
-
 
 # Clouformation Packaging
 .PHONY: cfn-package

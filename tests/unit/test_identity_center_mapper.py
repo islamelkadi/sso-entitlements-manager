@@ -15,29 +15,6 @@ import pytest
 from app.lib.aws_identity_center_mapper import AwsIdentityCenterMapper
 
 
-@pytest.mark.parametrize("setup_mock_aws_environment", ["aws_org_1.json"])
-def test_missing_default_constructor_parameters(setup_mock_aws_environment: pytest.fixture) -> None:
-    """
-    Test case for missing identity_store_arn or identity_store_id parameter
-    in AwsIdentityCenterMapper constructor.
-
-    Raises:
-    ------
-    TypeError: If identity_store_arn or identity_store_id parameter is missing
-    during AwsIdentityCenterMapper instantiation.
-    """
-
-    # Assert
-    with pytest.raises(TypeError):
-        AwsIdentityCenterMapper()
-
-    with pytest.raises(TypeError):
-        AwsIdentityCenterMapper(identity_store_id=setup_mock_aws_environment["identity_center_id"])
-
-    with pytest.raises(TypeError):
-        AwsIdentityCenterMapper(identity_store_arn=setup_mock_aws_environment["identity_center_arn"])
-
-
 @pytest.mark.parametrize(
     "setup_mock_aws_environment, excluded_sso_users, excluded_sso_groups, excluded_permission_sets",
     [
@@ -71,7 +48,7 @@ def test_list_identity_center_entities(setup_mock_aws_environment: pytest.fixtur
     """
 
     # Arrange
-    py_aws_sso = AwsIdentityCenterMapper(setup_mock_aws_environment["identity_center_id"], setup_mock_aws_environment["identity_center_arn"])
+    py_aws_sso = AwsIdentityCenterMapper()
     setattr(py_aws_sso, "exclude_sso_users", excluded_sso_users)
     setattr(py_aws_sso, "exclude_sso_groups", excluded_sso_groups)
     setattr(py_aws_sso, "exclude_permission_sets", excluded_permission_sets)

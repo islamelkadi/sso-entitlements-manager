@@ -155,16 +155,10 @@ def setup_env_vars() -> None:
     """
     Fixture to set environment variables using MonkeyPatch for session scope.
     """
-    # Set credential vars
     MONKEYPATCH.setenv("AWS_SESSION_TOKEN", "test")
     MONKEYPATCH.setenv("AWS_ACCESS_KEY_ID", "test")
     MONKEYPATCH.setenv("AWS_SECRET_ACCESS_KEY", "test")
     MONKEYPATCH.setenv("AWS_DEFAULT_REGION", "us-east-1")
-
-    # Set app vars
-    MONKEYPATCH.setenv("LOG_LEVEL", "INFO")
-    MONKEYPATCH.setenv("IDENTITY_STORE_ID", "d-1234567890")
-    MONKEYPATCH.setenv("IDENTITY_STORE_ARN", "arn:aws:sso:::instance/ssoins-instanceId")
     yield
 
 
@@ -251,10 +245,6 @@ def setup_mock_aws_environment(
             List of dictionaries defining AWS permission sets.
     """
 
-    # Load env vars
-    identity_store_id = os.getenv("IDENTITY_STORE_ID")
-    identity_store_arn = os.getenv("IDENTITY_STORE_ARN")
-
     # Load JSON definitions
     cwd = os.path.dirname(os.path.realpath(__file__))
     organizations_map_path = os.path.join(cwd, "configs", "organizations", request.param)
@@ -275,6 +265,10 @@ def setup_mock_aws_environment(
         # Setup AWS organizations
         organizations_client.create_organization()
         root_ou_id = organizations_client.list_roots()["Roots"][0]["Id"]
+
+        identity_store_instances = sso_admin_client.list_instances()["Instances"][0]
+        identity_store_arn = identity_store_instances["InstanceArn"]
+        identity_store_id = identity_store_instances["IdentityStoreId"]
 
         account_name_id_map, ou_accounts_map = create_aws_ous_accounts(
             orgs_client=organizations_client,
@@ -309,11 +303,7 @@ def setup_mock_aws_environment(
             )["PermissionSet"]
             created_permission_sets[permission_set["name"]] = permission_set_details["PermissionSetArn"]
 
-        # Set Root OU ID env var
-        MONKEYPATCH.setenv("ROOT_OU_ID", root_ou_id)
-
         yield {
-            "root_ou_id": root_ou_id,
             "identity_center_id": identity_store_id,
             "identity_center_arn": identity_store_arn,
             "sso_group_name_id_map": created_sso_groups,
@@ -381,15 +371,8 @@ def setup_live_aws_environment(
 
         # Set environment variables
         identity_store_instances = sso_admin_client.list_instances()["Instances"][0]
-
         identity_store_arn = identity_store_instances["InstanceArn"]
-        MONKEYPATCH.setenv("IDENTITY_STORE_ARN", identity_store_arn)
-
         identity_store_id = identity_store_instances["IdentityStoreId"]
-        MONKEYPATCH.setenv("IDENTITY_STORE_ID", identity_store_id)
-
-        root_ou_id = organizations_client.list_roots()["Roots"][0]["Id"]
-        MONKEYPATCH.setenv("ROOT_OU_ID", root_ou_id)
 
         # Load JSON definitions
         organizations_map_filepath = request.param

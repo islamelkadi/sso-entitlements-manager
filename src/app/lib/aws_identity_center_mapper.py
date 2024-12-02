@@ -90,7 +90,7 @@ class AwsIdentityCenterMapper:
         Runs all mapping methods to update SSO users, groups, and permission sets.
     """
 
-    def __init__(self, identity_store_id: str, identity_store_arn: str) -> None:
+    def __init__(self) -> None:
         """
         Initializes the AwsIdentityCenterMapper instance with the identity store ID and ARN.
 
@@ -105,8 +105,6 @@ class AwsIdentityCenterMapper:
         ------
         aws_identity_centre = AwsIdentityCenterMapper("identity_store_id", "identity_store_arn")
         """
-        self.identity_store_id = identity_store_id
-        self.identity_store_arn = identity_store_arn
 
         self.exclude_sso_users = []
         self.exclude_sso_groups = []
@@ -118,6 +116,11 @@ class AwsIdentityCenterMapper:
 
         self._sso_admin_client = boto3.client("sso-admin")
         self._identity_store_client = boto3.client("identitystore")
+
+    def _describe_iam_idc_instance(self) -> None:
+        iam_identity_center_details = self._sso_admin_client.list_instances()["Instances"][0]
+        self.identity_store_id = iam_identity_center_details["IdentityStoreId"]
+        self.identity_store_arn = iam_identity_center_details["InstanceArn"]
 
     def _map_sso_groups(self) -> None:
         """
@@ -169,6 +172,7 @@ class AwsIdentityCenterMapper:
         """
         Runs all mapping methods to update SSO users, groups, and permission sets.
         """
+        self._describe_iam_idc_instance()
         self._map_sso_users()
         self._map_sso_groups()
         self._map_permission_sets()
