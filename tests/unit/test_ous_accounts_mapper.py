@@ -17,21 +17,6 @@ import pytest
 from app.lib.aws_organizations_mapper import AwsOrganizationsMapper
 
 
-def test_missing_constructor_parameter() -> None:
-    """
-    Test case to verify that AwsOrganizationsMapper raises TypeError when
-    instantiated without required parameters.
-
-    Raises:
-    ------
-    pytest.raises(TypeError): If AwsOrganizationsMapper is instantiated without required parameters.
-    """
-    # Arrange
-    with pytest.raises(TypeError):
-        # Act
-        AwsOrganizationsMapper()
-
-
 @pytest.mark.parametrize(
     "setup_mock_aws_environment, excluded_ous, excluded_accounts",
     [
@@ -78,7 +63,7 @@ def test_list_active_included_aws_accounts(
     accounts_to_filter_out = set(excluded_ou_accounts + excluded_accounts)
 
     # Act
-    py_aws_organizations = AwsOrganizationsMapper(setup_mock_aws_environment["root_ou_id"])
+    py_aws_organizations = AwsOrganizationsMapper()
     setattr(py_aws_organizations, "exclude_ou_name_list", excluded_ous)
     setattr(py_aws_organizations, "exclude_account_name_list", excluded_accounts)
     py_aws_organizations.run_ous_accounts_mapper()

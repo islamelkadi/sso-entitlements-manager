@@ -8,7 +8,6 @@ from http import HTTPStatus
 
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.logging import correlation_paths
-from aws_lambda_powertools.event_handler import Response, content_types
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from aws_lambda_powertools.utilities.data_classes import EventBridgeEvent, event_source
 
@@ -62,7 +61,7 @@ def lambda_handler(event: EventBridgeEvent, context: LambdaContext):  # pylint: 
     manifest_file = AccessManifestReader(MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_file_local_path)
 
     # Initialize OU & Accounts map
-    aws_org = AwsOrganizationsMapper(ROOT_OU_ID)
+    aws_org = AwsOrganizationsMapper()
     setattr(aws_org, "exclude_ou_name_list", manifest_file.excluded_ou_names)
     setattr(aws_org, "exclude_account_name_list", manifest_file.excluded_account_names)
     aws_org.run_ous_accounts_mapper()
