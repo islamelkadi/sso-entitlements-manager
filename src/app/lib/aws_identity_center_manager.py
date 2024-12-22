@@ -14,7 +14,7 @@ USER_PRINCIPAL_TYPE_LABEL = "USER"
 GROUP_PRINCIPAL_TYPE_LABEL = "GROUP"
 
 
-class AwsAccessControlResolver:
+class AwsIdentityCenterManager:
     """
     Class for resolving AWS resources and creating RBAC (Role-Based Access Control)
     assignments based on a manifest file.
@@ -36,23 +36,74 @@ class AwsAccessControlResolver:
         self._invalid_manifest_file_user_names = []
         self._invalid_manifest_file_permission_sets = []
 
-        self.assignments_to_create = []
-        self.assignments_to_delete = []
-
         self._local_account_assignments = []
         self._current_account_assignments = []
 
-        self.sso_users = {}
-        self.sso_groups = {}
-        self.permission_sets = {}
         self.account_name_id_map = {}
         self.ou_accounts_map = {}
 
+        self.exclude_sso_users = []
+        self.exclude_sso_groups = []
+        self.exclude_permission_sets = []
+
         self._sso_admin_client = boto3.client("sso-admin")
+        self._identity_store_client = boto3.client("identitystore")
+
 
     def _describe_identity_center_instance(self) -> None:
         iam_identity_center_details = self._sso_admin_client.list_instances()["Instances"][0]
+        self.identity_store_id = iam_identity_center_details["IdentityStoreId"]
         self.identity_store_arn = iam_identity_center_details["InstanceArn"]
+
+    def _map_sso_groups(self) -> None:
+        """
+        Lists all groups in the identity store and maps DisplayName to GroupId.
+        """
+        current_sso_groups = []
+        groups_paginator = self._identity_store_client.get_paginator("list_groups")
+        for page in groups_paginator.paginate(IdentityStoreId=self.identity_store_id):
+            current_sso_groups.extend(page["Groups"])
+
+        self.sso_groups = {}
+        for group in current_sso_groups:
+            if group["DisplayName"] not in self.exclude_sso_groups:
+                self.sso_groups[group["DisplayName"]] = group["GroupId"]
+
+    def _map_sso_users(self) -> None:
+        """
+        Lists all users in the identity store and maps UserName to UserId.
+        """
+        current_sso_users = []
+        sso_users_pagniator = self._identity_store_client.get_paginator("list_users")
+        sso_users_pages = sso_users_pagniator.paginate(IdentityStoreId=self.identity_store_id)
+        for page in sso_users_pages:
+            current_sso_users.extend(page["Users"])
+
+        self.sso_users = {}
+        for user in current_sso_users:
+            if user["UserName"] not in self.exclude_sso_users:
+                self.sso_users[user["UserName"]] = user["UserId"]
+
+    def _map_permission_sets(self) -> None:
+        """
+        Lists all permission sets and maps Name to PermissionSetArn.
+        """
+        current_permission_sets = []
+        permission_sets_paginator = self._sso_admin_client.get_paginator("list_permission_sets")
+        permission_sets_pages = permission_sets_paginator.paginate(InstanceArn=self.identity_store_arn)
+        for page in permission_sets_pages:
+            current_permission_sets.extend(page["PermissionSets"])
+
+        described_current_permission_sets = []
+        for permission_set in current_permission_sets:
+            permission_set_info = self._sso_admin_client.describe_permission_set(InstanceArn=self.identity_store_arn, PermissionSetArn=permission_set)
+            described_current_permission_sets.append(permission_set_info.get("PermissionSet"))
+
+        self.permission_sets = {}
+        for permission_set in described_current_permission_sets:
+            if permission_set["Name"] not in self.exclude_permission_sets:
+                self.permission_sets[permission_set["Name"]] = permission_set["PermissionSetArn"]
+
 
     def _list_current_account_assignments(self) -> None:
         """
@@ -153,15 +204,19 @@ class AwsAccessControlResolver:
         """
         Executes the RBAC assignments by creating and deleting account assignments as necessary.
         """
+
+        self.assignments_to_create = []
         assignments_to_create = list(itertools.filterfalse(lambda i: i in self._current_account_assignments, self._local_account_assignments))
         for assignment in assignments_to_create:
             self.assignments_to_create.append(assignment)
             self._sso_admin_client.create_account_assignment(**assignment)
 
+        self.assignments_to_delete = []
         assignments_to_delete = list(itertools.filterfalse(lambda i: i in self._local_account_assignments, self._current_account_assignments))
         for assignment in assignments_to_delete:
             self.assignments_to_delete.append(assignment)
             self._sso_admin_client.delete_account_assignment(**assignment)
+
 
     def run_access_control_resolver(self) -> None:
         """
@@ -170,7 +225,11 @@ class AwsAccessControlResolver:
         and executing the assignments.
         """
         self._describe_identity_center_instance()
+        self._map_sso_users()
+        self._map_sso_groups()
+        self._map_permission_sets()
         self._list_current_account_assignments()
         self._generate_rbac_assignments()
         self._generate_invalid_assignments_report()
         self._execute_rbac_assignments()
+
