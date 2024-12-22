@@ -59,6 +59,7 @@ def test_create_assignments(sso_admin_client, account_assignment_range: float, s
     expected_account_assignments = generate_expected_account_assignments(
         manifest_file,
         setup_mock_aws_environment["ou_accounts_map"],
+        setup_mock_aws_environment["identity_store_arn"],
         setup_mock_aws_environment["account_name_id_map"],
         setup_mock_aws_environment["sso_username_id_map"],
         setup_mock_aws_environment["sso_group_name_id_map"],
@@ -73,7 +74,7 @@ def test_create_assignments(sso_admin_client, account_assignment_range: float, s
         sso_admin_client.create_account_assignment(**assignment)
 
     # Act
-    aws_access_resolver = AwsAccessControlResolver(setup_mock_aws_environment["identity_center_arn"])
+    aws_access_resolver = AwsAccessControlResolver()
     setattr(aws_access_resolver, "rbac_rules", rbac_rules)
     setattr(aws_access_resolver, "sso_users", setup_mock_aws_environment["sso_username_id_map"])
     setattr(aws_access_resolver, "sso_groups", setup_mock_aws_environment["sso_group_name_id_map"])
@@ -103,7 +104,7 @@ def test_generate_invalid_assignments_report(setup_mock_aws_environment: pytest.
     rbac_rules = manifest_file.get("rbac_rules", [])
 
     # Act
-    aws_access_resolver = AwsAccessControlResolver(setup_mock_aws_environment["identity_center_arn"])
+    aws_access_resolver = AwsAccessControlResolver()
     setattr(aws_access_resolver, "rbac_rules", rbac_rules)
     setattr(aws_access_resolver, "sso_users", setup_mock_aws_environment["sso_username_id_map"])
     setattr(aws_access_resolver, "sso_groups", setup_mock_aws_environment["sso_group_name_id_map"])
@@ -173,6 +174,7 @@ def test_delete_account_assignments(sso_admin_client: pytest.fixture, setup_mock
     expected_account_assignments = generate_expected_account_assignments(
         manifest_file,
         setup_mock_aws_environment["ou_accounts_map"],
+        setup_mock_aws_environment["identity_store_arn"],
         setup_mock_aws_environment["account_name_id_map"],
         setup_mock_aws_environment["sso_username_id_map"],
         setup_mock_aws_environment["sso_group_name_id_map"],
@@ -195,9 +197,9 @@ def test_delete_account_assignments(sso_admin_client: pytest.fixture, setup_mock
 
         def create_single_assignment(assignment):
             sso_admin_client.create_account_assignment(
-                InstanceArn=setup_mock_aws_environment["identity_center_arn"], PermissionSetArn=assignment[2], PrincipalId=assignment[0], PrincipalType=assignment[1], TargetId=assignment[3], TargetType="AWS_ACCOUNT"
+                InstanceArn=setup_mock_aws_environment["identity_store_arn"], PermissionSetArn=assignment[2], PrincipalId=assignment[0], PrincipalType=assignment[1], TargetId=assignment[3], TargetType="AWS_ACCOUNT"
             )
-            return {"PrincipalId": assignment[0], "PrincipalType": assignment[1], "PermissionSetArn": assignment[2], "TargetId": assignment[3], "TargetType": "AWS_ACCOUNT", "InstanceArn": setup_mock_aws_environment["identity_center_arn"]}
+            return {"PrincipalId": assignment[0], "PrincipalType": assignment[1], "PermissionSetArn": assignment[2], "TargetId": assignment[3], "TargetType": "AWS_ACCOUNT", "InstanceArn": setup_mock_aws_environment["identity_store_arn"]}
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             assignments = list(executor.map(create_single_assignment, assignments_to_create))
@@ -215,7 +217,7 @@ def test_delete_account_assignments(sso_admin_client: pytest.fixture, setup_mock
     current_account_assignments += create_assignments(sso_group_ids, "GROUP")
 
     # Act
-    aws_access_resolver = AwsAccessControlResolver(setup_mock_aws_environment["identity_center_arn"])
+    aws_access_resolver = AwsAccessControlResolver()
     setattr(aws_access_resolver, "rbac_rules", rbac_rules)
     setattr(aws_access_resolver, "sso_users", setup_mock_aws_environment["sso_username_id_map"])
     setattr(aws_access_resolver, "sso_groups", setup_mock_aws_environment["sso_group_name_id_map"])

@@ -4,7 +4,6 @@ purpose of assiging permission sets.
 """
 import os
 import sys
-from http import HTTPStatus
 
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.logging import correlation_paths
@@ -20,10 +19,6 @@ from lib.aws_access_control_resolver import AwsAccessControlResolver
 from lib.access_manifest_file_reader import AccessManifestReader
 
 # Globals
-ROOT_OU_ID = os.getenv("ROOT_OU_ID")
-IS_DRY_RUN = os.getenv("DRY_RUN")
-IDENTITY_STORE_ID = os.getenv("IDENTITY_STORE_ID")
-IDENTITY_STORE_ARN = os.getenv("IDENTITY_STORE_ARN")
 MANIFEST_FILE_S3_LOCATION = os.getenv("MANIFEST_FILE_S3_LOCATION")
 MANIFEST_SCHEMA_DEFINITION_FILEPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "schemas", "manifest_schema_definition.json")
 
@@ -67,15 +62,14 @@ def lambda_handler(event: EventBridgeEvent, context: LambdaContext):  # pylint: 
     aws_org.run_ous_accounts_mapper()
 
     # Initialize SSO Groups, Users, & Permission sets map
-    aws_idc = AwsIdentityCenterMapper(IDENTITY_STORE_ID, IDENTITY_STORE_ARN)
+    aws_idc = AwsIdentityCenterMapper()
     setattr(aws_idc, "exclude_sso_users", manifest_file.excluded_sso_user_names)
     setattr(aws_idc, "exclude_sso_groups", manifest_file.excluded_sso_group_names)
     setattr(aws_idc, "exclude_permission_sets", manifest_file.excluded_permission_set_names)
     aws_idc.run_identity_center_mapper()
 
     # Create account assignments
-    aws_access_resolver = AwsAccessControlResolver(IDENTITY_STORE_ARN)
-    setattr(aws_access_resolver, "dry_run", IS_DRY_RUN)
+    aws_access_resolver = AwsAccessControlResolver()
     setattr(aws_access_resolver, "rbac_rules", manifest_file.rbac_rules)
     setattr(aws_access_resolver, "sso_users", aws_idc.sso_users)
     setattr(aws_access_resolver, "sso_groups", aws_idc.sso_groups)
@@ -94,13 +88,3 @@ def lambda_handler(event: EventBridgeEvent, context: LambdaContext):  # pylint: 
         "deleted": aws_access_resolver.assignments_to_delete,
         "invalid": aws_access_resolver.invalid_manifest_rules_report,
     }
-    # return True
-    # return Response(
-    #     status_code=HTTPStatus.OK.value,
-    #     content_type=content_types.APPLICATION_JSON,
-    #     body={
-    #         "created": aws_access_resolver.assignments_to_create,
-    #         "deleted": aws_access_resolver.assignments_to_delete,
-    #         "invalid": aws_access_resolver.invalid_manifest_rules_report,
-    #     },
-    # )

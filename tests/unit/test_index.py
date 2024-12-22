@@ -50,9 +50,9 @@ def create_assignments(sso_admin_client: boto3.client, setup_mock_aws_environmen
 
     def create_single_assignment(assignment):
         sso_admin_client.create_account_assignment(
-            InstanceArn=setup_mock_aws_environment["identity_center_arn"], PermissionSetArn=assignment[2], PrincipalId=assignment[0], PrincipalType=assignment[1], TargetId=assignment[3], TargetType="AWS_ACCOUNT"
+            InstanceArn=setup_mock_aws_environment["identity_store_arn"], PermissionSetArn=assignment[2], PrincipalId=assignment[0], PrincipalType=assignment[1], TargetId=assignment[3], TargetType="AWS_ACCOUNT"
         )
-        return {"PrincipalId": assignment[0], "PrincipalType": assignment[1], "PermissionSetArn": assignment[2], "TargetId": assignment[3], "TargetType": "AWS_ACCOUNT", "InstanceArn": setup_mock_aws_environment["identity_center_arn"]}
+        return {"PrincipalId": assignment[0], "PrincipalType": assignment[1], "PermissionSetArn": assignment[2], "TargetId": assignment[3], "TargetType": "AWS_ACCOUNT", "InstanceArn": setup_mock_aws_environment["identity_store_arn"]}
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         assignments = list(executor.map(create_single_assignment, assignments_to_create))
@@ -139,6 +139,7 @@ def test_lambda_handler(sso_admin_client: boto3.client, account_assignment_range
     expected_account_assignments = generate_expected_account_assignments(
         manifest_file,
         setup_mock_aws_environment["ou_accounts_map"],
+        setup_mock_aws_environment["identity_store_arn"],
         setup_mock_aws_environment["account_name_id_map"],
         setup_mock_aws_environment["sso_username_id_map"],
         setup_mock_aws_environment["sso_group_name_id_map"],
@@ -191,6 +192,7 @@ def test_delete(sso_admin_client: boto3.client, setup_mock_aws_environment: Dict
     expected_account_assignments = generate_expected_account_assignments(
         manifest_file,
         setup_mock_aws_environment["ou_accounts_map"],
+        setup_mock_aws_environment["identity_store_arn"],
         setup_mock_aws_environment["account_name_id_map"],
         setup_mock_aws_environment["sso_username_id_map"],
         setup_mock_aws_environment["sso_group_name_id_map"],

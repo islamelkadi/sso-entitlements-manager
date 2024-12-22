@@ -155,16 +155,10 @@ def setup_env_vars() -> None:
     """
     Fixture to set environment variables using MonkeyPatch for session scope.
     """
-    # Set credential vars
     MONKEYPATCH.setenv("AWS_SESSION_TOKEN", "test")
     MONKEYPATCH.setenv("AWS_ACCESS_KEY_ID", "test")
     MONKEYPATCH.setenv("AWS_SECRET_ACCESS_KEY", "test")
     MONKEYPATCH.setenv("AWS_DEFAULT_REGION", "us-east-1")
-
-    # Set app vars
-    MONKEYPATCH.setenv("LOG_LEVEL", "INFO")
-    MONKEYPATCH.setenv("IDENTITY_STORE_ID", "d-1234567890")
-    MONKEYPATCH.setenv("IDENTITY_STORE_ARN", "arn:aws:sso:::instance/ssoins-instanceId")
     yield
 
 
@@ -251,10 +245,6 @@ def setup_mock_aws_environment(
             List of dictionaries defining AWS permission sets.
     """
 
-    # Load env vars
-    identity_store_id = os.getenv("IDENTITY_STORE_ID")
-    identity_store_arn = os.getenv("IDENTITY_STORE_ARN")
-
     # Load JSON definitions
     cwd = os.path.dirname(os.path.realpath(__file__))
     organizations_map_path = os.path.join(cwd, "configs", "organizations", request.param)
@@ -275,7 +265,6 @@ def setup_mock_aws_environment(
         # Setup AWS organizations
         organizations_client.create_organization()
         root_ou_id = organizations_client.list_roots()["Roots"][0]["Id"]
-
         account_name_id_map, ou_accounts_map = create_aws_ous_accounts(
             orgs_client=organizations_client,
             aws_organization_definitions=aws_organizations_definitions,
@@ -283,9 +272,10 @@ def setup_mock_aws_environment(
         )
 
         # Setup AWS Identity center
+        identity_store_instance = sso_admin_client.list_instances()["Instances"][0]
         for user in sso_users:
             user_details = identity_store_client.create_user(
-                IdentityStoreId=identity_store_id,
+                IdentityStoreId=identity_store_instance["IdentityStoreId"],
                 UserName=user["username"],
                 DisplayName=user["name"]["Formatted"],
                 Name=user["name"],
@@ -295,7 +285,7 @@ def setup_mock_aws_environment(
 
         for group in sso_groups:
             group_details = identity_store_client.create_group(
-                IdentityStoreId=identity_store_id,
+                IdentityStoreId=identity_store_instance["IdentityStoreId"],
                 DisplayName=group["name"],
                 Description=group["description"],
             )
@@ -303,19 +293,14 @@ def setup_mock_aws_environment(
 
         for permission_set in permission_set_definitions:
             permission_set_details = sso_admin_client.create_permission_set(
-                InstanceArn=identity_store_arn,
+                InstanceArn=identity_store_instance["InstanceArn"],
                 Name=permission_set["name"],
                 Description=permission_set["description"],
             )["PermissionSet"]
             created_permission_sets[permission_set["name"]] = permission_set_details["PermissionSetArn"]
 
-        # Set Root OU ID env var
-        MONKEYPATCH.setenv("ROOT_OU_ID", root_ou_id)
-
         yield {
-            "root_ou_id": root_ou_id,
-            "identity_center_id": identity_store_id,
-            "identity_center_arn": identity_store_arn,
+            "identity_store_arn": identity_store_instance["InstanceArn"],
             "sso_group_name_id_map": created_sso_groups,
             "sso_username_id_map": created_sso_users,
             "sso_permission_set_name_id_map": created_permission_sets,
@@ -333,15 +318,15 @@ def setup_mock_aws_environment(
 
         # Delete SSO users
         for user_id in created_sso_users.values():
-            identity_store_client.delete_user(IdentityStoreId=identity_store_id, UserId=user_id)
+            identity_store_client.delete_user(IdentityStoreId=identity_store_instance["IdentityStoreId"], UserId=user_id)
 
         # Delete SSO groups
         for group_id in created_sso_groups.values():
-            identity_store_client.delete_group(IdentityStoreId=identity_store_id, GroupId=group_id)
+            identity_store_client.delete_group(IdentityStoreId=identity_store_instance["IdentityStoreId"], GroupId=group_id)
 
         # Delete permission sets
         for permission_set_arn in created_permission_sets.values():
-            sso_admin_client.delete_permission_set(InstanceArn=identity_store_arn, PermissionSetArn=permission_set_arn)
+            sso_admin_client.delete_permission_set(InstanceArn=identity_store_instance["InstanceArn"], PermissionSetArn=permission_set_arn)
 
 
 ################################################
@@ -376,20 +361,12 @@ def setup_live_aws_environment(
     try:
         # Set boto3 clients
         sso_admin_client = boto3.client("sso-admin")
-        organizations_client = boto3.client("organizations")
         identity_store_client = boto3.client("identitystore")
 
         # Set environment variables
-        identity_store_instances = sso_admin_client.list_instances()["Instances"][0]
-
-        identity_store_arn = identity_store_instances["InstanceArn"]
-        MONKEYPATCH.setenv("IDENTITY_STORE_ARN", identity_store_arn)
-
-        identity_store_id = identity_store_instances["IdentityStoreId"]
-        MONKEYPATCH.setenv("IDENTITY_STORE_ID", identity_store_id)
-
-        root_ou_id = organizations_client.list_roots()["Roots"][0]["Id"]
-        MONKEYPATCH.setenv("ROOT_OU_ID", root_ou_id)
+        identity_store_instance = sso_admin_client.list_instances()["Instances"][0]
+        identity_store_instance["InstanceArn"] = identity_store_instance["InstanceArn"]
+        identity_store_instance["IdentityStoreId"] = identity_store_instance["IdentityStoreId"]
 
         # Load JSON definitions
         organizations_map_filepath = request.param
@@ -403,7 +380,7 @@ def setup_live_aws_environment(
         # Setup AWS Identity center
         for user in sso_users:
             user_details = identity_store_client.create_user(
-                IdentityStoreId=identity_store_id,
+                IdentityStoreId=identity_store_instance["IdentityStoreId"],
                 UserName=user["username"],
                 DisplayName=user["name"]["Formatted"],
                 Name=user["name"],
@@ -413,7 +390,7 @@ def setup_live_aws_environment(
 
         for group in sso_groups:
             group_details = identity_store_client.create_group(
-                IdentityStoreId=identity_store_id,
+                IdentityStoreId=identity_store_instance["IdentityStoreId"],
                 DisplayName=group["name"],
                 Description=group["description"],
             )
@@ -421,7 +398,7 @@ def setup_live_aws_environment(
 
         for permission_set in permission_set_definitions:
             permission_set_details = sso_admin_client.create_permission_set(
-                InstanceArn=identity_store_arn,
+                InstanceArn=identity_store_instance["InstanceArn"],
                 Name=permission_set["name"],
                 Description=permission_set["description"],
             )["PermissionSet"]
@@ -435,10 +412,10 @@ def setup_live_aws_environment(
 
     finally:
         for user_id in created_sso_users.values():
-            identity_store_client.delete_user(IdentityStoreId=identity_store_id, UserId=user_id)
+            identity_store_client.delete_user(IdentityStoreId=identity_store_instance["IdentityStoreId"], UserId=user_id)
 
         for group_id in created_sso_groups.values():
-            identity_store_client.delete_group(IdentityStoreId=identity_store_id, GroupId=group_id)
+            identity_store_client.delete_group(IdentityStoreId=identity_store_instance["IdentityStoreId"], GroupId=group_id)
 
         for permission_set_arn in created_permission_sets.values():
-            sso_admin_client.delete_permission_set(InstanceArn=identity_store_arn, PermissionSetArn=permission_set_arn)
+            sso_admin_client.delete_permission_set(InstanceArn=identity_store_instance["InstanceArn"], PermissionSetArn=permission_set_arn)

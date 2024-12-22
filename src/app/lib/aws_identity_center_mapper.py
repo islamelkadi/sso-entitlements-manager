@@ -45,9 +45,7 @@ AwsIdentityCenterMapper
     run_identity_center_mapper() -> None
         Runs all mapping methods to update SSO users, groups, and permission sets.
 """
-
 import boto3
-
 
 class AwsIdentityCenterMapper:
     """
@@ -90,7 +88,7 @@ class AwsIdentityCenterMapper:
         Runs all mapping methods to update SSO users, groups, and permission sets.
     """
 
-    def __init__(self, identity_store_id: str, identity_store_arn: str) -> None:
+    def __init__(self) -> None:
         """
         Initializes the AwsIdentityCenterMapper instance with the identity store ID and ARN.
 
@@ -105,30 +103,30 @@ class AwsIdentityCenterMapper:
         ------
         aws_identity_centre = AwsIdentityCenterMapper("identity_store_id", "identity_store_arn")
         """
-        self.identity_store_id = identity_store_id
-        self.identity_store_arn = identity_store_arn
 
         self.exclude_sso_users = []
         self.exclude_sso_groups = []
         self.exclude_permission_sets = []
 
-        self.sso_users = {}
-        self.sso_groups = {}
-        self.permission_sets = {}
-
         self._sso_admin_client = boto3.client("sso-admin")
         self._identity_store_client = boto3.client("identitystore")
+
+    def _describe_identity_center_instance(self) -> None:
+        iam_identity_center_details = self._sso_admin_client.list_instances()["Instances"][0]
+        self.identity_store_id = iam_identity_center_details["IdentityStoreId"]
+        self.identity_store_arn = iam_identity_center_details["InstanceArn"]
 
     def _map_sso_groups(self) -> None:
         """
         Lists all groups in the identity store and maps DisplayName to GroupId.
         """
-        sso_groups_list = []
+        current_sso_groups = []
         groups_paginator = self._identity_store_client.get_paginator("list_groups")
         for page in groups_paginator.paginate(IdentityStoreId=self.identity_store_id):
-            sso_groups_list.extend(page["Groups"])
+            current_sso_groups.extend(page["Groups"])
 
-        for group in sso_groups_list:
+        self.sso_groups = {}
+        for group in current_sso_groups:
             if group["DisplayName"] not in self.exclude_sso_groups:
                 self.sso_groups[group["DisplayName"]] = group["GroupId"]
 
@@ -136,13 +134,14 @@ class AwsIdentityCenterMapper:
         """
         Lists all users in the identity store and maps UserName to UserId.
         """
-        sso_users_list = []
+        current_sso_users = []
         sso_users_pagniator = self._identity_store_client.get_paginator("list_users")
         sso_users_pages = sso_users_pagniator.paginate(IdentityStoreId=self.identity_store_id)
         for page in sso_users_pages:
-            sso_users_list.extend(page["Users"])
+            current_sso_users.extend(page["Users"])
 
-        for user in sso_users_list:
+        self.sso_users = {}
+        for user in current_sso_users:
             if user["UserName"] not in self.exclude_sso_users:
                 self.sso_users[user["UserName"]] = user["UserId"]
 
@@ -150,18 +149,19 @@ class AwsIdentityCenterMapper:
         """
         Lists all permission sets and maps Name to PermissionSetArn.
         """
-        permission_sets = []
+        current_permission_sets = []
         permission_sets_paginator = self._sso_admin_client.get_paginator("list_permission_sets")
         permission_sets_pages = permission_sets_paginator.paginate(InstanceArn=self.identity_store_arn)
         for page in permission_sets_pages:
-            permission_sets.extend(page["PermissionSets"])
+            current_permission_sets.extend(page["PermissionSets"])
 
-        described_permission_sets = []
-        for permission_set in permission_sets:
+        described_current_permission_sets = []
+        for permission_set in current_permission_sets:
             permission_set_info = self._sso_admin_client.describe_permission_set(InstanceArn=self.identity_store_arn, PermissionSetArn=permission_set)
-            described_permission_sets.append(permission_set_info.get("PermissionSet"))
+            described_current_permission_sets.append(permission_set_info.get("PermissionSet"))
 
-        for permission_set in described_permission_sets:
+        self.permission_sets = {}
+        for permission_set in described_current_permission_sets:
             if permission_set["Name"] not in self.exclude_permission_sets:
                 self.permission_sets[permission_set["Name"]] = permission_set["PermissionSetArn"]
 
@@ -169,6 +169,7 @@ class AwsIdentityCenterMapper:
         """
         Runs all mapping methods to update SSO users, groups, and permission sets.
         """
+        self._describe_identity_center_instance()
         self._map_sso_users()
         self._map_sso_groups()
         self._map_permission_sets()

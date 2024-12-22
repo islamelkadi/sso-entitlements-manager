@@ -20,7 +20,7 @@ class AwsAccessControlResolver:
     assignments based on a manifest file.
     """
 
-    def __init__(self, identity_store_arn: str) -> None:
+    def __init__(self) -> None:
         """
         Initializes AwsAccessControlResolver with the provided identity store ARN.
 
@@ -28,7 +28,6 @@ class AwsAccessControlResolver:
             identity_store_arn (str): The ARN of the AWS Identity Store.
         """
         self.rbac_rules = []
-        self.identity_store_arn = identity_store_arn
 
         self.invalid_manifest_rules_report = []
         self._invalid_manifest_file_ou_names = []
@@ -51,7 +50,9 @@ class AwsAccessControlResolver:
 
         self._sso_admin_client = boto3.client("sso-admin")
 
-        self.dry_run = True
+    def _describe_identity_center_instance(self) -> None:
+        iam_identity_center_details = self._sso_admin_client.list_instances()["Instances"][0]
+        self.identity_store_arn = iam_identity_center_details["InstanceArn"]
 
     def _list_current_account_assignments(self) -> None:
         """
@@ -155,14 +156,12 @@ class AwsAccessControlResolver:
         assignments_to_create = list(itertools.filterfalse(lambda i: i in self._current_account_assignments, self._local_account_assignments))
         for assignment in assignments_to_create:
             self.assignments_to_create.append(assignment)
-            if self.dry_run:
-                self._sso_admin_client.create_account_assignment(**assignment)
+            self._sso_admin_client.create_account_assignment(**assignment)
 
         assignments_to_delete = list(itertools.filterfalse(lambda i: i in self._local_account_assignments, self._current_account_assignments))
         for assignment in assignments_to_delete:
             self.assignments_to_delete.append(assignment)
-            if self.dry_run:
-                self._sso_admin_client.delete_account_assignment(**assignment)
+            self._sso_admin_client.delete_account_assignment(**assignment)
 
     def run_access_control_resolver(self) -> None:
         """
@@ -170,6 +169,7 @@ class AwsAccessControlResolver:
         generating new assignments, generating an invalid assignments report,
         and executing the assignments.
         """
+        self._describe_identity_center_instance()
         self._list_current_account_assignments()
         self._generate_rbac_assignments()
         self._generate_invalid_assignments_report()

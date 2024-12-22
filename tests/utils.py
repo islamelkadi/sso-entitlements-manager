@@ -89,6 +89,7 @@ def generate_valid_targets(rule, target_names, valid_accounts, ou_map) -> List[s
 def generate_expected_account_assignments(
     manifest_file,
     ou_map,
+    identity_store_arn: str,
     valid_accounts: Dict[str, str],
     sso_users_map: Dict[str, str],
     sso_groups_map: Dict[str, str],
@@ -132,7 +133,7 @@ def generate_expected_account_assignments(
                 "PermissionSetArn": sso_permission_sets[rule["permission_set_name"]],
                 "TargetId": target,
                 "TargetType": "AWS_ACCOUNT",
-                "InstanceArn": "arn:aws:sso:::instance/ssoins-instanceId",
+                "InstanceArn": identity_store_arn,
             }
 
             if target_assignment_item not in expected_assignments:
