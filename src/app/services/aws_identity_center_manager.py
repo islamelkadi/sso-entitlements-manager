@@ -6,12 +6,7 @@ control assignments based on ingested customer manifest file.
 import itertools
 from typing import Optional
 import boto3
-
-# Global constants
-OU_TARGET_TYPE_LABEL = "OU"
-ACCOUNT_TARGET_TYPE_LABEL = "ACCOUNT"
-USER_PRINCIPAL_TYPE_LABEL = "USER"
-GROUP_PRINCIPAL_TYPE_LABEL = "GROUP"
+from app.core.constants import OU_TARGET_TYPE_LABEL, ACCOUNT_TARGET_TYPE_LABEL, USER_PRINCIPAL_TYPE_LABEL, GROUP_PRINCIPAL_TYPE_LABEL
 
 
 class AwsIdentityCenterManager:
@@ -28,27 +23,22 @@ class AwsIdentityCenterManager:
             identity_store_arn (str): The ARN of the AWS Identity Store.
         """
         self.rbac_rules = []
+        self.exclude_sso_users = []
+        self.exclude_sso_groups = []
+        self.exclude_permission_sets = []
+        self.account_name_id_map = {}
+        self.ou_accounts_map = {}
 
-        self.invalid_manifest_rules_report = []
         self._invalid_manifest_file_ou_names = []
         self._invalid_manifest_file_account_names = []
         self._invalid_manifest_file_group_names = []
         self._invalid_manifest_file_user_names = []
         self._invalid_manifest_file_permission_sets = []
-
         self._local_account_assignments = []
         self._current_account_assignments = []
 
-        self.account_name_id_map = {}
-        self.ou_accounts_map = {}
-
-        self.exclude_sso_users = []
-        self.exclude_sso_groups = []
-        self.exclude_permission_sets = []
-
         self._sso_admin_client = boto3.client("sso-admin")
         self._identity_store_client = boto3.client("identitystore")
-
 
     def _describe_identity_center_instance(self) -> None:
         iam_identity_center_details = self._sso_admin_client.list_instances()["Instances"][0]
@@ -103,7 +93,6 @@ class AwsIdentityCenterManager:
         for permission_set in described_current_permission_sets:
             if permission_set["Name"] not in self.exclude_permission_sets:
                 self.permission_sets[permission_set["Name"]] = permission_set["PermissionSetArn"]
-
 
     def _list_current_account_assignments(self) -> None:
         """
@@ -217,7 +206,6 @@ class AwsIdentityCenterManager:
             self.assignments_to_delete.append(assignment)
             self._sso_admin_client.delete_account_assignment(**assignment)
 
-
     def run_access_control_resolver(self) -> None:
         """
         Runs the full access control resolver process: listing current assignments,
@@ -232,4 +220,3 @@ class AwsIdentityCenterManager:
         self._generate_rbac_assignments()
         self._generate_invalid_assignments_report()
         self._execute_rbac_assignments()
-

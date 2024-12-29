@@ -9,8 +9,8 @@ import os
 import glob
 import pytest
 import jsonschema
-from app.lib.utils import load_file
-from app.lib.access_manifest_file_reader import AccessManifestReader
+from app.core.utils import load_file
+from app.services.access_manifest_file_reader import AccessManifestReader
 
 # Constants
 CWD = os.path.dirname(os.path.realpath(__file__))
@@ -54,7 +54,10 @@ def test_rules_invalid_manifest_schema(manifest_filename: str) -> None:
     # Assert
     with pytest.raises(jsonschema.ValidationError):
         # Act
-        AccessManifestReader(MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_filename)
+        access_manifest_reader = AccessManifestReader()
+        setattr(access_manifest_reader, "schema_definition_filepath", MANIFEST_SCHEMA_DEFINITION_FILEPATH)
+        setattr(access_manifest_reader, "manifest_definition_filepath", manifest_filename)
+        access_manifest_reader.run_access_manifest_reader()
 
 
 @pytest.mark.parametrize("manifest_filename", VALID_MANIFEST_DEFINITION_FILES)
@@ -69,7 +72,10 @@ def test_rules_valid_manifest_schema(manifest_filename: str) -> None:
     """
     # Act
     manifest_file_via_local = load_file(manifest_filename)
-    manifest_file_via_class = AccessManifestReader(MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_filename)
+    manifest_file_via_class = AccessManifestReader()
+    setattr(manifest_file_via_class, "schema_definition_filepath", MANIFEST_SCHEMA_DEFINITION_FILEPATH)
+    setattr(manifest_file_via_class, "manifest_definition_filepath", manifest_filename)
+    manifest_file_via_class.run_access_manifest_reader()
 
     # Extract excluded lists from the manifest loaded via local
     def get_excluded_names(manifest, target_type):

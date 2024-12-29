@@ -32,7 +32,7 @@ import datetime
 from unittest.mock import mock_open, patch
 import yaml
 import pytest
-from app.lib.utils import (
+from app.core.utils import (
     convert_list_to_dict,
     convert_specific_keys_to_uppercase,
     load_file,

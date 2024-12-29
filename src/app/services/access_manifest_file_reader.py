@@ -37,7 +37,7 @@ AccessManifestReader
 """
 
 import jsonschema
-from .utils import load_file, convert_specific_keys_to_uppercase
+from app.core.utils import load_file, convert_specific_keys_to_uppercase
 
 # Constants (typically should be uppercase to indicate they are constants)
 OU_TARGET_TYPE_LABEL = "OU"
@@ -81,7 +81,7 @@ class AccessManifestReader:
         Returns the RBAC rules from the manifest.
     """
 
-    def __init__(self, schema_definition_filepath: str, manifest_definition_filepath: str) -> None:
+    def __init__(self) -> None:
         """
         Initializes the AccessManifestReader with the schema definition filepath and manifest file S3 URI.
 
@@ -92,20 +92,14 @@ class AccessManifestReader:
         manifest_file_s3_uri: str
             S3 URI of the manifest file.
         """
-        self._schema_definition_filepath = schema_definition_filepath
-        self._manifest_definition_filepath = manifest_definition_filepath
-        self._manifest_file_keys_to_uppercase = ["principal_type", "target_type", "exclude_target_type"]
-
+        self.schema_definition_filepath = None
+        self.manifest_definition_filepath = None
         self.excluded_ou_names = []
         self.excluded_account_names = []
         self.excluded_sso_user_names = []
         self.excluded_sso_group_names = []
         self.excluded_permission_set_names = []
-
-        # Load and validate manifest on initialization
-        self._load_sso_manifest_file()
-        self._validate_sso_manifest_file()
-        self._generate_excluded_targets_lists()
+        self._manifest_file_keys_to_uppercase = ["principal_type", "target_type", "exclude_target_type"]
 
     def _load_sso_manifest_file(self) -> None:
         """
@@ -114,8 +108,8 @@ class AccessManifestReader:
         Loads the schema definition from the given filepath and the manifest file
         from the given S3 URI. Converts specified keys in the manifest data to uppercase.
         """
-        self._schema_definition = load_file(self._schema_definition_filepath)
-        manifest_data = load_file(self._manifest_definition_filepath)
+        self._schema_definition = load_file(self.schema_definition_filepath)
+        manifest_data = load_file(self.manifest_definition_filepath)
         self._manifest_definition = convert_specific_keys_to_uppercase(manifest_data, self._manifest_file_keys_to_uppercase)
 
     def _validate_sso_manifest_file(self) -> None:
@@ -152,6 +146,11 @@ class AccessManifestReader:
         for item in self._manifest_definition.get("ignore", []):
             target_list = target_map.get(item["target_type"])
             target_list.extend(item["target_names"])
+
+    def run_access_manifest_reader(self) -> None:
+        self._load_sso_manifest_file()
+        self._validate_sso_manifest_file()
+        self._generate_excluded_targets_lists()
 
     @property
     def rbac_rules(self) -> list:

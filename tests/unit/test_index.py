@@ -16,7 +16,7 @@ import boto3
 import pytest
 from aws_lambda_powertools.utilities.data_classes import EventBridgeEvent
 from tests.utils import generate_expected_account_assignments, generate_lambda_context, setup_s3_environment
-from app.lib.utils import load_file
+from app.core.utils import load_file
 
 # Constants
 CWD = os.path.dirname(os.path.realpath(__file__))
@@ -49,9 +49,7 @@ def create_assignments(sso_admin_client: boto3.client, setup_mock_aws_environmen
     assignments_to_create = list(itertools.product(principal_ids, [principal_type], sso_permission_set_ids, account_ids))
 
     def create_single_assignment(assignment):
-        sso_admin_client.create_account_assignment(
-            InstanceArn=setup_mock_aws_environment["identity_store_arn"], PermissionSetArn=assignment[2], PrincipalId=assignment[0], PrincipalType=assignment[1], TargetId=assignment[3], TargetType="AWS_ACCOUNT"
-        )
+        sso_admin_client.create_account_assignment(InstanceArn=setup_mock_aws_environment["identity_store_arn"], PermissionSetArn=assignment[2], PrincipalId=assignment[0], PrincipalType=assignment[1], TargetId=assignment[3], TargetType="AWS_ACCOUNT")
         return {"PrincipalId": assignment[0], "PrincipalType": assignment[1], "PermissionSetArn": assignment[2], "TargetId": assignment[3], "TargetType": "AWS_ACCOUNT", "InstanceArn": setup_mock_aws_environment["identity_store_arn"]}
 
     with concurrent.futures.ThreadPoolExecutor() as executor:

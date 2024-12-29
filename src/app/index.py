@@ -12,10 +12,10 @@ from aws_lambda_powertools.utilities.data_classes import EventBridgeEvent, event
 
 sys.path.append(os.path.join(os.path.dirname(__file__)))
 
-from lib.utils import download_file_from_s3
-from lib.access_manifest_file_reader import AccessManifestReader
-from lib.aws_organizations_mapper import AwsOrganizationsMapper
-from lib.aws_identity_center_manager import AwsIdentityCenterManager
+from app.core.utils import download_file_from_s3
+from app.services.access_manifest_file_reader import AccessManifestReader
+from app.services.aws_organizations_mapper import AwsOrganizationsMapper
+from app.services.aws_identity_center_manager import AwsIdentityCenterManager
 
 # Globals
 MANIFEST_FILE_S3_LOCATION = os.getenv("MANIFEST_FILE_S3_LOCATION")
@@ -52,7 +52,12 @@ def lambda_handler(event: EventBridgeEvent, context: LambdaContext):  # pylint: 
 
     # Download manifest file
     manifest_file_local_path = download_file_from_s3(MANIFEST_FILE_S3_LOCATION)
-    manifest_file = AccessManifestReader(MANIFEST_SCHEMA_DEFINITION_FILEPATH, manifest_file_local_path)
+
+    # Process manifest file
+    manifest_file = AccessManifestReader()
+    setattr(manifest_file, "schema_definition_filepath", MANIFEST_SCHEMA_DEFINITION_FILEPATH)
+    setattr(manifest_file, "manifest_definition_filepath", manifest_file_local_path)
+    manifest_file.run_access_manifest_reader()
 
     # Initialize OU & Accounts map
     aws_org = AwsOrganizationsMapper()
