@@ -37,14 +37,8 @@ AccessManifestReader
 """
 
 import jsonschema
-from app.core.utils import load_file, convert_specific_keys_to_uppercase
-
-# Constants (typically should be uppercase to indicate they are constants)
-OU_TARGET_TYPE_LABEL = "OU"
-ACCOUNT_TARGET_TYPE_LABEL = "ACCOUNT"
-USER_PRINCIPAL_TYPE_LABEL = "USER"
-GROUP_PRINCIPAL_TYPE_LABEL = "GROUP"
-PERMISSION_SET_TYPE_LABEL = "PERMISSION_SET"
+from core.utils import load_file, convert_specific_keys_to_uppercase
+from core.constants import OU_TARGET_TYPE_LABEL, ACCOUNT_TARGET_TYPE_LABEL, USER_PRINCIPAL_TYPE_LABEL, GROUP_PRINCIPAL_TYPE_LABEL, PERMISSION_SET_TYPE_LABEL
 
 
 class AccessManifestReader:

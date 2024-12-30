@@ -1,7 +1,7 @@
 """
 Module: test_utils.py
 
-Unit tests for utility functions in app.lib.utils module.
+Unit tests for utility functions in lib.utils module.
 
 Tests:
 - test_convert_list_to_dict_basic_conversion:
@@ -32,7 +32,7 @@ import datetime
 from unittest.mock import mock_open, patch
 import yaml
 import pytest
-from app.core.utils import (
+from core.utils import (
     convert_list_to_dict,
     convert_specific_keys_to_uppercase,
     load_file,

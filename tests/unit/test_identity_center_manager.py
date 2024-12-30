@@ -19,8 +19,8 @@ import concurrent.futures
 from typing import Dict, List, Any
 
 import pytest
-from app.core.utils import load_file
-from app.services.aws_identity_center_manager import AwsIdentityCenterManager
+from core.utils import load_file
+from services.aws_identity_center_manager import AwsIdentityCenterManager
 from tests.utils import generate_expected_account_assignments
 
 # Globals vars

@@ -1,15 +1,16 @@
 import os
-from app.core.utils import download_file_from_s3
-from app.services.access_manifest_file_reader import AccessManifestReader
-from app.services.aws_organizations_mapper import AwsOrganizationsMapper
-from app.services.aws_identity_center_manager import AwsIdentityCenterManager
+import argparse
+from services.access_manifest_file_reader import AccessManifestReader
+from services.aws_organizations_mapper import AwsOrganizationsMapper
+from services.aws_identity_center_manager import AwsIdentityCenterManager
 
 # Globals
 MANIFEST_FILE_S3_LOCATION = os.getenv("MANIFEST_FILE_S3_LOCATION")
 MANIFEST_SCHEMA_DEFINITION_FILEPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "schemas", "manifest_schema_definition.json")
 
+
 # Lambda handler
-def lambda_handler(event, context):  # pylint: disable=W0613
+def main():  # pylint: disable=W0613
     """
     Function to create or retrieve regex rules for SSO permission
     set assignments
@@ -29,13 +30,10 @@ def lambda_handler(event, context):  # pylint: disable=W0613
         - statusCode: contains HTTP status code
     """
 
-    # Download manifest file
-    manifest_file_local_path = download_file_from_s3(MANIFEST_FILE_S3_LOCATION)
-    
     # Process manifest file
     manifest_file = AccessManifestReader()
     setattr(manifest_file, "schema_definition_filepath", MANIFEST_SCHEMA_DEFINITION_FILEPATH)
-    setattr(manifest_file, "manifest_definition_filepath", manifest_file_local_path)
+    setattr(manifest_file, "manifest_definition_filepath", MANIFEST_FILE_LOCAL_PATH)
     manifest_file.run_access_manifest_reader()
 
     # Initialize OU & Accounts map
@@ -64,3 +62,7 @@ def lambda_handler(event, context):  # pylint: disable=W0613
         "deleted": identity_center_manager.assignments_to_delete,
         "invalid": identity_center_manager.invalid_manifest_rules_report,
     }
+
+
+if __name__ == "__main__":
+    pass

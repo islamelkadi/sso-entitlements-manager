@@ -6,7 +6,7 @@ control assignments based on ingested customer manifest file.
 import itertools
 from typing import Optional
 import boto3
-from app.core.constants import OU_TARGET_TYPE_LABEL, ACCOUNT_TARGET_TYPE_LABEL, USER_PRINCIPAL_TYPE_LABEL, GROUP_PRINCIPAL_TYPE_LABEL
+from core.constants import OU_TARGET_TYPE_LABEL, ACCOUNT_TARGET_TYPE_LABEL, USER_PRINCIPAL_TYPE_LABEL, GROUP_PRINCIPAL_TYPE_LABEL
 
 
 class AwsIdentityCenterManager:

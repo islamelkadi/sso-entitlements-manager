@@ -16,7 +16,7 @@ import boto3
 import pytest
 from aws_lambda_powertools.utilities.data_classes import EventBridgeEvent
 from tests.utils import generate_expected_account_assignments, generate_lambda_context, setup_s3_environment
-from app.core.utils import load_file
+from core.utils import load_file
 
 # Constants
 CWD = os.path.dirname(os.path.realpath(__file__))
@@ -152,10 +152,10 @@ def test_lambda_handler(sso_admin_client: boto3.client, account_assignment_range
 
     invalid_assignments = generate_invalid_assignments(manifest_file, setup_mock_aws_environment)
 
-    from src.app import index  # pylint: disable=C0415
+    from src import main  # pylint: disable=C0415
 
-    importlib.reload(index)
-    lambda_response = index.lambda_handler(EventBridgeEvent(data={}), context=generate_lambda_context())
+    importlib.reload(main)
+    lambda_response = main.lambda_handler(EventBridgeEvent(data={}), context=generate_lambda_context())
 
     assert expected_account_assignments[upper_bound_range:] == sorted(lambda_response["created"], key=created_assignments_sort_keys)
     assert sorted(invalid_assignments, key=invalid_assignments_report_sort_keys) == sorted(lambda_response["invalid"], key=invalid_assignments_report_sort_keys)
@@ -206,10 +206,10 @@ def test_delete(sso_admin_client: boto3.client, setup_mock_aws_environment: Dict
     current_account_assignments = create_assignments(sso_admin_client, setup_mock_aws_environment, list(sso_user_ids), "USER", list(sso_permission_set_ids), list(account_ids))
     current_account_assignments += create_assignments(sso_admin_client, setup_mock_aws_environment, list(sso_group_ids), "GROUP", list(sso_permission_set_ids), list(account_ids))
 
-    from src.app import index  # pylint: disable=C0415
+    from src import main  # pylint: disable=C0415
 
-    importlib.reload(index)
-    lambda_response = index.lambda_handler(EventBridgeEvent(data={}), context=generate_lambda_context())
+    importlib.reload(main)
+    lambda_response = main.main(EventBridgeEvent(data={}), context=generate_lambda_context())
 
     assignments_to_delete = list(itertools.filterfalse(lambda i: i in expected_account_assignments, current_account_assignments))
     assert sorted(assignments_to_delete, key=sort_keys) == sorted(lambda_response["deleted"], key=sort_keys)
