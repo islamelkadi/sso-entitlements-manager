@@ -1,3 +1,7 @@
+# pylint: disable=W0613
+# pylint: disable=W0621
+# pylint: disable=E1101
+
 """
 This module provides fixtures and helper functions for testing AWS Organizations,
 Identity Store, and SSO Admin services using the moto library and pytest framework.
@@ -34,7 +38,13 @@ MONKEYPATCH = pytest.MonkeyPatch()
 
 
 def create_aws_ous_accounts(
-    orgs_client: boto3.client, aws_organization_definitions: list[dict], root_ou_id: str, parent_ou_id: str = "", account_name_id_map: Optional[dict] = None, ou_accounts_map: Optional[dict] = None, parent_ou_name: str = "root"
+    orgs_client: boto3.client,
+    aws_organization_definitions: list[dict],
+    root_ou_id: str,
+    parent_ou_id: str = "",
+    account_name_id_map: Optional[dict] = None,
+    ou_accounts_map: Optional[dict] = None,
+    parent_ou_name: str = "root",
 ) -> None:
     """
     Fixture helper function to setup AWS mock organizations:
@@ -71,22 +81,26 @@ def create_aws_ous_accounts(
             nested_ou_id = orgs_client.create_organizational_unit(
                 ParentId=parent_ou_id if parent_ou_id else root_ou_id,
                 Name=organization_resource["name"],
-            )[
-                "OrganizationalUnit"
-            ]["Id"]
+            )["OrganizationalUnit"]["Id"]
 
             # Recursively setup OU
             if organization_resource.get("children"):
-                create_aws_ous_accounts(orgs_client, organization_resource["children"], root_ou_id, nested_ou_id, account_name_id_map, ou_accounts_map, organization_resource["name"])
+                create_aws_ous_accounts(
+                    orgs_client,
+                    organization_resource["children"],
+                    root_ou_id,
+                    nested_ou_id,
+                    account_name_id_map,
+                    ou_accounts_map,
+                    organization_resource["name"],
+                )
 
         elif organization_resource["type"] == "ACCOUNT":
             # Create account
             account_id = orgs_client.create_account(
                 Email=f"{organization_resource['name']}@testing.com",
                 AccountName=organization_resource["name"],
-            )[
-                "CreateAccountStatus"
-            ]["AccountId"]
+            )["CreateAccountStatus"]["AccountId"]
 
             # Move account to OU
             orgs_client.move_account(
@@ -102,12 +116,16 @@ def create_aws_ous_accounts(
             if parent_ou_name not in ou_accounts_map:
                 ou_accounts_map[parent_ou_name] = []
 
-            ou_accounts_map[parent_ou_name].append({"Id": account_id, "Name": organization_resource["name"]})
+            ou_accounts_map[parent_ou_name].append(
+                {"Id": account_id, "Name": organization_resource["name"]}
+            )
 
     return account_name_id_map, ou_accounts_map
 
 
-def delete_aws_ous_accounts(orgs_client: boto3.client, root_ou_id: str, parent_ou_id: str = "") -> None:
+def delete_aws_ous_accounts(
+    orgs_client: boto3.client, root_ou_id: str, parent_ou_id: str = ""
+) -> None:
     """
     Recursively delete AWS accounts from nested organizational units (OUs).
 
@@ -124,14 +142,18 @@ def delete_aws_ous_accounts(orgs_client: boto3.client, root_ou_id: str, parent_o
 
     # Function to delete accounts in the current OU
     def delete_accounts_in_ou(ou_id: str) -> None:
-        accounts_to_delete = orgs_client.list_accounts_for_parent(ParentId=ou_id)["Accounts"]
+        accounts_to_delete = orgs_client.list_accounts_for_parent(ParentId=ou_id)[
+            "Accounts"
+        ]
         for account in accounts_to_delete:
             orgs_client.remove_account_from_organization(AccountId=account["Id"])
 
     # Function to recursively delete accounts in child OUs
     def delete_accounts_in_child_ous(parent_id: str) -> None:
         child_ous_paginator = orgs_client.get_paginator("list_children")
-        for page in child_ous_paginator.paginate(ParentId=parent_id, ChildType="ORGANIZATIONAL_UNIT"):
+        for page in child_ous_paginator.paginate(
+            ParentId=parent_id, ChildType="ORGANIZATIONAL_UNIT"
+        ):
             for child in page.get("Children", []):
                 delete_accounts_in_ou(child["Id"])
                 delete_accounts_in_child_ous(child["Id"])
@@ -247,7 +269,9 @@ def setup_mock_aws_environment(
 
     # Load JSON definitions
     cwd = os.path.dirname(os.path.realpath(__file__))
-    organizations_map_path = os.path.join(cwd, "configs", "organizations", request.param)
+    organizations_map_path = os.path.join(
+        cwd, "configs", "organizations", request.param
+    )
     with open(organizations_map_path, "r", encoding="utf-8") as fp:
         aws_environment_details = json.load(fp)
 
@@ -297,7 +321,9 @@ def setup_mock_aws_environment(
                 Name=permission_set["name"],
                 Description=permission_set["description"],
             )["PermissionSet"]
-            created_permission_sets[permission_set["name"]] = permission_set_details["PermissionSetArn"]
+            created_permission_sets[permission_set["name"]] = permission_set_details[
+                "PermissionSetArn"
+            ]
 
         yield {
             "identity_store_arn": identity_store_instance["InstanceArn"],
@@ -318,15 +344,24 @@ def setup_mock_aws_environment(
 
         # Delete SSO users
         for user_id in created_sso_users.values():
-            identity_store_client.delete_user(IdentityStoreId=identity_store_instance["IdentityStoreId"], UserId=user_id)
+            identity_store_client.delete_user(
+                IdentityStoreId=identity_store_instance["IdentityStoreId"],
+                UserId=user_id,
+            )
 
         # Delete SSO groups
         for group_id in created_sso_groups.values():
-            identity_store_client.delete_group(IdentityStoreId=identity_store_instance["IdentityStoreId"], GroupId=group_id)
+            identity_store_client.delete_group(
+                IdentityStoreId=identity_store_instance["IdentityStoreId"],
+                GroupId=group_id,
+            )
 
         # Delete permission sets
         for permission_set_arn in created_permission_sets.values():
-            sso_admin_client.delete_permission_set(InstanceArn=identity_store_instance["InstanceArn"], PermissionSetArn=permission_set_arn)
+            sso_admin_client.delete_permission_set(
+                InstanceArn=identity_store_instance["InstanceArn"],
+                PermissionSetArn=permission_set_arn,
+            )
 
 
 ################################################
@@ -366,7 +401,9 @@ def setup_live_aws_environment(
         # Set environment variables
         identity_store_instance = sso_admin_client.list_instances()["Instances"][0]
         identity_store_instance["InstanceArn"] = identity_store_instance["InstanceArn"]
-        identity_store_instance["IdentityStoreId"] = identity_store_instance["IdentityStoreId"]
+        identity_store_instance["IdentityStoreId"] = identity_store_instance[
+            "IdentityStoreId"
+        ]
 
         # Load JSON definitions
         organizations_map_filepath = request.param
@@ -402,7 +439,9 @@ def setup_live_aws_environment(
                 Name=permission_set["name"],
                 Description=permission_set["description"],
             )["PermissionSet"]
-            created_permission_sets[permission_set["name"]] = permission_set_details["PermissionSetArn"]
+            created_permission_sets[permission_set["name"]] = permission_set_details[
+                "PermissionSetArn"
+            ]
 
         yield {
             "sso_group_name_id_map": created_sso_groups,
@@ -412,10 +451,19 @@ def setup_live_aws_environment(
 
     finally:
         for user_id in created_sso_users.values():
-            identity_store_client.delete_user(IdentityStoreId=identity_store_instance["IdentityStoreId"], UserId=user_id)
+            identity_store_client.delete_user(
+                IdentityStoreId=identity_store_instance["IdentityStoreId"],
+                UserId=user_id,
+            )
 
         for group_id in created_sso_groups.values():
-            identity_store_client.delete_group(IdentityStoreId=identity_store_instance["IdentityStoreId"], GroupId=group_id)
+            identity_store_client.delete_group(
+                IdentityStoreId=identity_store_instance["IdentityStoreId"],
+                GroupId=group_id,
+            )
 
         for permission_set_arn in created_permission_sets.values():
-            sso_admin_client.delete_permission_set(InstanceArn=identity_store_instance["InstanceArn"], PermissionSetArn=permission_set_arn)
+            sso_admin_client.delete_permission_set(
+                InstanceArn=identity_store_instance["InstanceArn"],
+                PermissionSetArn=permission_set_arn,
+            )

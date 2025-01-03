@@ -30,7 +30,7 @@ unittest:
 .PHONY: format
 format:
 	@echo "Running python formatting"
-	@black $(sources) --safe --line-length 250
+	@black $(sources) --safe
 
 	@echo "Running python linter"
 	@pylint $(sources)
@@ -43,10 +43,6 @@ build-backend: env
 
 	@echo "Cleaning up requirements.txt file"
 	@sed -i '' '/@ file:\/\//d' ./src/app/requirements.txt
-
-	@echo "Building lambdas"
-	@chmod +x ./tools/sam_build.sh
-	@./tools/sam_build.sh -p ./src
 
 # Clouformation Packaging
 .PHONY: cfn-package
