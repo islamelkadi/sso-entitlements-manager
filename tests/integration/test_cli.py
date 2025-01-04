@@ -21,26 +21,14 @@ from src.core.utils import load_file
 
 # Constants
 CWD = os.path.dirname(os.path.realpath(__file__))
-MANIFEST_SCHEMA_DEFINITION_FILEPATH = os.path.join(
-    CWD, "..", "..", "src", "schemas", "manifest_schema_definition.json"
-)
-PRE_TEST_ACCOUNT_ASSIGNMENT_PERCENTAGES = [
-    round(i * 0.2, 2) for i in range(6)
-]  # 20% increments
+MANIFEST_SCHEMA_DEFINITION_FILEPATH = os.path.join(CWD, "..", "..", "src", "schemas", "manifest_schema_definition.json")
+PRE_TEST_ACCOUNT_ASSIGNMENT_PERCENTAGES = [round(i * 0.2, 2) for i in range(6)]  # 20% increments
 
-AWS_ORG_DEFINITIONS_FILES_PATH = os.path.join(
-    CWD, "..", "configs", "organizations", "*.json"
-)
-AWS_ORG_DEFINITION_FILES = [
-    os.path.basename(x) for x in glob.glob(AWS_ORG_DEFINITIONS_FILES_PATH)
-]
+AWS_ORG_DEFINITIONS_FILES_PATH = os.path.join(CWD, "..", "configs", "organizations", "*.json")
+AWS_ORG_DEFINITION_FILES = [os.path.basename(x) for x in glob.glob(AWS_ORG_DEFINITIONS_FILES_PATH)]
 
-VALID_MANIFEST_DEFINITION_FILES_PATH = os.path.join(
-    CWD, "manifests", "valid_schema", "*.yaml"
-)
-VALID_MANIFEST_DEFINITION_FILES = [
-    os.path.abspath(x) for x in glob.glob(VALID_MANIFEST_DEFINITION_FILES_PATH)
-]
+VALID_MANIFEST_DEFINITION_FILES_PATH = os.path.join(CWD, "..", "configs", "manifests", "valid_schema", "*.yaml")
+VALID_MANIFEST_DEFINITION_FILES = [os.path.abspath(x) for x in glob.glob(VALID_MANIFEST_DEFINITION_FILES_PATH)]
 
 
 def create_assignments(
@@ -66,11 +54,7 @@ def create_assignments(
         List[Dict[str, Any]]: List of created account assignments.
     """
     assignments = []
-    assignments_to_create = list(
-        itertools.product(
-            principal_ids, [principal_type], sso_permission_set_ids, account_ids
-        )
-    )
+    assignments_to_create = list(itertools.product(principal_ids, [principal_type], sso_permission_set_ids, account_ids))
 
     def create_single_assignment(assignment):
         sso_admin_client.create_account_assignment(
@@ -91,16 +75,12 @@ def create_assignments(
         }
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        assignments = list(
-            executor.map(create_single_assignment, assignments_to_create)
-        )
+        assignments = list(executor.map(create_single_assignment, assignments_to_create))
 
     return assignments
 
 
-def generate_invalid_assignments(
-    manifest_file: Dict[str, Any], setup_mock_aws_environment: Dict[str, Any]
-) -> List[Dict[str, Any]]:
+def generate_invalid_assignments(manifest_file: Dict[str, Any], setup_mock_aws_environment: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
     Generates a list of invalid assignments from the manifest file.
 
@@ -114,11 +94,7 @@ def generate_invalid_assignments(
     invalid_assignments = []
     rbac_rules = manifest_file.get("rbac_rules", [])
     for i, rule in enumerate(rbac_rules):
-        target_reference = (
-            list(setup_mock_aws_environment["ou_accounts_map"].keys())
-            if rule["target_type"] == "OU"
-            else setup_mock_aws_environment["account_name_id_map"].keys()
-        )
+        target_reference = list(setup_mock_aws_environment["ou_accounts_map"].keys()) if rule["target_type"] == "OU" else setup_mock_aws_environment["account_name_id_map"].keys()
         for target_name in rule["target_names"]:
             if target_name not in target_reference:
                 invalid_assignments.append(
@@ -129,11 +105,7 @@ def generate_invalid_assignments(
                     }
                 )
 
-        principal_reference = (
-            setup_mock_aws_environment["sso_group_name_id_map"].keys()
-            if rule["principal_type"] == "GROUP"
-            else setup_mock_aws_environment["sso_username_id_map"]
-        )
+        principal_reference = setup_mock_aws_environment["sso_group_name_id_map"].keys() if rule["principal_type"] == "GROUP" else setup_mock_aws_environment["sso_username_id_map"]
         if rule["principal_name"] not in principal_reference:
             invalid_assignments.append(
                 {
@@ -143,10 +115,7 @@ def generate_invalid_assignments(
                 }
             )
 
-        if (
-            rule["permission_set_name"]
-            not in setup_mock_aws_environment["sso_permission_set_name_id_map"]
-        ):
+        if rule["permission_set_name"] not in setup_mock_aws_environment["sso_permission_set_name_id_map"]:
             invalid_assignments.append(
                 {
                     "rule_number": i,
@@ -192,12 +161,8 @@ def test_main(
     manifest_filepath : str
         The filename of the manifest to be tested.
     """
-    invalid_assignments_report_sort_keys = operator.itemgetter(
-        "rule_number", "resource_type", "resource_name"
-    )
-    created_assignments_sort_keys = operator.itemgetter(
-        "PermissionSetArn", "PrincipalType", "PrincipalId", "TargetId"
-    )
+    invalid_assignments_report_sort_keys = operator.itemgetter("rule_number", "resource_type", "resource_name")
+    created_assignments_sort_keys = operator.itemgetter("PermissionSetArn", "PrincipalType", "PrincipalId", "TargetId")
 
     manifest_file = load_file(manifest_filepath)
 
@@ -212,28 +177,24 @@ def test_main(
     )
     expected_account_assignments.sort(key=created_assignments_sort_keys)
 
-    upper_bound_range = int(
-        len(expected_account_assignments) * account_assignment_range
-    )
+    upper_bound_range = int(len(expected_account_assignments) * account_assignment_range)
     current_account_assignments = expected_account_assignments[:upper_bound_range]
     for assignment in current_account_assignments:
         sso_admin_client.create_account_assignment(**assignment)
 
-    invalid_assignments = generate_invalid_assignments(
-        manifest_file, setup_mock_aws_environment
+    invalid_assignments = generate_invalid_assignments(manifest_file, setup_mock_aws_environment)
+
+    from src.cli import sso  # pylint: disable=C0415
+
+    importlib.reload(sso)
+    lambda_response = sso.main(
+        manifest_filepath,
+        MANIFEST_SCHEMA_DEFINITION_FILEPATH,
+        True,
     )
 
-    from src import main  # pylint: disable=C0415
-
-    importlib.reload(main)
-    lambda_response = main.main({"manifest-file-local-path": manifest_filepath})
-
-    assert expected_account_assignments[upper_bound_range:] == sorted(
-        lambda_response["created"], key=created_assignments_sort_keys
-    )
-    assert sorted(
-        invalid_assignments, key=invalid_assignments_report_sort_keys
-    ) == sorted(lambda_response["invalid"], key=invalid_assignments_report_sort_keys)
+    assert expected_account_assignments[upper_bound_range:] == sorted(lambda_response["created"], key=created_assignments_sort_keys)
+    assert sorted(invalid_assignments, key=invalid_assignments_report_sort_keys) == sorted(lambda_response["invalid"], key=invalid_assignments_report_sort_keys)
 
 
 @pytest.mark.parametrize(
@@ -258,12 +219,8 @@ def test_delete(
     manifest_filepath : str
         The filename of the manifest to be tested.
     """
-    sort_keys = operator.itemgetter(
-        "PermissionSetArn", "PrincipalType", "PrincipalId", "TargetId"
-    )
-    manifest_definition_filepath = os.path.join(
-        CWD, "configs", "manifests", "valid_schema", manifest_filepath
-    )
+    sort_keys = operator.itemgetter("PermissionSetArn", "PrincipalType", "PrincipalId", "TargetId")
+    manifest_definition_filepath = os.path.join(CWD, "configs", "manifests", "valid_schema", manifest_filepath)
 
     manifest_file = load_file(manifest_definition_filepath)
 
@@ -277,9 +234,7 @@ def test_delete(
         setup_mock_aws_environment["sso_permission_set_name_id_map"],
     )
 
-    sso_permission_set_ids = setup_mock_aws_environment[
-        "sso_permission_set_name_id_map"
-    ].values()
+    sso_permission_set_ids = setup_mock_aws_environment["sso_permission_set_name_id_map"].values()
     account_ids = setup_mock_aws_environment["account_name_id_map"].values()
 
     sso_user_ids = setup_mock_aws_environment["sso_username_id_map"].values()
@@ -302,16 +257,14 @@ def test_delete(
         list(account_ids),
     )
 
-    from src import main  # pylint: disable=C0415
+    from src.cli import sso  # pylint: disable=C0415
 
-    importlib.reload(main)
-    lambda_response = main.main({"manifest-file-local-path": manifest_filepath})
+    importlib.reload(sso)
+    lambda_response = sso.main(
+        manifest_filepath,
+        MANIFEST_SCHEMA_DEFINITION_FILEPATH,
+        True,
+    )
 
-    assignments_to_delete = list(
-        itertools.filterfalse(
-            lambda i: i in expected_account_assignments, current_account_assignments
-        )
-    )
-    assert sorted(assignments_to_delete, key=sort_keys) == sorted(
-        lambda_response["deleted"], key=sort_keys
-    )
+    assignments_to_delete = list(itertools.filterfalse(lambda i: i in expected_account_assignments, current_account_assignments))
+    assert sorted(assignments_to_delete, key=sort_keys) == sorted(lambda_response["deleted"], key=sort_keys)

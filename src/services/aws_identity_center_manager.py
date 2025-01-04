@@ -54,9 +54,7 @@ class AwsIdentityCenterManager:
         self.assignments_to_delete: list = []
 
     def _describe_identity_center_instance(self) -> None:
-        iam_identity_center_details = self._sso_admin_client.list_instances()[
-            "Instances"
-        ][0]
+        iam_identity_center_details = self._sso_admin_client.list_instances()["Instances"][0]
         self.identity_store_id = iam_identity_center_details["IdentityStoreId"]
         self.identity_store_arn = iam_identity_center_details["InstanceArn"]
 
@@ -80,9 +78,7 @@ class AwsIdentityCenterManager:
         """
         current_sso_users = []
         sso_users_pagniator = self._identity_store_client.get_paginator("list_users")
-        sso_users_pages = sso_users_pagniator.paginate(
-            IdentityStoreId=self.identity_store_id
-        )
+        sso_users_pages = sso_users_pagniator.paginate(IdentityStoreId=self.identity_store_id)
         for page in sso_users_pages:
             current_sso_users.extend(page["Users"])
 
@@ -96,30 +92,20 @@ class AwsIdentityCenterManager:
         Lists all permission sets and maps Name to PermissionSetArn.
         """
         current_permission_sets = []
-        permission_sets_paginator = self._sso_admin_client.get_paginator(
-            "list_permission_sets"
-        )
-        permission_sets_pages = permission_sets_paginator.paginate(
-            InstanceArn=self.identity_store_arn
-        )
+        permission_sets_paginator = self._sso_admin_client.get_paginator("list_permission_sets")
+        permission_sets_pages = permission_sets_paginator.paginate(InstanceArn=self.identity_store_arn)
         for page in permission_sets_pages:
             current_permission_sets.extend(page["PermissionSets"])
 
         described_current_permission_sets = []
         for permission_set in current_permission_sets:
-            permission_set_info = self._sso_admin_client.describe_permission_set(
-                InstanceArn=self.identity_store_arn, PermissionSetArn=permission_set
-            )
-            described_current_permission_sets.append(
-                permission_set_info.get("PermissionSet")
-            )
+            permission_set_info = self._sso_admin_client.describe_permission_set(InstanceArn=self.identity_store_arn, PermissionSetArn=permission_set)
+            described_current_permission_sets.append(permission_set_info.get("PermissionSet"))
 
         self.permission_sets = {}
         for permission_set in described_current_permission_sets:
             if permission_set["Name"] not in self.exclude_permission_sets:
-                self.permission_sets[permission_set["Name"]] = permission_set[
-                    "PermissionSetArn"
-                ]
+                self.permission_sets[permission_set["Name"]] = permission_set["PermissionSetArn"]
 
     def _list_current_account_assignments(self) -> None:
         """
@@ -129,9 +115,7 @@ class AwsIdentityCenterManager:
             "USER": self.sso_users.values(),
             "GROUP": self.sso_groups.values(),
         }
-        principal_assignments_paginator = self._sso_admin_client.get_paginator(
-            "list_account_assignments_for_principal"
-        )
+        principal_assignments_paginator = self._sso_admin_client.get_paginator("list_account_assignments_for_principal")
 
         for principal_type, principals in principal_type_map.items():
             for principal_id in principals:
@@ -144,24 +128,16 @@ class AwsIdentityCenterManager:
                     self._current_account_assignments.extend(page["AccountAssignments"])
 
         for i, _ in enumerate(self._current_account_assignments):
-            self._current_account_assignments[i][
-                "InstanceArn"
-            ] = self.identity_store_arn
+            self._current_account_assignments[i]["InstanceArn"] = self.identity_store_arn
             self._current_account_assignments[i]["TargetType"] = "AWS_ACCOUNT"
-            self._current_account_assignments[i][
-                "TargetId"
-            ] = self._current_account_assignments[i].pop("AccountId")
+            self._current_account_assignments[i]["TargetId"] = self._current_account_assignments[i].pop("AccountId")
 
     def _generate_invalid_assignments_report(self) -> None:
         """
         Generates a report of invalid assignments by combining all invalid entries.
         """
         self.invalid_manifest_rules_report = (
-            self._invalid_manifest_file_ou_names
-            + self._invalid_manifest_file_account_names
-            + self._invalid_manifest_file_group_names
-            + self._invalid_manifest_file_user_names
-            + self._invalid_manifest_file_permission_sets
+            self._invalid_manifest_file_ou_names + self._invalid_manifest_file_account_names + self._invalid_manifest_file_group_names + self._invalid_manifest_file_user_names + self._invalid_manifest_file_permission_sets
         )
 
     def _generate_rbac_assignments(self) -> None:
@@ -169,9 +145,7 @@ class AwsIdentityCenterManager:
         Generates RBAC assignments based on the manifest rules.
         """
 
-        def validate_aws_resource(
-            rule_number: int, resource_name: str, resource_type: str
-        ) -> Optional[str]:
+        def validate_aws_resource(rule_number: int, resource_name: str, resource_type: str) -> Optional[str]:
             """
             Validates if the provided AWS resource is valid and returns its ID if valid.
 
@@ -240,20 +214,12 @@ class AwsIdentityCenterManager:
 
         for i, rule in enumerate(self.rbac_rules):
             rule["rule_number"] = i
-            rule["principal_id"] = validate_aws_resource(
-                rule["rule_number"], rule["principal_name"], rule["principal_type"]
-            )
-            rule["permission_set_arn"] = validate_aws_resource(
-                rule["rule_number"], rule["permission_set_name"], "permission_set"
-            )
+            rule["principal_id"] = validate_aws_resource(rule["rule_number"], rule["principal_name"], rule["principal_type"])
+            rule["permission_set_arn"] = validate_aws_resource(rule["rule_number"], rule["permission_set_name"], "permission_set")
             if not (rule["principal_id"] and rule["permission_set_arn"]):
                 continue
 
-            valid_target_names = [
-                name
-                for name in rule["target_names"]
-                if validate_aws_resource(rule["rule_number"], name, rule["target_type"])
-            ]
+            valid_target_names = [name for name in rule["target_names"] if validate_aws_resource(rule["rule_number"], name, rule["target_type"])]
 
             if rule["target_type"] == OU_TARGET_TYPE_LABEL:
                 for target in valid_target_names:

@@ -57,9 +57,7 @@ def convert_list_to_dict(obj_list: list, key_attr: str) -> dict:
     return result_dict
 
 
-def convert_specific_keys_to_uppercase(
-    item: dict = None, keys_to_uppercase: list = None
-) -> dict:
+def convert_specific_keys_to_uppercase(item: dict = None, keys_to_uppercase: list = None) -> dict:
     """
     Recursively traverse a dictionary and convert the values of specific keys to uppercase.
 
@@ -89,17 +87,9 @@ def convert_specific_keys_to_uppercase(
                     if isinstance(item, dict):
                         processed_data[key].append(process_dict(item))
                     else:
-                        processed_data[key].append(
-                            value.upper()
-                            if key in keys_to_uppercase and isinstance(item, str)
-                            else item
-                        )
+                        processed_data[key].append(value.upper() if key in keys_to_uppercase and isinstance(item, str) else item)
             else:
-                processed_data[key] = (
-                    value.upper()
-                    if (key in keys_to_uppercase and isinstance(value, str))
-                    else value
-                )
+                processed_data[key] = value.upper() if (key in keys_to_uppercase and isinstance(value, str)) else value
         return processed_data
 
     return process_dict(item)
@@ -131,6 +121,4 @@ def load_file(filepath: str) -> dict:
         with open(filepath, "r", encoding="utf-8") as file:
             return json.load(file)
     else:
-        raise ValueError(
-            "Unsupported file format. Only .yaml, .yml, and .json are supported."
-        )
+        raise ValueError("Unsupported file format. Only .yaml, .yml, and .json are supported.")

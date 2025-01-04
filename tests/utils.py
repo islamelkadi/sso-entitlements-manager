@@ -19,11 +19,7 @@ def get_ignore_accounts(manifest_file, ou_map) -> Set[str]:
     ignore_accounts.update(manifest_file.excluded_account_names)
     for ou_name in manifest_file.excluded_ou_names:
         if ou_name in ou_map:
-            ignore_accounts.update(
-                account["name"]
-                for account in ou_map[ou_name]["children"]
-                if account["type"] == "ACCOUNT"
-            )
+            ignore_accounts.update(account["name"] for account in ou_map[ou_name]["children"] if account["type"] == "ACCOUNT")
     return ignore_accounts
 
 
@@ -127,31 +123,21 @@ def generate_expected_account_assignments(
     expected_assignments = []
     rbac_rules = manifest_file.get("rbac_rules", [])
     for rule in rbac_rules:
-        if (
-            rule["principal_type"] == "USER"
-            and rule["principal_name"] not in sso_users_map
-        ):
+        if rule["principal_type"] == "USER" and rule["principal_name"] not in sso_users_map:
             continue
 
-        if (
-            rule["principal_type"] == "GROUP"
-            and rule["principal_name"] not in sso_groups_map
-        ):
+        if rule["principal_type"] == "GROUP" and rule["principal_name"] not in sso_groups_map:
             continue
 
         if rule["permission_set_name"] not in sso_permission_sets:
             continue
 
         target_names = rule.get("target_names", [])
-        valid_targets = generate_valid_targets(
-            rule, target_names, valid_accounts, ou_map
-        )
+        valid_targets = generate_valid_targets(rule, target_names, valid_accounts, ou_map)
 
         for target in valid_targets:
             target_assignment_item = {
-                "PrincipalId": sso_users_map[rule["principal_name"]]
-                if rule["principal_type"] == "USER"
-                else sso_groups_map[rule["principal_name"]],
+                "PrincipalId": sso_users_map[rule["principal_name"]] if rule["principal_type"] == "USER" else sso_groups_map[rule["principal_name"]],
                 "PrincipalType": rule["principal_type"],
                 "PermissionSetArn": sso_permission_sets[rule["permission_set_name"]],
                 "TargetId": target,

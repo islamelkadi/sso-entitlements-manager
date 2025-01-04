@@ -118,9 +118,7 @@ class AccessManifestReader:
         """
         self._schema_definition = load_file(self.schema_definition_filepath)
         manifest_data = load_file(self.manifest_definition_filepath)
-        self._manifest_definition = convert_specific_keys_to_uppercase(
-            manifest_data, self._manifest_file_keys_to_uppercase
-        )
+        self._manifest_definition = convert_specific_keys_to_uppercase(manifest_data, self._manifest_file_keys_to_uppercase)
 
     def _validate_sso_manifest_file(self) -> None:
         """
@@ -134,9 +132,7 @@ class AccessManifestReader:
         jsonschema.ValidationError: If the manifest is not valid according to the schema.
         """
         try:
-            jsonschema.validate(
-                instance=self._manifest_definition, schema=self._schema_definition
-            )
+            jsonschema.validate(instance=self._manifest_definition, schema=self._schema_definition)
         except jsonschema.ValidationError as e:
             raise jsonschema.ValidationError(f"Validation error: {e.message}")
 

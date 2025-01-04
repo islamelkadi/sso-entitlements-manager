@@ -25,19 +25,11 @@ MANIFEST_SCHEMA_DEFINITION_FILEPATH = os.path.join(
 
 
 # Dynamic generation of filenames
-VALID_MANIFEST_DEFINITION_FILES_PATH = os.path.join(
-    CWD, "manifests", "valid_schema", "*.yaml"
-)
-VALID_MANIFEST_DEFINITION_FILES = [
-    os.path.abspath(x) for x in glob.glob(VALID_MANIFEST_DEFINITION_FILES_PATH)
-]
+VALID_MANIFEST_DEFINITION_FILES_PATH = os.path.join(CWD, "..", "configs", "manifests", "valid_schema", "*.yaml")
+VALID_MANIFEST_DEFINITION_FILES = [os.path.abspath(x) for x in glob.glob(VALID_MANIFEST_DEFINITION_FILES_PATH)]
 
-INVALID_MANIFEST_DEFINITION_FILES_PATH = os.path.join(
-    CWD, "manifests", "invalid_schema", "*.yaml"
-)
-INVALID_MANIFEST_DEFINITION_FILES = [
-    os.path.abspath(x) for x in glob.glob(INVALID_MANIFEST_DEFINITION_FILES_PATH)
-]
+INVALID_MANIFEST_DEFINITION_FILES_PATH = os.path.join(CWD, "..", "configs", "manifests", "invalid_schema", "*.yaml")
+INVALID_MANIFEST_DEFINITION_FILES = [os.path.abspath(x) for x in glob.glob(INVALID_MANIFEST_DEFINITION_FILES_PATH)]
 
 
 # Test cases
@@ -67,9 +59,7 @@ def test_rules_invalid_manifest_schema(manifest_filename: str) -> None:
             "schema_definition_filepath",
             MANIFEST_SCHEMA_DEFINITION_FILEPATH,
         )
-        setattr(
-            access_manifest_reader, "manifest_definition_filepath", manifest_filename
-        )
+        setattr(access_manifest_reader, "manifest_definition_filepath", manifest_filename)
         access_manifest_reader.run_access_manifest_reader()
 
 
@@ -96,40 +86,17 @@ def test_rules_valid_manifest_schema(manifest_filename: str) -> None:
 
     # Extract excluded lists from the manifest loaded via local
     def get_excluded_names(manifest, target_type):
-        return [
-            name
-            for item in manifest.get("ignore", [])
-            if item["target_type"] == target_type
-            for name in item.get("target_names", [])
-        ]
+        return [name for item in manifest.get("ignore", []) if item["target_type"] == target_type for name in item.get("target_names", [])]
 
     excluded_ou_names_local = get_excluded_names(manifest_file_via_local, "OU")
-    excluded_account_names_local = get_excluded_names(
-        manifest_file_via_local, "ACCOUNT"
-    )
+    excluded_account_names_local = get_excluded_names(manifest_file_via_local, "ACCOUNT")
     excluded_sso_user_names_local = get_excluded_names(manifest_file_via_local, "USER")
-    excluded_sso_group_names_local = get_excluded_names(
-        manifest_file_via_local, "GROUP"
-    )
-    excluded_permission_set_names_local = get_excluded_names(
-        manifest_file_via_local, "PERMISSION_SET"
-    )
+    excluded_sso_group_names_local = get_excluded_names(manifest_file_via_local, "GROUP")
+    excluded_permission_set_names_local = get_excluded_names(manifest_file_via_local, "PERMISSION_SET")
 
     # Assert
-    assert (
-        manifest_file_via_class.excluded_ou_names == excluded_ou_names_local
-    ), "excluded_ou_names do not match"
-    assert (
-        manifest_file_via_class.excluded_account_names == excluded_account_names_local
-    ), "excluded_account_names do not match"
-    assert (
-        manifest_file_via_class.excluded_sso_user_names == excluded_sso_user_names_local
-    ), "excluded_sso_user_names do not match"
-    assert (
-        manifest_file_via_class.excluded_sso_group_names
-        == excluded_sso_group_names_local
-    ), "excluded_sso_group_names do not match"
-    assert (
-        manifest_file_via_class.excluded_permission_set_names
-        == excluded_permission_set_names_local
-    ), "excluded_permission_set_names do not match"
+    assert manifest_file_via_class.excluded_ou_names == excluded_ou_names_local, "excluded_ou_names do not match"
+    assert manifest_file_via_class.excluded_account_names == excluded_account_names_local, "excluded_account_names do not match"
+    assert manifest_file_via_class.excluded_sso_user_names == excluded_sso_user_names_local, "excluded_sso_user_names do not match"
+    assert manifest_file_via_class.excluded_sso_group_names == excluded_sso_group_names_local, "excluded_sso_group_names do not match"
+    assert manifest_file_via_class.excluded_permission_set_names == excluded_permission_set_names_local, "excluded_permission_set_names do not match"

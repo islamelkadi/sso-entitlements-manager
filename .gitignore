@@ -1,6 +1,7 @@
 **build
 **.aws-sam
 **.DS_STORE
+**.DS_Store
 src/layers/python/utils/**
 **__pycache__
 **venv

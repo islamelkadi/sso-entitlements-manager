@@ -26,23 +26,13 @@ from tests.utils import generate_expected_account_assignments
 # Globals vars
 CWD = os.path.dirname(os.path.realpath(__file__))
 
-PRE_TEST_ACCOUNT_ASSIGNMENT_PERCENTAGES = [
-    round(i * 0.2, 2) for i in range(6)
-]  # 20% increments
+PRE_TEST_ACCOUNT_ASSIGNMENT_PERCENTAGES = [round(i * 0.2, 2) for i in range(6)]  # 20% increments
 
-AWS_ORG_DEFINITIONS_FILES_PATH = os.path.join(
-    CWD, "..", "configs", "organizations", "*.json"
-)
-AWS_ORG_DEFINITION_FILES = [
-    os.path.basename(x) for x in glob.glob(AWS_ORG_DEFINITIONS_FILES_PATH)
-]
+AWS_ORG_DEFINITIONS_FILES_PATH = os.path.join(CWD, "..", "configs", "organizations", "*.json")
+AWS_ORG_DEFINITION_FILES = [os.path.basename(x) for x in glob.glob(AWS_ORG_DEFINITIONS_FILES_PATH)]
 
-VALID_MANIFEST_DEFINITION_FILES_PATH = os.path.join(
-    CWD, "manifests", "valid_schema", "*.yaml"
-)
-VALID_MANIFEST_DEFINITION_FILES = [
-    os.path.abspath(x) for x in glob.glob(VALID_MANIFEST_DEFINITION_FILES_PATH)
-]
+VALID_MANIFEST_DEFINITION_FILES_PATH = os.path.join(CWD, "..", "configs", "manifests", "valid_schema", "*.yaml")
+VALID_MANIFEST_DEFINITION_FILES = [os.path.abspath(x) for x in glob.glob(VALID_MANIFEST_DEFINITION_FILES_PATH)]
 
 
 @pytest.mark.parametrize(
@@ -74,9 +64,7 @@ def test_create_account_assignments(
     Asserts:
         Verifies that the assignments created match the expected assignments.
     """
-    sort_keys = operator.itemgetter(
-        "PermissionSetArn", "PrincipalType", "PrincipalId", "TargetId"
-    )
+    sort_keys = operator.itemgetter("PermissionSetArn", "PrincipalType", "PrincipalId", "TargetId")
     manifest_file = load_file(manifest_filename)
     rbac_rules = manifest_file.get("rbac_rules", [])
 
@@ -93,9 +81,7 @@ def test_create_account_assignments(
     expected_account_assignments.sort(key=sort_keys)
 
     # Create expected account assignments
-    upper_bound_range = int(
-        len(expected_account_assignments) * account_assignment_range
-    )
+    upper_bound_range = int(len(expected_account_assignments) * account_assignment_range)
     existing_account_assignments = expected_account_assignments[0:upper_bound_range]
     for assignment in existing_account_assignments:
         sso_admin_client.create_account_assignment(**assignment)
@@ -131,9 +117,7 @@ def test_create_account_assignments(
     identity_center_manager.run_access_control_resolver()
 
     # Assert
-    assert expected_account_assignments[upper_bound_range:] == sorted(
-        identity_center_manager.assignments_to_create, key=sort_keys
-    )
+    assert expected_account_assignments[upper_bound_range:] == sorted(identity_center_manager.assignments_to_create, key=sort_keys)
 
 
 @pytest.mark.parametrize(
@@ -157,9 +141,7 @@ def test_delete_account_assignments(
     Asserts:
         Verifies that the assignments to be deleted match the expected assignments to delete.
     """
-    sort_keys = operator.itemgetter(
-        "PermissionSetArn", "PrincipalType", "PrincipalId", "TargetId"
-    )
+    sort_keys = operator.itemgetter("PermissionSetArn", "PrincipalType", "PrincipalId", "TargetId")
     manifest_file = load_file(manifest_filename)
     rbac_rules = manifest_file.get("rbac_rules", [])
 
@@ -174,9 +156,7 @@ def test_delete_account_assignments(
         setup_mock_aws_environment["sso_permission_set_name_id_map"],
     )
 
-    def create_assignments(
-        principal_ids: List[str], principal_type: str
-    ) -> List[Dict[str, Any]]:
+    def create_assignments(principal_ids: List[str], principal_type: str) -> List[Dict[str, Any]]:
         """
         Creates account assignments for the given principal IDs and principal type.
 
@@ -188,11 +168,7 @@ def test_delete_account_assignments(
             List[Dict[str, Any]]: List of created account assignments.
         """
         assignments = []
-        assignments_to_create = list(
-            itertools.product(
-                principal_ids, [principal_type], sso_permission_set_ids, account_ids
-            )
-        )
+        assignments_to_create = list(itertools.product(principal_ids, [principal_type], sso_permission_set_ids, account_ids))
 
         def create_single_assignment(assignment):
             sso_admin_client.create_account_assignment(
@@ -213,16 +189,12 @@ def test_delete_account_assignments(
             }
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            assignments = list(
-                executor.map(create_single_assignment, assignments_to_create)
-            )
+            assignments = list(executor.map(create_single_assignment, assignments_to_create))
 
         return assignments
 
     # Create SSO user and group assignments
-    sso_permission_set_ids = setup_mock_aws_environment[
-        "sso_permission_set_name_id_map"
-    ].values()
+    sso_permission_set_ids = setup_mock_aws_environment["sso_permission_set_name_id_map"].values()
     account_ids = setup_mock_aws_environment["account_name_id_map"].values()
 
     sso_user_ids = setup_mock_aws_environment["sso_username_id_map"].values()
@@ -262,14 +234,8 @@ def test_delete_account_assignments(
     identity_center_manager.run_access_control_resolver()
 
     # Assert
-    assignments_to_delete = list(
-        itertools.filterfalse(
-            lambda i: i in expected_account_assignments, current_account_assignments
-        )
-    )
-    assert sorted(assignments_to_delete, key=sort_keys) == sorted(
-        identity_center_manager.assignments_to_delete, key=sort_keys
-    )
+    assignments_to_delete = list(itertools.filterfalse(lambda i: i in expected_account_assignments, current_account_assignments))
+    assert sorted(assignments_to_delete, key=sort_keys) == sorted(identity_center_manager.assignments_to_delete, key=sort_keys)
 
 
 @pytest.mark.parametrize(
@@ -277,9 +243,7 @@ def test_delete_account_assignments(
     list(itertools.product(AWS_ORG_DEFINITION_FILES, VALID_MANIFEST_DEFINITION_FILES)),
     indirect=["setup_mock_aws_environment"],
 )
-def test_generate_invalid_assignments_report(
-    setup_mock_aws_environment: pytest.fixture, manifest_filename: str
-) -> None:
+def test_generate_invalid_assignments_report(setup_mock_aws_environment: pytest.fixture, manifest_filename: str) -> None:
     """
     Test the generation of a report for invalid account assignments based on the provided manifest file and setup environment.
 
@@ -328,11 +292,7 @@ def test_generate_invalid_assignments_report(
     invalid_assignments = []
     for i, rule in enumerate(rbac_rules):
         # Check target names
-        target_reference = (
-            list(setup_mock_aws_environment["ou_accounts_map"].keys())
-            if rule["target_type"] == "OU"
-            else setup_mock_aws_environment["account_name_id_map"].keys()
-        )
+        target_reference = list(setup_mock_aws_environment["ou_accounts_map"].keys()) if rule["target_type"] == "OU" else setup_mock_aws_environment["account_name_id_map"].keys()
         for target_name in rule["target_names"]:
             if target_name not in target_reference:
                 invalid_assignments.append(
@@ -344,11 +304,7 @@ def test_generate_invalid_assignments_report(
                 )
 
         # Check principal name
-        target_reference = (
-            setup_mock_aws_environment["sso_group_name_id_map"].keys()
-            if rule["principal_type"] == "GROUP"
-            else setup_mock_aws_environment["sso_username_id_map"]
-        )
+        target_reference = setup_mock_aws_environment["sso_group_name_id_map"].keys() if rule["principal_type"] == "GROUP" else setup_mock_aws_environment["sso_username_id_map"]
         if rule["principal_name"] not in target_reference:
             invalid_assignments.append(
                 {
@@ -359,10 +315,7 @@ def test_generate_invalid_assignments_report(
             )
 
         # Check permission set name
-        if (
-            rule["permission_set_name"]
-            not in setup_mock_aws_environment["sso_permission_set_name_id_map"]
-        ):
+        if rule["permission_set_name"] not in setup_mock_aws_environment["sso_permission_set_name_id_map"]:
             invalid_assignments.append(
                 {
                     "rule_number": i,
@@ -372,6 +325,4 @@ def test_generate_invalid_assignments_report(
             )
 
     # Assert
-    assert sorted(invalid_assignments, key=sort_keys) == sorted(
-        identity_center_manager.invalid_manifest_rules_report, key=sort_keys
-    )
+    assert sorted(invalid_assignments, key=sort_keys) == sorted(identity_center_manager.invalid_manifest_rules_report, key=sort_keys)
