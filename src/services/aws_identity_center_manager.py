@@ -231,12 +231,11 @@ class AwsIdentityCenterManager:
                     target_id = self.account_name_id_map[target]
                     add_unique_assignment(target_id)
 
-    def _execute_rbac_assignments(self) -> None:
+    def _generate_rbac_assignments(self) -> None:
         """
         Executes the RBAC assignments by creating and deleting account assignments as necessary.
         """
 
-        self.assignments_to_create = []
         assignments_to_create = list(
             itertools.filterfalse(
                 lambda i: i in self._current_account_assignments,
@@ -245,9 +244,7 @@ class AwsIdentityCenterManager:
         )
         for assignment in assignments_to_create:
             self.assignments_to_create.append(assignment)
-            self._sso_admin_client.create_account_assignment(**assignment)
 
-        self.assignments_to_delete = []
         assignments_to_delete = list(
             itertools.filterfalse(
                 lambda i: i in self._local_account_assignments,
@@ -256,6 +253,16 @@ class AwsIdentityCenterManager:
         )
         for assignment in assignments_to_delete:
             self.assignments_to_delete.append(assignment)
+
+    def _execute_rbac_assignments(self) -> None:
+        """
+        Executes the RBAC assignments by creating and deleting account assignments as necessary.
+        """
+
+        for assignment in self.assignments_to_create:
+            self._sso_admin_client.create_account_assignment(**assignment)
+
+        for assignment in self.assignments_to_delete:
             self._sso_admin_client.delete_account_assignment(**assignment)
 
     def run_access_control_resolver(self) -> None:
@@ -271,4 +278,6 @@ class AwsIdentityCenterManager:
         self._list_current_account_assignments()
         self._generate_rbac_assignments()
         self._generate_invalid_assignments_report()
-        self._execute_rbac_assignments()
+        self._generate_rbac_assignments()
+        if not self.is_dry_run:
+            self._execute_rbac_assignments()

@@ -12,8 +12,6 @@ Modules and Classes Used:
 - AwsIdentityCenterManager: Manages Identity Center assignments and RBAC rules.
 """
 
-import os
-from pathlib import Path
 import typer
 from src.services.access_manifest_file_reader import AccessManifestReader
 from src.services.aws_organizations_mapper import AwsOrganizationsMapper
@@ -22,14 +20,11 @@ from src.services.aws_identity_center_manager import AwsIdentityCenterManager
 # Initialize Typer app
 app = typer.Typer(help="AWS SSO Access Management CLI", add_completion=False)
 
-# Globals
-MANIFEST_FILE_S3_LOCATION = os.getenv("MANIFEST_FILE_S3_LOCATION")
-
 
 @app.callback(invoke_without_command=True)
 def main(
-    manifest_file_path: Path = typer.Option(..., "--manifest", "-m", help="Local path to the manifest file", exists=True, file_okay=True, dir_okay=False, resolve_path=True),
-    manifest_schema_path: Path = typer.Option(..., "--schema", "-s", help="Local path to the manifest schema file", exists=True, file_okay=True, dir_okay=False, resolve_path=True),
+    manifest_file_path: str = typer.Option(..., "--manifest", "-m", help="Local path to the manifest file", exists=True, file_okay=True, dir_okay=False, resolve_path=True),
+    manifest_schema_path: str = typer.Option(..., "--schema", "-s", help="Local path to the manifest schema file", exists=True, file_okay=True, dir_okay=False, resolve_path=True),
     dry_run: bool = typer.Option(False, "--dry-run", "-d", help="Run in dry-run mode without making any changes", is_flag=True),
 ) -> dict:
     """Process AWS SSO access management based on manifest file."""
