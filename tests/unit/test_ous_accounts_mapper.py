@@ -14,7 +14,7 @@ import itertools
 from typing import List
 import boto3
 import pytest
-from src.services.aws_organizations_mapper import AwsOrganizationsMapper
+from src.services.aws.aws_organizations_mapper import AwsOrganizationsMapper
 
 
 @pytest.mark.parametrize(

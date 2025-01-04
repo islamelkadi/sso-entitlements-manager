@@ -20,7 +20,7 @@ from typing import Dict, List, Any
 
 import pytest
 from src.core.utils import load_file
-from src.services.aws_identity_center_manager import AwsIdentityCenterManager
+from src.services.aws.aws_identity_center_manager import AwsIdentityCenterManager
 from tests.utils import generate_expected_account_assignments
 
 # Globals vars

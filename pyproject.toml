@@ -20,6 +20,7 @@ jsonschema = "4.22.0"
 boto3 = "1.34.136"
 PyYAML = "6.0.2"
 typer = "0.15.1"
+tqdm = "4.67.1"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "3.7.0"  # Updated to latest version

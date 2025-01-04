@@ -10,7 +10,7 @@ import glob
 import pytest
 import jsonschema
 from src.core.utils import load_file
-from src.services.access_manifest_file_reader import AccessManifestReader
+from src.services.aws.access_manifest_file_reader import AccessManifestReader
 
 # Constants
 CWD = os.path.dirname(os.path.realpath(__file__))
