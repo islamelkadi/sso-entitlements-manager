@@ -23,10 +23,10 @@ app = typer.Typer(help="AWS SSO Access Management CLI", add_completion=False)
 
 @app.callback(invoke_without_command=True)
 def main(
-    manifest_file_path: str = typer.Option(..., "--manifest", "-m", help="Local path to the manifest file", exists=True, file_okay=True, dir_okay=False, resolve_path=True),
-    manifest_schema_path: str = typer.Option(..., "--schema", "-s", help="Local path to the manifest schema file", exists=True, file_okay=True, dir_okay=False, resolve_path=True),
+    manifest_file_path: str = typer.Option(..., "--manifest-filepath", "-m", help="Local path to the manifest file", exists=True, file_okay=True, dir_okay=False, resolve_path=True),
+    manifest_schema_path: str = typer.Option(..., "--schema-filepath", "-s", help="Local path to the manifest schema file", exists=True, file_okay=True, dir_okay=False, resolve_path=True),
     dry_run: bool = typer.Option(False, "--dry-run", "-d", help="Run in dry-run mode without making any changes", is_flag=True),
-) -> dict:
+):
     """Process AWS SSO access management based on manifest file."""
 
     # Process manifest file
@@ -51,14 +51,6 @@ def main(
     identity_center_manager.account_name_id_map = aws_org.account_name_id_map
     identity_center_manager.ou_accounts_map = aws_org.ou_accounts_map
     identity_center_manager.run_access_control_resolver()
-
-    results = {
-        "created": identity_center_manager.assignments_to_create,
-        "deleted": identity_center_manager.assignments_to_delete,
-        "invalid": identity_center_manager.invalid_manifest_rules_report,
-    }
-
-    return results
 
 
 if __name__ == "__main__":

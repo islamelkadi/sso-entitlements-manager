@@ -22,6 +22,7 @@ class AwsIdentityCenterManager:
         Args:
             identity_store_arn (str): The ARN of the AWS Identity Store.
         """
+        self.is_dry_run = False
         self.rbac_rules = []
         self.exclude_sso_users = []
         self.exclude_sso_groups = []
