@@ -52,6 +52,14 @@ def main(
     identity_center_manager.ou_accounts_map = aws_org.ou_accounts_map
     identity_center_manager.run_access_control_resolver()
 
+    results = {
+        "created": identity_center_manager.assignments_to_create,
+        "deleted": identity_center_manager.assignments_to_delete,
+        "invalid": identity_center_manager.invalid_manifest_rules_report,
+    }
+
+    return results
+
 
 if __name__ == "__main__":
     app()

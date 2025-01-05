@@ -187,14 +187,14 @@ def test_main(
     from src.cli import sso  # pylint: disable=C0415
 
     importlib.reload(sso)
-    lambda_response = sso.main(
+
+    cli_results = sso.main(
         manifest_filepath,
         MANIFEST_SCHEMA_DEFINITION_FILEPATH,
-        True,
     )
 
-    assert expected_account_assignments[upper_bound_range:] == sorted(lambda_response["created"], key=created_assignments_sort_keys)
-    assert sorted(invalid_assignments, key=invalid_assignments_report_sort_keys) == sorted(lambda_response["invalid"], key=invalid_assignments_report_sort_keys)
+    assert expected_account_assignments[upper_bound_range:] == sorted(cli_results["created"], key=created_assignments_sort_keys)
+    assert sorted(invalid_assignments, key=invalid_assignments_report_sort_keys) == sorted(cli_results["invalid"], key=invalid_assignments_report_sort_keys)
 
 
 @pytest.mark.parametrize(
@@ -260,11 +260,11 @@ def test_delete(
     from src.cli import sso  # pylint: disable=C0415
 
     importlib.reload(sso)
-    lambda_response = sso.main(
+
+    cli_results = sso.main(
         manifest_filepath,
         MANIFEST_SCHEMA_DEFINITION_FILEPATH,
-        True,
     )
 
     assignments_to_delete = list(itertools.filterfalse(lambda i: i in expected_account_assignments, current_account_assignments))
-    assert sorted(assignments_to_delete, key=sort_keys) == sorted(lambda_response["deleted"], key=sort_keys)
+    assert sorted(assignments_to_delete, key=sort_keys) == sorted(cli_results["deleted"], key=sort_keys)
