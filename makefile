@@ -24,25 +24,22 @@ dev-env:
 .PHONY: unittest
 unittest:
 	@echo "Generating coverage report"
-	@pytest --cov=tests/unit/ --cov-report=xml:coverage.xml
+	@poetry run pytest --cov=tests/unit/ --cov-report=xml:coverage.xml
 
 # Formatting & Linting
 .PHONY: format
 format:
 	@echo "Running python formatting"
-	@black $(sources) --safe --line-length 250
+	@poetry run black $(sources) --safe --line-length 250
 
 	@echo "Running python linter"
-	@pylint $(sources)
+	@poetry run pylint $(sources)
 
 # Build lambda
 .PHONY: build-backend
 build-backend: env
 	@echo "Creating requirements.txt file"
-	@pip install . && pip freeze > ./src/app/requirements.txt
-
-	@echo "Cleaning up requirements.txt file"
-	@sed -i '' '/@ file:\/\//d' ./src/app/requirements.txt
+	@poetry export -f requirements.txt --output ./src/app/requirements.txt
 
 	@echo "Building lambdas"
 	@chmod +x ./tools/sam_build.sh
@@ -77,7 +74,7 @@ cfn-deploy: cfn-package
 .PHONY: cleanup
 cleanup:
 	@echo "Remove Python Debris"
-	@pyclean . --debris --verbose
+	@poetry run pyclean . --debris --verbose
 
-	@echo "Remove editable install artifacts"
-	@rm -rf *.egg-info
+	@echo "Remove Poetry artifacts"
+	@rm -rf .pytest_cache .coverage coverage.xml
