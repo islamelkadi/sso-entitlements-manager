@@ -6,12 +6,7 @@ control assignments based on ingested customer manifest file.
 import itertools
 from typing import Optional
 import boto3
-from src.core.constants import (
-    OU_TARGET_TYPE_LABEL,
-    ACCOUNT_TARGET_TYPE_LABEL,
-    USER_PRINCIPAL_TYPE_LABEL,
-    GROUP_PRINCIPAL_TYPE_LABEL,
-)
+from src.core.constants import OU_TARGET_TYPE_LABEL, ACCOUNT_TARGET_TYPE_LABEL, USER_PRINCIPAL_TYPE_LABEL, GROUP_PRINCIPAL_TYPE_LABEL
 
 
 class AwsIdentityCenterManager:
@@ -23,8 +18,10 @@ class AwsIdentityCenterManager:
     def __init__(self) -> None:
         """
         Initializes AwsAccessControlResolver with the provided identity store ARN.
+
+        Args:
+            identity_store_arn (str): The ARN of the AWS Identity Store.
         """
-        self.is_dry_run = False
         self.rbac_rules = []
         self.exclude_sso_users = []
         self.exclude_sso_groups = []
@@ -42,16 +39,6 @@ class AwsIdentityCenterManager:
 
         self._sso_admin_client = boto3.client("sso-admin")
         self._identity_store_client = boto3.client("identitystore")
-
-        # Initialize attributes that were previously defined outside __init__
-        self.identity_store_id: str = None
-        self.identity_store_arn: str = None
-        self.sso_groups: dict = {}
-        self.sso_users: dict = {}
-        self.permission_sets: dict = {}
-        self.invalid_manifest_rules_report: list = []
-        self.assignments_to_create: list = []
-        self.assignments_to_delete: list = []
 
     def _describe_identity_center_instance(self) -> None:
         iam_identity_center_details = self._sso_admin_client.list_instances()["Instances"][0]
@@ -111,19 +98,12 @@ class AwsIdentityCenterManager:
         """
         Lists the current account assignments for the principals in the identity store.
         """
-        principal_type_map = {
-            "USER": self.sso_users.values(),
-            "GROUP": self.sso_groups.values(),
-        }
+        principal_type_map = {"USER": self.sso_users.values(), "GROUP": self.sso_groups.values()}
         principal_assignments_paginator = self._sso_admin_client.get_paginator("list_account_assignments_for_principal")
 
         for principal_type, principals in principal_type_map.items():
             for principal_id in principals:
-                assignments_iterator = principal_assignments_paginator.paginate(
-                    PrincipalId=principal_id,
-                    InstanceArn=self.identity_store_arn,
-                    PrincipalType=principal_type,
-                )
+                assignments_iterator = principal_assignments_paginator.paginate(PrincipalId=principal_id, InstanceArn=self.identity_store_arn, PrincipalType=principal_type)
                 for page in assignments_iterator:
                     self._current_account_assignments.extend(page["AccountAssignments"])
 
@@ -158,26 +138,11 @@ class AwsIdentityCenterManager:
                 Optional[str]: The resource ID if valid, None otherwise.
             """
             resource_maps = {
-                OU_TARGET_TYPE_LABEL: (
-                    self.ou_accounts_map,
-                    self._invalid_manifest_file_ou_names,
-                ),
-                ACCOUNT_TARGET_TYPE_LABEL: (
-                    self.account_name_id_map,
-                    self._invalid_manifest_file_account_names,
-                ),
-                GROUP_PRINCIPAL_TYPE_LABEL: (
-                    self.sso_groups,
-                    self._invalid_manifest_file_group_names,
-                ),
-                USER_PRINCIPAL_TYPE_LABEL: (
-                    self.sso_users,
-                    self._invalid_manifest_file_user_names,
-                ),
-                "permission_set": (
-                    self.permission_sets,
-                    self._invalid_manifest_file_permission_sets,
-                ),
+                OU_TARGET_TYPE_LABEL: (self.ou_accounts_map, self._invalid_manifest_file_ou_names),
+                ACCOUNT_TARGET_TYPE_LABEL: (self.account_name_id_map, self._invalid_manifest_file_account_names),
+                GROUP_PRINCIPAL_TYPE_LABEL: (self.sso_groups, self._invalid_manifest_file_group_names),
+                USER_PRINCIPAL_TYPE_LABEL: (self.sso_users, self._invalid_manifest_file_user_names),
+                "permission_set": (self.permission_sets, self._invalid_manifest_file_permission_sets),
             }
 
             resource_map, invalid_set = resource_maps[resource_type]
@@ -200,14 +165,7 @@ class AwsIdentityCenterManager:
             Args:
                 target_id (str): The target ID for the assignment.
             """
-            assignment = {
-                "TargetId": target_id,
-                "TargetType": "AWS_ACCOUNT",
-                "PrincipalId": rule["principal_id"],
-                "PrincipalType": rule["principal_type"],
-                "PermissionSetArn": rule["permission_set_arn"],
-                "InstanceArn": self.identity_store_arn,
-            }
+            assignment = {"TargetId": target_id, "TargetType": "AWS_ACCOUNT", "PrincipalId": rule["principal_id"], "PrincipalType": rule["principal_type"], "PermissionSetArn": rule["permission_set_arn"], "InstanceArn": self.identity_store_arn}
 
             if assignment not in self._local_account_assignments:
                 self._local_account_assignments.append(assignment)
@@ -231,38 +189,21 @@ class AwsIdentityCenterManager:
                     target_id = self.account_name_id_map[target]
                     add_unique_assignment(target_id)
 
-    def _generate_rbac_assignments(self) -> None:
-        """
-        Executes the RBAC assignments by creating and deleting account assignments as necessary.
-        """
-
-        assignments_to_create = list(
-            itertools.filterfalse(
-                lambda i: i in self._current_account_assignments,
-                self._local_account_assignments,
-            )
-        )
-        for assignment in assignments_to_create:
-            self.assignments_to_create.append(assignment)
-
-        assignments_to_delete = list(
-            itertools.filterfalse(
-                lambda i: i in self._local_account_assignments,
-                self._current_account_assignments,
-            )
-        )
-        for assignment in assignments_to_delete:
-            self.assignments_to_delete.append(assignment)
-
     def _execute_rbac_assignments(self) -> None:
         """
         Executes the RBAC assignments by creating and deleting account assignments as necessary.
         """
 
-        for assignment in self.assignments_to_create:
+        self.assignments_to_create = []
+        assignments_to_create = list(itertools.filterfalse(lambda i: i in self._current_account_assignments, self._local_account_assignments))
+        for assignment in assignments_to_create:
+            self.assignments_to_create.append(assignment)
             self._sso_admin_client.create_account_assignment(**assignment)
 
-        for assignment in self.assignments_to_delete:
+        self.assignments_to_delete = []
+        assignments_to_delete = list(itertools.filterfalse(lambda i: i in self._local_account_assignments, self._current_account_assignments))
+        for assignment in assignments_to_delete:
+            self.assignments_to_delete.append(assignment)
             self._sso_admin_client.delete_account_assignment(**assignment)
 
     def run_access_control_resolver(self) -> None:
@@ -278,6 +219,4 @@ class AwsIdentityCenterManager:
         self._list_current_account_assignments()
         self._generate_rbac_assignments()
         self._generate_invalid_assignments_report()
-        self._generate_rbac_assignments()
-        if not self.is_dry_run:
-            self._execute_rbac_assignments()
+        self._execute_rbac_assignments()

@@ -32,21 +32,13 @@ AccessManifestReader
         Validates the manifest against the schema.
     _generate_excluded_targets_lists() -> None
         Creates lists of excluded OUs, account names, user principals, group principals, and permission sets.
-    run_access_manifest_reader() -> None
-        Executes the workflow to load, validate, and process the manifest file.
     rbac_rules() -> list
         Returns the RBAC rules from the manifest.
 """
 
 import jsonschema
 from src.core.utils import load_file, convert_specific_keys_to_uppercase
-from src.core.constants import (
-    OU_TARGET_TYPE_LABEL,
-    ACCOUNT_TARGET_TYPE_LABEL,
-    USER_PRINCIPAL_TYPE_LABEL,
-    GROUP_PRINCIPAL_TYPE_LABEL,
-    PERMISSION_SET_TYPE_LABEL,
-)
+from src.core.constants import OU_TARGET_TYPE_LABEL, ACCOUNT_TARGET_TYPE_LABEL, USER_PRINCIPAL_TYPE_LABEL, GROUP_PRINCIPAL_TYPE_LABEL, PERMISSION_SET_TYPE_LABEL
 
 
 class AccessManifestReader:
@@ -94,8 +86,6 @@ class AccessManifestReader:
         manifest_file_s3_uri: str
             S3 URI of the manifest file.
         """
-        self._schema_definition = None
-        self._manifest_definition = None
         self.schema_definition_filepath = None
         self.manifest_definition_filepath = None
         self.excluded_ou_names = []
@@ -103,11 +93,7 @@ class AccessManifestReader:
         self.excluded_sso_user_names = []
         self.excluded_sso_group_names = []
         self.excluded_permission_set_names = []
-        self._manifest_file_keys_to_uppercase = [
-            "principal_type",
-            "target_type",
-            "exclude_target_type",
-        ]
+        self._manifest_file_keys_to_uppercase = ["principal_type", "target_type", "exclude_target_type"]
 
     def _load_sso_manifest_file(self) -> None:
         """
@@ -156,14 +142,6 @@ class AccessManifestReader:
             target_list.extend(item["target_names"])
 
     def run_access_manifest_reader(self) -> None:
-        """
-        Executes the workflow to load, validate, and process the manifest file.
-
-        This method performs the following steps:
-        1. Loads the manifest and schema files.
-        2. Validates the manifest against the schema.
-        3. Generates excluded targets lists from the manifest.
-        """
         self._load_sso_manifest_file()
         self._validate_sso_manifest_file()
         self._generate_excluded_targets_lists()

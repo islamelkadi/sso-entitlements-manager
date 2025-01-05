@@ -13,9 +13,9 @@ Modules and Classes Used:
 """
 
 import typer
-from src.services.access_manifest_file_reader import AccessManifestReader
-from src.services.aws_organizations_mapper import AwsOrganizationsMapper
-from src.services.aws_identity_center_manager import AwsIdentityCenterManager
+from src.services.aws.access_manifest_file_reader import AccessManifestReader
+from src.services.aws.aws_organizations_mapper import AwsOrganizationsMapper
+from src.services.aws.aws_identity_center_manager import AwsIdentityCenterManager
 
 # Initialize Typer app
 app = typer.Typer(help="AWS SSO Access Management CLI", add_completion=False)

@@ -24,16 +24,8 @@ from src.services.aws.aws_organizations_mapper import AwsOrganizationsMapper
         ("aws_org_1.json", ["suspended"], []),
         ("aws_org_1.json", ["suspended", "prod"], []),
         ("aws_org_1.json", [], ["workload_1_dev"]),
-        (
-            "aws_org_1.json",
-            [],
-            ["workload_1_dev", "workload_2_test", "workload_2_prod"],
-        ),
-        (
-            "aws_org_1.json",
-            ["suspended", "prod"],
-            ["workload_1_dev", "workload_2_test"],
-        ),
+        ("aws_org_1.json", [], ["workload_1_dev", "workload_2_test", "workload_2_prod"]),
+        ("aws_org_1.json", ["suspended", "prod"], ["workload_1_dev", "workload_2_test"]),
     ],
     indirect=["setup_mock_aws_environment"],
 )

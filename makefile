@@ -24,25 +24,29 @@ dev-env:
 .PHONY: unittest
 unittest:
 	@echo "Generating coverage report"
-	@poetry run pytest --cov=tests/unit/ --cov-report=xml:coverage.xml
+	@pytest --cov=tests/unit/ --cov-report=xml:coverage.xml
 
 # Formatting & Linting
 .PHONY: format
 format:
 	@echo "Running python formatting"
-	@poetry run black $(sources) --safe --line-length 250
+	@black $(sources) --safe --line-length 250
 
 	@echo "Running python linter"
-	@poetry run pylint $(sources)
+	@pylint $(sources)
 
 # Build lambda
 .PHONY: build-backend
-build-backend:
+build-backend: env
 	@echo "Creating requirements.txt file"
-	@poetry export -f requirements.txt --output ./src/app/requirements.txt
+	@pip install . && pip freeze > ./src/app/requirements.txt
 
 	@echo "Cleaning up requirements.txt file"
 	@sed -i '' '/@ file:\/\//d' ./src/app/requirements.txt
+
+	@echo "Building lambdas"
+	@chmod +x ./tools/sam_build.sh
+	@./tools/sam_build.sh -p ./src
 
 # Clouformation Packaging
 .PHONY: cfn-package
@@ -73,7 +77,7 @@ cfn-deploy: cfn-package
 .PHONY: cleanup
 cleanup:
 	@echo "Remove Python Debris"
-	@poetry run pyclean . --debris --verbose
+	@pyclean . --debris --verbose
 
-	@echo "Remove Poetry and build artifacts"
-	@rm -rf dist/ build/ .eggs/ *.egg-info .pytest_cache .coverage coverage.xml
+	@echo "Remove editable install artifacts"
+	@rm -rf *.egg-info

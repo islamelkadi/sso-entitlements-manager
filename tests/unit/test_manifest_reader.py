@@ -25,10 +25,10 @@ MANIFEST_SCHEMA_DEFINITION_FILEPATH = os.path.join(
 
 
 # Dynamic generation of filenames
-VALID_MANIFEST_DEFINITION_FILES_PATH = os.path.join(CWD, "..", "configs", "manifests", "valid_schema", "*.yaml")
+VALID_MANIFEST_DEFINITION_FILES_PATH = os.path.join(CWD, "..", "manifests", "valid_schema", "*.yaml")
 VALID_MANIFEST_DEFINITION_FILES = [os.path.abspath(x) for x in glob.glob(VALID_MANIFEST_DEFINITION_FILES_PATH)]
 
-INVALID_MANIFEST_DEFINITION_FILES_PATH = os.path.join(CWD, "..", "configs", "manifests", "invalid_schema", "*.yaml")
+INVALID_MANIFEST_DEFINITION_FILES_PATH = os.path.join(CWD, "..", "manifests", "invalid_schema", "*.yaml")
 INVALID_MANIFEST_DEFINITION_FILES = [os.path.abspath(x) for x in glob.glob(INVALID_MANIFEST_DEFINITION_FILES_PATH)]
 
 
@@ -54,11 +54,7 @@ def test_rules_invalid_manifest_schema(manifest_filename: str) -> None:
     with pytest.raises(jsonschema.ValidationError):
         # Act
         access_manifest_reader = AccessManifestReader()
-        setattr(
-            access_manifest_reader,
-            "schema_definition_filepath",
-            MANIFEST_SCHEMA_DEFINITION_FILEPATH,
-        )
+        setattr(access_manifest_reader, "schema_definition_filepath", MANIFEST_SCHEMA_DEFINITION_FILEPATH)
         setattr(access_manifest_reader, "manifest_definition_filepath", manifest_filename)
         access_manifest_reader.run_access_manifest_reader()
 
@@ -76,11 +72,7 @@ def test_rules_valid_manifest_schema(manifest_filename: str) -> None:
     # Act
     manifest_file_via_local = load_file(manifest_filename)
     manifest_file_via_class = AccessManifestReader()
-    setattr(
-        manifest_file_via_class,
-        "schema_definition_filepath",
-        MANIFEST_SCHEMA_DEFINITION_FILEPATH,
-    )
+    setattr(manifest_file_via_class, "schema_definition_filepath", MANIFEST_SCHEMA_DEFINITION_FILEPATH)
     setattr(manifest_file_via_class, "manifest_definition_filepath", manifest_filename)
     manifest_file_via_class.run_access_manifest_reader()
 
