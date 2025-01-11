@@ -21,7 +21,6 @@ from src.core.utils import load_file
 
 # Constants
 CWD = os.path.dirname(os.path.realpath(__file__))
-MANIFEST_SCHEMA_DEFINITION_FILEPATH = os.path.join(CWD, "..", "..", "src", "schemas", "manifest_schema_definition.json")
 PRE_TEST_ACCOUNT_ASSIGNMENT_PERCENTAGES = [round(i * 0.2, 2) for i in range(6)]  # 20% increments
 
 AWS_ORG_DEFINITIONS_FILES_PATH = os.path.join(CWD, "..", "configs", "organizations", "*.json")
@@ -188,9 +187,9 @@ def test_main(
 
     importlib.reload(sso)
 
-    cli_results = sso.main(
+    cli_results = sso.create_sso_assignments(
         manifest_filepath,
-        MANIFEST_SCHEMA_DEFINITION_FILEPATH,
+        True,
     )
 
     assert expected_account_assignments[upper_bound_range:] == sorted(cli_results["created"], key=created_assignments_sort_keys)
@@ -261,9 +260,9 @@ def test_delete(
 
     importlib.reload(sso)
 
-    cli_results = sso.main(
+    cli_results = sso.create_sso_assignments(
         manifest_filepath,
-        MANIFEST_SCHEMA_DEFINITION_FILEPATH,
+        True,
     )
 
     assignments_to_delete = list(itertools.filterfalse(lambda i: i in expected_account_assignments, current_account_assignments))

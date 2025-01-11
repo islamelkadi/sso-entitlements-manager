@@ -11,3 +11,4 @@ sandbox/** */
 **coverage.**
 **htmlcov
 **.pytest**
+**logs**

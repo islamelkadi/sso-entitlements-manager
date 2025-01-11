@@ -9,7 +9,7 @@ import boto3
 from src.core.constants import OU_TARGET_TYPE_LABEL, ACCOUNT_TARGET_TYPE_LABEL, USER_PRINCIPAL_TYPE_LABEL, GROUP_PRINCIPAL_TYPE_LABEL
 
 
-class AwsIdentityCenterManager:
+class SsoAdminManager:
     """
     Class for resolving AWS resources and creating RBAC (Role-Based Access Control)
     assignments based on a manifest file.
@@ -22,27 +22,27 @@ class AwsIdentityCenterManager:
         Args:
             identity_store_arn (str): The ARN of the AWS Identity Store.
         """
-        self.is_dry_run = False
-        self.rbac_rules = []
-        self.exclude_sso_users = []
-        self.exclude_sso_groups = []
-        self.exclude_permission_sets = []
-        self.account_name_id_map = {}
-        self.ou_accounts_map = {}
+        self.is_auto_approved: bool = False
+        self.rbac_rules: list = []
+        self.exclude_sso_users: list = []
+        self.exclude_sso_groups: list = []
+        self.exclude_permission_sets: list = []
+        self.account_name_id_map: list = {}
+        self.ou_accounts_map: list = {}
 
-        self._invalid_manifest_file_ou_names = []
-        self._invalid_manifest_file_account_names = []
-        self._invalid_manifest_file_group_names = []
-        self._invalid_manifest_file_user_names = []
-        self._invalid_manifest_file_permission_sets = []
-        self._local_account_assignments = []
-        self._current_account_assignments = []
+        self._invalid_manifest_file_ou_names: list = []
+        self._invalid_manifest_file_account_names: list = []
+        self._invalid_manifest_file_group_names: list = []
+        self._invalid_manifest_file_user_names: list = []
+        self._invalid_manifest_file_permission_sets: list = []
+        self._local_account_assignments: list = []
+        self._current_account_assignments: list = []
 
-        self.assignments_to_create = []
-        self.assignments_to_delete = []
+        self.assignments_to_create: list = []
+        self.assignments_to_delete: list = []
 
-        self._sso_admin_client = boto3.client("sso-admin")
-        self._identity_store_client = boto3.client("identitystore")
+        self._sso_admin_client: boto3.client = boto3.client("sso-admin")
+        self._identity_store_client: boto3.client = boto3.client("identitystore")
 
     def _describe_identity_center_instance(self) -> None:
         iam_identity_center_details = self._sso_admin_client.list_instances()["Instances"][0]
@@ -225,5 +225,5 @@ class AwsIdentityCenterManager:
         self._list_current_account_assignments()
         self._generate_rbac_assignments()
         self._generate_invalid_assignments_report()
-        if not self.is_dry_run:
+        if not self.is_auto_approved:
             self._execute_rbac_assignments()

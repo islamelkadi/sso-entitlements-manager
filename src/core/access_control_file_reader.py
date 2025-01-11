@@ -6,7 +6,7 @@ including generating lists of excluded entities and retrieving RBAC rules.
 
 Classes:
 --------
-AccessManifestReader
+AccessControlFileReader
     A class to read and process access manifest files for AWS SSO.
 
     Attributes:
@@ -25,7 +25,7 @@ AccessManifestReader
     Methods:
     --------
     __init__(schema_definition_filepath: str, manifest_file_s3_uri: str) -> None
-        Initializes the AccessManifestReader with the schema definition filepath and manifest file S3 URI.
+        Initializes the AccessControlFileReader with the schema definition filepath and manifest file S3 URI.
     _load_sso_manifest_file() -> None
         Loads schema and manifest files, converts specific keys to uppercase.
     _validate_sso_manifest_file() -> None
@@ -41,7 +41,7 @@ from src.core.utils import load_file, convert_specific_keys_to_uppercase
 from src.core.constants import OU_TARGET_TYPE_LABEL, ACCOUNT_TARGET_TYPE_LABEL, USER_PRINCIPAL_TYPE_LABEL, GROUP_PRINCIPAL_TYPE_LABEL, PERMISSION_SET_TYPE_LABEL
 
 
-class AccessManifestReader:
+class AccessControlFileReader:
     """
     A class to read and process access manifest files for AWS SSO.
 
@@ -64,7 +64,7 @@ class AccessManifestReader:
     Methods:
     --------
     __init__(schema_definition_filepath: str, manifest_file_s3_uri: str) -> None
-        Initializes the AccessManifestReader with the schema definition filepath and manifest file S3 URI.
+        Initializes the AccessControlFileReader with the schema definition filepath and manifest file S3 URI.
     _load_sso_manifest_file() -> None
         Loads schema and manifest files, converts specific keys to uppercase.
     _validate_sso_manifest_file() -> None
@@ -77,7 +77,7 @@ class AccessManifestReader:
 
     def __init__(self) -> None:
         """
-        Initializes the AccessManifestReader with the schema definition filepath and manifest file S3 URI.
+        Initializes the AccessControlFileReader with the schema definition filepath and manifest file S3 URI.
 
         Args:
         ----
@@ -86,14 +86,14 @@ class AccessManifestReader:
         manifest_file_s3_uri: str
             S3 URI of the manifest file.
         """
-        self.schema_definition_filepath = None
-        self.manifest_definition_filepath = None
-        self.excluded_ou_names = []
-        self.excluded_account_names = []
-        self.excluded_sso_user_names = []
-        self.excluded_sso_group_names = []
-        self.excluded_permission_set_names = []
-        self._manifest_file_keys_to_uppercase = ["principal_type", "target_type", "exclude_target_type"]
+        self.schema_definition_filepath: str = ""  # TODO: Add default path
+        self.manifest_definition_filepath: str = ""
+        self.excluded_ou_names: list = []
+        self.excluded_account_names: list = []
+        self.excluded_sso_user_names: list = []
+        self.excluded_sso_group_names: list = []
+        self.excluded_permission_set_names: list = []
+        self._manifest_file_keys_to_uppercase: list = ["principal_type", "target_type", "exclude_target_type"]
 
     def _load_sso_manifest_file(self) -> None:
         """

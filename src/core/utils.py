@@ -4,10 +4,11 @@ various python modules in this repository.
 """
 import json
 import logging
+import pathlib
+import atexit
+import logging.config
+import logging.handlers
 import yaml
-
-
-LOGGER = logging.getLogger(__name__)
 
 
 def dict_reverse_lookup(original_dict: dict, lookup_value: str):
@@ -122,3 +123,24 @@ def load_file(filepath: str) -> dict:
             return json.load(file)
     else:
         raise ValueError("Unsupported file format. Only .yaml, .yml, and .json are supported.")
+
+
+def setup_logging(log_level: str = "INFO", logging_config_filepath: str = "logging/configs/config.json") -> None:
+    # Load logging file
+    config_file = pathlib.Path(logging_config_filepath)
+    with open(config_file) as fp:
+        config = json.load(fp)
+
+    # Create logs directory if it doesn't exist
+    log_file = pathlib.Path(config["handlers"]["file_json"]["filename"])
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+
+    # Override config file root logging level
+    config["loggers"]["root"]["level"] = log_level
+
+    # Configure logging level & log queue handler
+    logging.config.dictConfig(config)
+    queue_handler = logging.getHandlerByName("queue_handler")
+    if queue_handler is not None:
+        queue_handler.listener.start()
+        atexit.register(queue_handler.listener.stop)

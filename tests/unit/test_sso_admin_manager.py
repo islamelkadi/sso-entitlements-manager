@@ -1,5 +1,5 @@
 """
-Unit tests for the AwsIdentityCenterManager class.
+Unit tests for the SsoAdminManager class.
 
 This module contains tests for the AWS Access Control Resolver, verifying the creation,
 deletion, and reporting of account assignments based on the provided manifest files and
@@ -20,7 +20,7 @@ from typing import Dict, List, Any
 
 import pytest
 from src.core.utils import load_file
-from src.services.aws.aws_identity_center_manager import AwsIdentityCenterManager
+from src.services.aws.sso_admin_manager import SsoAdminManager
 from tests.utils import generate_expected_account_assignments
 
 # Globals vars
@@ -74,7 +74,7 @@ def test_create_account_assignments(sso_admin_client, account_assignment_range: 
         sso_admin_client.create_account_assignment(**assignment)
 
     # Act
-    identity_center_manager = AwsIdentityCenterManager()
+    identity_center_manager = SsoAdminManager()
     setattr(identity_center_manager, "rbac_rules", rbac_rules)
     setattr(identity_center_manager, "sso_users", setup_mock_aws_environment["sso_username_id_map"])
     setattr(identity_center_manager, "sso_groups", setup_mock_aws_environment["sso_group_name_id_map"])
@@ -151,7 +151,7 @@ def test_delete_account_assignments(sso_admin_client: pytest.fixture, setup_mock
     current_account_assignments += create_assignments(sso_group_ids, "GROUP")
 
     # Act
-    identity_center_manager = AwsIdentityCenterManager()
+    identity_center_manager = SsoAdminManager()
     setattr(identity_center_manager, "rbac_rules", rbac_rules)
     setattr(identity_center_manager, "sso_users", setup_mock_aws_environment["sso_username_id_map"])
     setattr(identity_center_manager, "sso_groups", setup_mock_aws_environment["sso_group_name_id_map"])
@@ -182,7 +182,7 @@ def test_generate_invalid_assignments_report(setup_mock_aws_environment: pytest.
     rbac_rules = manifest_file.get("rbac_rules", [])
 
     # Act
-    identity_center_manager = AwsIdentityCenterManager()
+    identity_center_manager = SsoAdminManager()
     setattr(identity_center_manager, "rbac_rules", rbac_rules)
     setattr(identity_center_manager, "sso_users", setup_mock_aws_environment["sso_username_id_map"])
     setattr(identity_center_manager, "sso_groups", setup_mock_aws_environment["sso_group_name_id_map"])

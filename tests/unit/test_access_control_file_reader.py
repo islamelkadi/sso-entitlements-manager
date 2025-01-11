@@ -10,7 +10,7 @@ import glob
 import pytest
 import jsonschema
 from src.core.utils import load_file
-from src.services.aws.access_manifest_file_reader import AccessManifestReader
+from src.core.access_control_file_reader import AccessControlFileReader
 
 # Constants
 CWD = os.path.dirname(os.path.realpath(__file__))
@@ -40,7 +40,7 @@ def test_rules_invalid_manifest_schema(manifest_filename: str) -> None:
 
     This test checks if manifest files with various invalid schema
     configurations raise a jsonschema.ValidationError when processed
-    by the AccessManifestReader.
+    by the AccessControlFileReader.
 
     Parameters:
     ----------
@@ -53,7 +53,7 @@ def test_rules_invalid_manifest_schema(manifest_filename: str) -> None:
     # Assert
     with pytest.raises(jsonschema.ValidationError):
         # Act
-        access_manifest_reader = AccessManifestReader()
+        access_manifest_reader = AccessControlFileReader()
         setattr(access_manifest_reader, "schema_definition_filepath", MANIFEST_SCHEMA_DEFINITION_FILEPATH)
         setattr(access_manifest_reader, "manifest_definition_filepath", manifest_filename)
         access_manifest_reader.run_access_manifest_reader()
@@ -71,7 +71,7 @@ def test_rules_valid_manifest_schema(manifest_filename: str) -> None:
     """
     # Act
     manifest_file_via_local = load_file(manifest_filename)
-    manifest_file_via_class = AccessManifestReader()
+    manifest_file_via_class = AccessControlFileReader()
     setattr(manifest_file_via_class, "schema_definition_filepath", MANIFEST_SCHEMA_DEFINITION_FILEPATH)
     setattr(manifest_file_via_class, "manifest_definition_filepath", manifest_filename)
     manifest_file_via_class.run_access_manifest_reader()

@@ -7,43 +7,52 @@ in the manifest.
 
 Modules and Classes Used:
 -------------------------
-- AccessManifestReader: Reads and validates the AWS SSO manifest file.
-- AwsOrganizationsMapper: Maps AWS Organizations entities such as OUs and accounts.
-- AwsIdentityCenterManager: Manages Identity Center assignments and RBAC rules.
+- AccessControlFileReader: Reads and validates the AWS SSO manifest file.
+- OrganizationsMapper: Maps AWS Organizations entities such as OUs and accounts.
+- SsoAdminManager: Manages Identity Center assignments and RBAC rules.
 """
+import os
+import logging
+import pathlib
+import argparse
+from src.core.utils import setup_logging
+from src.core.access_control_file_reader import AccessControlFileReader
+from src.services.aws.organizations_mapper import OrganizationsMapper
+from src.services.aws.sso_admin_manager import SsoAdminManager
 
-import typer
-from src.services.aws.access_manifest_file_reader import AccessManifestReader
-from src.services.aws.aws_organizations_mapper import AwsOrganizationsMapper
-from src.services.aws.aws_identity_center_manager import AwsIdentityCenterManager
+# Globals vars
+CWD = os.path.dirname(os.path.realpath(__file__))
+MANIFEST_SCHEMA_DEFINITION_FILEPATH = os.path.join(
+    CWD,
+    "..",
+    "schemas",
+    "manifest_schema_definition.json",
+)
 
-# Initialize Typer app
-app = typer.Typer(help="AWS SSO Access Management CLI", add_completion=False)
 
-
-@app.callback(invoke_without_command=True)
-def main(
-    manifest_file_path: str = typer.Option(..., "--manifest-filepath", "-m", help="Local path to the manifest file", exists=True, file_okay=True, dir_okay=False, resolve_path=True),
-    manifest_schema_path: str = typer.Option(..., "--schema-filepath", "-s", help="Local path to the manifest schema file", exists=True, file_okay=True, dir_okay=False, resolve_path=True),
-    dry_run: bool = typer.Option(False, "--dry-run", "-d", help="Run in dry-run mode without making any changes", is_flag=True),
-):
+def create_sso_assignments(manifest_file_path: str, auto_approve: bool = False, log_level: str = "INFO") -> dict:
     """Process AWS SSO access management based on manifest file."""
 
+    # Setup logger
+    setup_logging(log_level)
+
+    logging.info("Creating SSO access control assignments")
+
     # Process manifest file
-    manifest_file = AccessManifestReader()
+    manifest_file = AccessControlFileReader()
     manifest_file.manifest_definition_filepath = manifest_file_path
-    manifest_file.schema_definition_filepath = manifest_schema_path
+    manifest_file.schema_definition_filepath = MANIFEST_SCHEMA_DEFINITION_FILEPATH
     manifest_file.run_access_manifest_reader()
 
     # Initialize OU & Accounts map
-    aws_org = AwsOrganizationsMapper()
+    aws_org = OrganizationsMapper()
     aws_org.exclude_ou_name_list = manifest_file.excluded_ou_names
     aws_org.exclude_account_name_list = manifest_file.excluded_account_names
     aws_org.run_ous_accounts_mapper()
 
     # Create account assignments
-    identity_center_manager = AwsIdentityCenterManager()
-    identity_center_manager.is_dry_run = dry_run
+    identity_center_manager = SsoAdminManager()
+    identity_center_manager.is_auto_approved = auto_approve
     identity_center_manager.rbac_rules = manifest_file.rbac_rules
     identity_center_manager.exclude_sso_users = manifest_file.excluded_sso_user_names
     identity_center_manager.exclude_sso_groups = manifest_file.excluded_sso_group_names
@@ -52,14 +61,24 @@ def main(
     identity_center_manager.ou_accounts_map = aws_org.ou_accounts_map
     identity_center_manager.run_access_control_resolver()
 
-    results = {
+    logging.info("Successfully created SSO access control assignments")
+
+    return {
         "created": identity_center_manager.assignments_to_create,
         "deleted": identity_center_manager.assignments_to_delete,
         "invalid": identity_center_manager.invalid_manifest_rules_report,
     }
 
-    return results
-
 
 if __name__ == "__main__":
-    app()
+    # Initialize CLI arguments parser
+    cli_arguments_parser = argparse.ArgumentParser(description="CLI tool to help manage SSO assignments access at scale")
+
+    # Add CLI arguments
+    cli_arguments_parser.add_argument("--manifest-filepath", required=True, type=pathlib.Path, help="Local path to the manifest file")
+    cli_arguments_parser.add_argument("--auto-approve", default=False, action="store_true", help="Run in auto-approve mode without making any changes")
+    cli_arguments_parser.add_argument("--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], help="Log level (default: INFO)")
+    cli_arguments = cli_arguments_parser.parse_args()
+
+    # Create SSO assignments
+    create_sso_assignments(str(cli_arguments.manifest_filepath), cli_arguments.auto_approve, cli_arguments.log_level)
