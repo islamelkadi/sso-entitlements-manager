@@ -2,11 +2,12 @@
 Module for resolving AWS resources and creating access
 control assignments based on ingested customer manifest file.
 """
-
+import logging
 import itertools
-from typing import Optional
+from datetime import datetime
+from typing import Optional, Dict, List
 import boto3
-from src.core.constants import OU_TARGET_TYPE_LABEL, ACCOUNT_TARGET_TYPE_LABEL, USER_PRINCIPAL_TYPE_LABEL, GROUP_PRINCIPAL_TYPE_LABEL
+from src.core.constants import OU_TARGET_TYPE_LABEL, ACCOUNT_TARGET_TYPE_LABEL, USER_PRINCIPAL_TYPE_LABEL, GROUP_PRINCIPAL_TYPE_LABEL, SSO_ENTITLMENTS_APP_NAME
 
 
 class SsoAdminManager:
@@ -44,10 +45,18 @@ class SsoAdminManager:
         self._sso_admin_client: boto3.client = boto3.client("sso-admin")
         self._identity_store_client: boto3.client = boto3.client("identitystore")
 
+        self._logger = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
+
     def _describe_identity_center_instance(self) -> None:
-        iam_identity_center_details = self._sso_admin_client.list_instances()["Instances"][0]
-        self.identity_store_id = iam_identity_center_details["IdentityStoreId"]
-        self.identity_store_arn = iam_identity_center_details["InstanceArn"]
+        try:
+            self._logger.info("Retrieving IAM Identity Center tenant information")
+            iam_identity_center_details = self._sso_admin_client.list_instances()["Instances"][0]
+        except Exception as e:
+            self._logger.error(f"Unexpected error retrieving IAM Identity Center tenant information: {e}")
+            raise
+        else:
+            self.identity_store_id = iam_identity_center_details["IdentityStoreId"]
+            self.identity_store_arn = iam_identity_center_details["InstanceArn"]
 
     def _map_sso_groups(self) -> None:
         """
@@ -55,10 +64,15 @@ class SsoAdminManager:
         """
         current_sso_groups = []
         groups_paginator = self._identity_store_client.get_paginator("list_groups")
-        for page in groups_paginator.paginate(IdentityStoreId=self.identity_store_id):
-            current_sso_groups.extend(page["Groups"])
 
-        self.sso_groups = {}
+        try:
+            for page in groups_paginator.paginate(IdentityStoreId=self.identity_store_id):
+                current_sso_groups.extend(page["Groups"])
+        except Exception as e:
+            self._logger.error(f"Unexpected error retrieving current SSO groups information: {e}")
+            raise
+
+        self.sso_groups: Dict[str, str] = {}
         for group in current_sso_groups:
             if group["DisplayName"] not in self.exclude_sso_groups:
                 self.sso_groups[group["DisplayName"]] = group["GroupId"]
@@ -70,10 +84,15 @@ class SsoAdminManager:
         current_sso_users = []
         sso_users_pagniator = self._identity_store_client.get_paginator("list_users")
         sso_users_pages = sso_users_pagniator.paginate(IdentityStoreId=self.identity_store_id)
-        for page in sso_users_pages:
-            current_sso_users.extend(page["Users"])
 
-        self.sso_users = {}
+        try:
+            for page in sso_users_pages:
+                current_sso_users.extend(page["Users"])
+        except Exception as e:
+            self._logger.error(f"Unexpected error retrieving current SSO users information: {e}")
+            raise
+
+        self.sso_users: Dict[str, str] = {}
         for user in current_sso_users:
             if user["UserName"] not in self.exclude_sso_users:
                 self.sso_users[user["UserName"]] = user["UserId"]
@@ -85,15 +104,20 @@ class SsoAdminManager:
         current_permission_sets = []
         permission_sets_paginator = self._sso_admin_client.get_paginator("list_permission_sets")
         permission_sets_pages = permission_sets_paginator.paginate(InstanceArn=self.identity_store_arn)
-        for page in permission_sets_pages:
-            current_permission_sets.extend(page["PermissionSets"])
 
-        described_current_permission_sets = []
+        try:
+            for page in permission_sets_pages:
+                current_permission_sets.extend(page["PermissionSets"])
+        except Exception as e:
+            self._logger.error(f"Unexpected error retrieving current permission set information: {e}")
+            raise
+
+        described_current_permission_sets: List[Dict[str, str | datetime] = []
         for permission_set in current_permission_sets:
             permission_set_info = self._sso_admin_client.describe_permission_set(InstanceArn=self.identity_store_arn, PermissionSetArn=permission_set)
             described_current_permission_sets.append(permission_set_info.get("PermissionSet"))
 
-        self.permission_sets = {}
+        self.permission_sets: Dict[str,str] = {}
         for permission_set in described_current_permission_sets:
             if permission_set["Name"] not in self.exclude_permission_sets:
                 self.permission_sets[permission_set["Name"]] = permission_set["PermissionSetArn"]
@@ -108,8 +132,13 @@ class SsoAdminManager:
         for principal_type, principals in principal_type_map.items():
             for principal_id in principals:
                 assignments_iterator = principal_assignments_paginator.paginate(PrincipalId=principal_id, InstanceArn=self.identity_store_arn, PrincipalType=principal_type)
-                for page in assignments_iterator:
-                    self._current_account_assignments.extend(page["AccountAssignments"])
+                
+                try:
+                    for page in assignments_iterator:
+                        self._current_account_assignments.extend(page["AccountAssignments"])
+                except Exception as e:
+                    self._logger.error(f"Unexpected error retrieving current permission set & account assignments information: {e}")
+                    raise
 
         for i, _ in enumerate(self._current_account_assignments):
             self._current_account_assignments[i]["InstanceArn"] = self.identity_store_arn
