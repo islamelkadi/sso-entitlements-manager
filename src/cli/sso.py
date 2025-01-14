@@ -19,6 +19,7 @@ from src.core.utils import setup_logging
 from src.core.access_control_file_reader import AccessControlFileReader
 from src.services.aws.organizations_mapper import OrganizationsMapper
 from src.services.aws.sso_admin_manager import SsoAdminManager
+from src.core.constances import SSO_ENTITLMENTS_APP_NAME
 
 # Globals vars
 CWD = os.path.dirname(os.path.realpath(__file__))
@@ -29,6 +30,8 @@ MANIFEST_SCHEMA_DEFINITION_FILEPATH = os.path.join(
     "manifest_schema_definition.json",
 )
 
+# Setup non-root logger
+logger = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
 
 def create_sso_assignments(manifest_file_path: str, auto_approve: bool = False, log_level: str = "INFO") -> dict:
     """Process AWS SSO access management based on manifest file."""
@@ -36,7 +39,7 @@ def create_sso_assignments(manifest_file_path: str, auto_approve: bool = False, 
     # Setup logger
     setup_logging(log_level)
 
-    logging.info("Creating SSO access control assignments")
+    logger.info("Creating SSO access control assignments")
 
     # Process manifest file
     manifest_file = AccessControlFileReader()
@@ -61,7 +64,7 @@ def create_sso_assignments(manifest_file_path: str, auto_approve: bool = False, 
     identity_center_manager.ou_accounts_map = aws_org.ou_accounts_map
     identity_center_manager.run_access_control_resolver()
 
-    logging.info("Successfully created SSO access control assignments")
+    logger.info("Successfully created SSO access control assignments")
 
     return {
         "created": identity_center_manager.assignments_to_create,
