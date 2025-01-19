@@ -1,84 +1,40 @@
-"""
-Module to interact with the AWS Organizations service.
-
-This module provides a class to facilitate interactions with AWS Organizations,
-including mapping organizational units (OUs) and accounts.
-
-Classes:
---------
-OrganizationsMapper
-    A class to manage interactions with the AWS Organizations service.
-
-    Attributes:
-    -----------
-    ou_accounts_map: dict
-        A dictionary mapping OU names to lists of accounts.
-    _ou_name_id_map: dict
-        A dictionary mapping OU names to their IDs.
-    root_ou_id: str
-        The root OU ID.
-    exclude_ou_name_list: list
-        A list of OU names to exclude.
-    exclude_account_name_list: list
-        A list of account names to exclude.
-    _organizations_client: boto3.client
-        The Boto3 client for AWS Organizations.
-    account_name_id_map: dict
-        A dictionary mapping account names to account IDs.
-
-    Methods:
-    --------
-    __init__(root_ou_id: str, exclude_ou_name_list: list = None, exclude_account_name_list: list = []) -> None
-        Initializes the OrganizationsMapper instance with the root OU ID and optional exclusion lists.
-    _map_aws_organizational_units(parent_ou_id: str = "") -> None
-        Maps AWS organizational units starting from the given parent OU ID.
-    _map_aws_ou_to_accounts() -> None
-        Maps AWS accounts to their respective organizational units.
-    _map_aws_accounts() -> None
-        Maps AWS account names to their corresponding IDs.
-    run_ous_accounts_mapper() -> None
-        Runs all mapping methods to update OUs and accounts.
-"""
-
 import logging
+import functools
+from typing import Callable, Any
+
 import boto3
 from src.core.constants import SSO_ENTITLMENTS_APP_NAME
 
+def handle_aws_organizations_exceptions(func: Callable) -> Callable:
+    """
+    Decorator to handle AWS Organizations API exceptions.
+    
+    Parameters:
+    -----------
+    func: Callable
+        The function to wrap
+        
+    Returns:
+    --------
+    Callable
+        The wrapped function
+    """
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs) -> Any:
+        try:
+            return func(self, *args, **kwargs)
+        except self._organizations_client.exceptions.ParentNotFoundException as e:
+            self._logger.error(f"Invalid parent OU name: {e}")
+            raise e
+        except self._organizations_client.exceptions.AccessDeniedException as e:
+            self._logger.error(f"Missing required IAM policy permissions: {e}")
+            raise e
+        except Exception as e:
+            self._logger.error(f"Unexpected error in {func.__name__}: {e}")
+            raise e
+    return wrapper
 
 class OrganizationsMapper:
-    """
-    Class to manage interactions with the AWS Organizations service.
-
-    Attributes:
-    -----------
-    ou_accounts_map: dict
-        A dictionary mapping OU names to lists of accounts.
-    _ou_name_id_map: dict
-        A dictionary mapping OU names to their IDs.
-    root_ou_id: str
-        The root OU ID.
-    exclude_ou_name_list: list
-        A list of OU names to exclude.
-    exclude_account_name_list: list
-        A list of account names to exclude.
-    _organizations_client: boto3.client
-        The Boto3 client for AWS Organizations.
-    account_name_id_map: dict
-        A dictionary mapping account names to account IDs.
-
-    Methods:
-    --------
-    __init__(root_ou_id: str, exclude_ou_name_list: list = None, exclude_account_name_list: list = []) -> None
-        Initializes the OrganizationsMapper instance with the root OU ID and optional exclusion lists.
-    _map_aws_organizational_units(parent_ou_id: str = "") -> None
-        Maps AWS organizational units starting from the given parent OU ID.
-    _map_aws_ou_to_accounts() -> None
-        Maps AWS accounts to their respective organizational units.
-    _map_aws_accounts() -> None
-        Maps AWS account names to their corresponding IDs.
-    run_ous_accounts_mapper() -> None
-        Runs all mapping methods to update OUs and accounts.
-    """
 
     def __init__(self) -> None:
         """
@@ -106,37 +62,18 @@ class OrganizationsMapper:
         self._organizations_client: boto3.client = boto3.client("organizations")
         self.root_ou_id: str = self._organizations_client.list_roots()["Roots"][0]["Id"]
 
+    @handle_aws_organizations_exceptions
     def _map_aws_organizational_units(self, parent_ou_id: str = "") -> None:
         """
         Maps AWS organizational units starting from the given parent OU ID.
-
-        Parameters:
-        ----------
-        parent_ou_id: str, optional
-            The parent OU ID to start mapping from. Defaults to the root OU ID.
-
-        Usage:
-        ------
-        self._map_aws_organizational_units()
-        self._map_aws_organizational_units("parent-ou-id")
         """
         aws_ous_flattened_list = []
         parent_ou_id = parent_ou_id if parent_ou_id else self.root_ou_id
         ou_paginator = self._organizations_client.get_paginator("list_organizational_units_for_parent")
         aws_ou_iterator = ou_paginator.paginate(ParentId=parent_ou_id)
 
-        try:
-            for page in aws_ou_iterator:
-                aws_ous_flattened_list.extend(page["OrganizationalUnits"])
-        except self._organizations_client.exceptions.ParentNotFoundException as e:
-            self._logger.error(f"Invalid parent OU name: {e}")
-            raise e
-        except self._organizations_client.exceptions.AccessDeniedException as e:
-            self._logger.error(f"Missing required IAM policy permissions: {e}")
-            raise e
-        except Exception as e:
-            self._logger.error(f"Unexpected error: {e}")
-            raise e
+        for page in aws_ou_iterator:
+            aws_ous_flattened_list.extend(page["OrganizationalUnits"])
 
         for ou in aws_ous_flattened_list:
             if ou["Name"] not in self.exclude_ou_name_list and ou["Name"] not in self._ou_name_id_map:
@@ -145,13 +82,10 @@ class OrganizationsMapper:
                 self._ou_name_id_map[ou["Name"]] = ou["Id"]
         self._ou_name_id_map["root"] = self.root_ou_id
 
+    @handle_aws_organizations_exceptions
     def _map_aws_ou_to_accounts(self) -> None:
         """
         Maps AWS accounts to their respective organizational units.
-
-        Usage:
-        ------
-        self._map_aws_ou_to_accounts()
         """
         accounts_paginator = self._organizations_client.get_paginator("list_accounts_for_parent")
 
@@ -160,18 +94,8 @@ class OrganizationsMapper:
             accounts_iterator = accounts_paginator.paginate(ParentId=ou_id)
             aws_accounts_flattened_list = []
 
-            try:
-                for page in accounts_iterator:
-                    aws_accounts_flattened_list.extend(page["Accounts"])
-            except self._organizations_client.exceptions.ParentNotFoundException as e:
-                self._logger.error(f"Invalid parent OU name: {e}")
-                raise e
-            except self._organizations_client.exceptions.AccessDeniedException as e:
-                self._logger.error(f"Missing required IAM policy permissions: {e}")
-                raise e
-            except Exception as e:
-                self._logger.error(f"Unexpected error: {e}")
-                raise e
+            for page in accounts_iterator:
+                aws_accounts_flattened_list.extend(page["Accounts"])
 
             self._logger.info(f"{ou_name} OU contains {len(aws_accounts_flattened_list)} accounts, creating {ou_name}'s account itenerary...")
             for account in aws_accounts_flattened_list:
@@ -183,22 +107,14 @@ class OrganizationsMapper:
         """
         Maps AWS account names to their corresponding IDs
         based on the `ou_accounts_map`.
-
-        Usage:
-        ------
-        self._map_aws_accounts()
         """
-        for account_set in self.ou_accounts_map.values():
+        for aws_accounts in self.ou_accounts_map.values():
             for account in aws_accounts:
                 self.account_name_id_map[account["Name"]] = account["Id"]
 
     def run_ous_accounts_mapper(self) -> None:
         """
         Runs all mapping methods to update OUs and accounts.
-
-        Usage:
-        ------
-        self.run_ous_accounts_mapper()
         """
         self._logger.info("Creating AWS OU names to ID map")
         self._map_aws_organizational_units(self.root_ou_id)
