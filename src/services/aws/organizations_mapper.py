@@ -1,7 +1,4 @@
 import logging
-import functools
-from typing import Callable, Any
-
 import boto3
 from src.core.constants import SSO_ENTITLMENTS_APP_NAME
 from .utils import handle_aws_exceptions
