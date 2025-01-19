@@ -46,7 +46,7 @@ class OrganizationsMapper:
 
         for ou in aws_ous_flattened_list:
             if ou["Name"] not in self.exclude_ou_name_list and ou["Name"] not in self._ou_name_id_map:
-                self._logger.info(f"Traversing non-excluded parent AWS OU: {ou['Name']}")
+                self._logger.debug(f"Traversing non-excluded parent AWS OU: {ou['Name']}")
                 self._map_aws_organizational_units(ou["Id"])
                 self._ou_name_id_map[ou["Name"]] = ou["Id"]
         self._ou_name_id_map["root"] = self.root_ou_id
@@ -69,7 +69,7 @@ class OrganizationsMapper:
             self._logger.info(f"{ou_name} OU contains {len(aws_accounts_flattened_list)} accounts, creating {ou_name}'s account itenerary...")
             for account in aws_accounts_flattened_list:
                 if account["Status"] == "ACTIVE" and account["Name"] not in self.exclude_account_name_list:
-                    self._logger.info(f"Appending non-excluded AWS account to {ou_name}'s itenerary")
+                    self._logger.debug(f"Appending non-excluded AWS account to {ou_name}'s itenerary")
                     self.ou_accounts_map[ou_name].append({"Id": account["Id"], "Name": account["Name"]})
 
     def _map_aws_accounts(self) -> None:
