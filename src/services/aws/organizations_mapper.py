@@ -1,5 +1,6 @@
 import logging
 from typing import List, Set
+from functools import cached_property
 
 import boto3
 from src.core.utils import handle_aws_exceptions
@@ -30,36 +31,20 @@ class OrganizationsMapper:
         self._map_aws_accounts()
 
     @handle_aws_exceptions()
-    def _map_aws_organizational_units(self, parent_ou_id: str = "") -> None:
-        parent_ou_id = parent_ou_id if parent_ou_id else self.root_ou_id
-        ou_paginator = self._organizations_client.get_paginator("list_organizational_units_for_parent")
-        for page in ou_paginator.paginate(ParentId=parent_ou_id):
-            for ou in page.get("OrganizationalUnits", []):
-                if ou["Name"] not in self.excluded_ou_names and ou["Name"] not in self._ou_name_id_map:
-                    self._logger.debug(f"Traversing non-excluded parent AWS OU: {ou['Name']}")
-                    self._map_aws_organizational_units(ou["Id"])
-                    self._ou_name_id_map[ou["Name"]] = ou["Id"]
-        self._ou_name_id_map["root"] = self.root_ou_id
+    def _map_aws_organizational_units(self) -> None:
+        pass
 
     @handle_aws_exceptions()
-    def _map_aws_ou_to_accounts(self) -> None:
-        accounts_paginator = self._organizations_client.get_paginator("list_accounts_for_parent")
-        for ou_name, ou_id in self._ou_name_id_map.items():
-            self.ou_accounts_map[ou_name] = []
-            accounts_iterator = accounts_paginator.paginate(ParentId=ou_id)
-            for page in accounts_iterator:
-                self._logger.info(f"{ou_name} OU contains {len(aws_accounts_flattened_list)} accounts, creating {ou_name}'s account itenerary...")
-                for account in page.get("Accounts", []):
-                    if account["Status"] == "ACTIVE" and account["Name"] not in self.excluded_account_names:
-                        self._logger.debug(f"Appending non-excluded AWS account to {ou_name}'s itenerary")
-                        self.ou_accounts_map[ou_name].append({"Id": account["Id"], "Name": account["Name"]})
-
-    @handle_aws_exceptions()
-    def _map_aws_accounts(self) -> None:
+    def _map_aws_organization(self) -> None:
         accounts_paginator = self._organizations_client.get_paginator("list_accounts")
         for page in accounts_paginator.paginate():
             for account in page.get("Accounts", []):
-                self.account_name_id_map[account["Name"]] = account["Id"]
+                if account["Status"] == "ACTIVE":
+                    account_arn = account["Arn"]
+                    ou_id = # regex pattern to find OU ID
+                    if ou_id not in self.ou_accounts_map:
+                        self.ou_accounts_map[ou_id] = set()
+                    
 
 
     def run_ous_accounts_mapper(self) -> None:
@@ -68,8 +53,8 @@ class OrganizationsMapper:
         self._map_aws_ou_to_accounts()
 
 
-    @property
-    def excluded_ou_names(self) -> Set[str]:
+    @cached_property
+    def filtered_ou_map(self) -> Set[str]:
         return self.excluded_ou_names
     
     @excluded_ou_names.setter
@@ -83,9 +68,10 @@ class OrganizationsMapper:
         self.invalid_ou_names = excluded_ou_names - self.excluded_ou_names
         self._logger.debug(f"Invalid provided AWS OU names: {', '.join(sorted(self.invalid_ou_names))}")
 
-    @property
-    def excluded_account_names(self) -> Set[str]:
-        pass
+    
+    # @cached_property
+    # def excluded_account_names(self) -> Set[str]:
+    #     return self.excluded_account_names
 
     @excluded_account_names.setter
     def excluded_account_names(self, names: List[str]) -> None:
