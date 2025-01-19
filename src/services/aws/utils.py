@@ -16,6 +16,7 @@ def handle_aws_exceptions(
     retryable_exceptions: tuple = (
         sso_admin_client.exceptions.InternalServerException,
         aws_organization_client.exceptions.ServiceException
+        aws_organization_client.exceptions.TooManyRequestsException
     )
 ) -> Callable:
     """
