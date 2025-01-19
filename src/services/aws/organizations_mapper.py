@@ -4,35 +4,7 @@ from typing import Callable, Any
 
 import boto3
 from src.core.constants import SSO_ENTITLMENTS_APP_NAME
-
-def handle_aws_organizations_exceptions(func: Callable) -> Callable:
-    """
-    Decorator to handle AWS Organizations API exceptions.
-    
-    Parameters:
-    -----------
-    func: Callable
-        The function to wrap
-        
-    Returns:
-    --------
-    Callable
-        The wrapped function
-    """
-    @functools.wraps(func)
-    def wrapper(self, *args, **kwargs) -> Any:
-        try:
-            return func(self, *args, **kwargs)
-        except self._organizations_client.exceptions.ParentNotFoundException as e:
-            self._logger.error(f"Invalid parent OU name: {e}")
-            raise e
-        except self._organizations_client.exceptions.AccessDeniedException as e:
-            self._logger.error(f"Missing required IAM policy permissions: {e}")
-            raise e
-        except Exception as e:
-            self._logger.error(f"Unexpected error in {func.__name__}: {e}")
-            raise e
-    return wrapper
+from .utils import handle_aws_exceptions
 
 class OrganizationsMapper:
 
@@ -62,7 +34,7 @@ class OrganizationsMapper:
         self._organizations_client: boto3.client = boto3.client("organizations")
         self.root_ou_id: str = self._organizations_client.list_roots()["Roots"][0]["Id"]
 
-    @handle_aws_organizations_exceptions
+    @handle_aws_exceptions
     def _map_aws_organizational_units(self, parent_ou_id: str = "") -> None:
         """
         Maps AWS organizational units starting from the given parent OU ID.
@@ -82,7 +54,7 @@ class OrganizationsMapper:
                 self._ou_name_id_map[ou["Name"]] = ou["Id"]
         self._ou_name_id_map["root"] = self.root_ou_id
 
-    @handle_aws_organizations_exceptions
+    @handle_aws_exceptions
     def _map_aws_ou_to_accounts(self) -> None:
         """
         Maps AWS accounts to their respective organizational units.
