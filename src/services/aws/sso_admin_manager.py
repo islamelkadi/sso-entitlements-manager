@@ -69,6 +69,7 @@ class SsoAdminManager:
                 if group["DisplayName"] not in self.exclude_sso_groups:
                     self.sso_groups[group["DisplayName"]] = group["GroupId"]
 
+    @handle_aws_exceptions()
     def _map_sso_users(self) -> None:
         """
         Lists all users in the identity store and maps UserName to UserId.
@@ -80,6 +81,7 @@ class SsoAdminManager:
                 if user["UserName"] not in self.exclude_sso_users:
                     self.sso_users[user["UserName"]] = user["UserId"]
 
+    @handle_aws_exceptions()
     def _map_permission_sets(self) -> None:
         """
         Lists all permission sets and maps Name to PermissionSetArn.
@@ -93,6 +95,7 @@ class SsoAdminManager:
                 if permission_set["Name"] not in self.exclude_permission_sets:
                     self.permission_sets[permission_set["Name"]] = permission_set["PermissionSetArn"]
 
+    @handle_aws_exceptions()
     def _list_current_account_assignments(self) -> None:
         """
         Lists the current account assignments for the principals in the identity store.
@@ -188,10 +191,12 @@ class SsoAdminManager:
                     target_id = self.account_name_id_map[target]
                     add_unique_assignment(target_id)
 
+        self._logger.info("Creating itenerary of SSO account assignments to create")
         assignments_to_create = list(itertools.filterfalse(lambda i: i in self._current_account_assignments, self._local_account_assignments))
         for assignment in assignments_to_create:
             self.assignments_to_create.append(assignment)
 
+        self._logger.warning("Creating itenerary of SSO account assignments to delete")
         assignments_to_delete = list(itertools.filterfalse(lambda i: i in self._local_account_assignments, self._current_account_assignments))
         for assignment in assignments_to_delete:
             self.assignments_to_delete.append(assignment)
@@ -201,9 +206,11 @@ class SsoAdminManager:
         Executes the RBAC assignments by creating and deleting account assignments as necessary.
         """
 
+        self._logger.info("Executing create itenerary of SSO account assignments")
         for assignment in self.assignments_to_create:
             self._sso_admin_client.create_account_assignment(**assignment)
 
+        self._logger.warning("Creating delete itenerary of SSO account assignments")
         for assignment in self.assignments_to_delete:
             self._sso_admin_client.delete_account_assignment(**assignment)
 
@@ -213,12 +220,30 @@ class SsoAdminManager:
         generating new assignments, generating an invalid assignments report,
         and executing the assignments.
         """
+
+        self._logger.info("Fetching IAM identity center tenant information")
         self._describe_identity_center_instance()
+        
+        self._logger.info("Creating AWS SSO user name to ID map")
         self._map_sso_users()
+
+        self._logger.info("Creating AWS SSO group name to ID map")
         self._map_sso_groups()
+
+        self._logger.info("Creating AWS SSO permission set name to ARN map")
         self._map_permission_sets()
+
+        self._logger.info("Retrieving live AWS account SSO assignments")
         self._list_current_account_assignments()
+
+        self._logger.info("Generating RBAC AWS account SSO assignments to process")
         self._generate_rbac_assignments()
-        self._generate_invalid_assignments_report()
-        if not self.is_auto_approved:
+        
+        if self.is_auto_approved:
+            self._logger.warning("Running in auto-approved mode")
+            self._logger.info("Executing RBAC assignments")
             self._execute_rbac_assignments()
+
+        self._logger.info("Generate invalid AWS account SSO assignments")
+        self._generate_invalid_assignments_report()
+
