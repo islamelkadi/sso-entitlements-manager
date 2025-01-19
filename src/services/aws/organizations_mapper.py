@@ -23,6 +23,9 @@ class OrganizationsMapper:
         self._organizations_client: boto3.client = boto3.client("organizations")
         self.root_ou_id: str = self._organizations_client.list_roots()["Roots"][0]["Id"]
 
+        self._logger.info("Creating AWS OU names to ID map")
+        self._map_aws_organizational_units(self.root_ou_id)
+
     @handle_aws_exceptions()
     def _map_aws_organizational_units(self, parent_ou_id: str = "") -> None:
         parent_ou_id = parent_ou_id if parent_ou_id else self.root_ou_id
@@ -56,8 +59,6 @@ class OrganizationsMapper:
                 self.account_name_id_map[account["Name"]] = account["Id"]
 
     def run_ous_accounts_mapper(self) -> None:
-        self._logger.info("Creating AWS OU names to ID map")
-        self._map_aws_organizational_units(self.root_ou_id)
 
         self._logger.info("Creating AWS OU names to account details map")
         self._map_aws_ou_to_accounts()
@@ -68,14 +69,18 @@ class OrganizationsMapper:
 
     @property
     def excluded_ou_names(self) -> Set[str]:
-        pass
+        return self.excluded_ou_names
     
     @excluded_ou_names.setter
     def excluded_ou_names(self, names: List[str]) -> None:
-        # TODO: Filter out invalid OU names
-        self.excluded_ou_names = set(names)
-        self._logger.info(f"Set excluded AWS OU names: {', '.join(sorted(self.excluded_ou_names))}")
+        excluded_ou_names = set(names)
+        self._logger.debug(f"Provided AWS OU names to exclude: {', '.join(sorted(self.excluded_ou_names))}")
 
+        self.excluded_ou_names = {x for x in excluded_ou_names if x in self._ou_name_id_map}
+        self._logger.debug(f"Valid AWS OU names to exclude: {', '.join(sorted(self.excluded_ou_names))}")
+
+        self.invalid_ou_names = excluded_ou_names - self.excluded_ou_names
+        self._logger.debug(f"Invalid provided AWS OU names: {', '.join(sorted(self.invalid_ou_names))}")
 
     @property
     def excluded_account_names(self) -> Set[str]:
