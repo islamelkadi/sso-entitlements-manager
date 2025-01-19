@@ -6,9 +6,23 @@ import logging
 import itertools
 from datetime import datetime
 from typing import Optional, Dict, List
+from dataclasses import dataclass, field
 import boto3
 from src.core.constants import OU_TARGET_TYPE_LABEL, ACCOUNT_TARGET_TYPE_LABEL, USER_PRINCIPAL_TYPE_LABEL, GROUP_PRINCIPAL_TYPE_LABEL, SSO_ENTITLMENTS_APP_NAME
 from .utils import handle_aws_exceptions
+
+@dataclass(frozen=True)
+class AccountAssignment:
+    """
+    Dataclass defining the schema for SSO account assignments
+    """
+    target_id: str
+    principal_id: str
+    principal_type: str  # "USER" or "GROUP"
+    permission_set_arn: str
+    instance_arn: str
+    target_type: str = field(default="AWS_ACCOUNT")  # Always "AWS_ACCOUNT"
+
 
 class SsoAdminManager:
     """
