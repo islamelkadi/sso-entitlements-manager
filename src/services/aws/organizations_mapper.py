@@ -1,41 +1,27 @@
 import logging
+from typing import Optional, List
+
 import boto3
+from src.core.utils import handle_aws_exceptions
 from src.core.constants import SSO_ENTITLMENTS_APP_NAME
-from .utils import handle_aws_exceptions
 
 class OrganizationsMapper:
 
-    def __init__(self) -> None:
-        """
-        Initializes the OrganizationsMapper instance with the root OU ID and optional exclusion lists.
-
-        Parameters:
-        ----------
-        root_ou_id: str
-            The root OU ID.
-        exclude_ou_name_list: list, optional
-            A list of OU names to exclude. Defaults to an empty list.
-        exclude_account_name_list: list, optional
-            A list of account names to exclude. Defaults to an empty list.
-
-        Usage:
-        ------
-        aws_orgs = OrganizationsMapper("root-ou-id", ["ExcludeOU1"], ["ExcludeAccount1"])
-        """
+    def __init__(self, excluded_ou_names: Optional[List], excluded_account_names: Optional[List]) -> None:
         self._logger = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
-        self.exclude_ou_name_list: list = []
-        self.exclude_account_name_list: list = []
-        self.account_name_id_map: dict = {}
-        self.ou_accounts_map: dict = {}
+
+        self.exclude_ou_name_list = excluded_ou_names
+        self.exclude_account_name_list = excluded_account_names
+
         self._ou_name_id_map: dict = {}
+        self.ou_accounts_map: dict = {}
+        self.account_name_id_map: dict = {}
+
         self._organizations_client: boto3.client = boto3.client("organizations")
         self.root_ou_id: str = self._organizations_client.list_roots()["Roots"][0]["Id"]
 
     @handle_aws_exceptions()
     def _map_aws_organizational_units(self, parent_ou_id: str = "") -> None:
-        """
-        Maps AWS organizational units starting from the given parent OU ID.
-        """
         parent_ou_id = parent_ou_id if parent_ou_id else self.root_ou_id
         ou_paginator = self._organizations_client.get_paginator("list_organizational_units_for_parent")
         aws_ou_iterator = ou_paginator.paginate(ParentId=parent_ou_id)
@@ -50,11 +36,7 @@ class OrganizationsMapper:
 
     @handle_aws_exceptions()
     def _map_aws_ou_to_accounts(self) -> None:
-        """
-        Maps AWS accounts to their respective organizational units.
-        """
         accounts_paginator = self._organizations_client.get_paginator("list_accounts_for_parent")
-
         for ou_name, ou_id in self._ou_name_id_map.items():
             self.ou_accounts_map[ou_name] = []
             accounts_iterator = accounts_paginator.paginate(ParentId=ou_id)
@@ -66,18 +48,11 @@ class OrganizationsMapper:
                         self.ou_accounts_map[ou_name].append({"Id": account["Id"], "Name": account["Name"]})
 
     def _map_aws_accounts(self) -> None:
-        """
-        Maps AWS account names to their corresponding IDs
-        based on the `ou_accounts_map`.
-        """
         for aws_accounts in self.ou_accounts_map.values():
             for account in aws_accounts:
                 self.account_name_id_map[account["Name"]] = account["Id"]
 
     def run_ous_accounts_mapper(self) -> None:
-        """
-        Runs all mapping methods to update OUs and accounts.
-        """
         self._logger.info("Creating AWS OU names to ID map")
         self._map_aws_organizational_units(self.root_ou_id)
 
@@ -86,3 +61,23 @@ class OrganizationsMapper:
 
         self._logger.info("Create AWS account name to ID map")
         self._map_aws_accounts()
+
+
+    @property
+    def excluded_ou_names():
+        pass
+
+    @excluded_ou_names.setter
+    # TODO: Filter out invalid OU names
+    def excluded_ou_names():
+        pass
+
+
+    @property
+    def excluded_account_names():
+        pass
+
+    @excluded_account_names.setter
+    def excluded_account_names():
+        # TODO: Filter out invalid account names
+        pass
