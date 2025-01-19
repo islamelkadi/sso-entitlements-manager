@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, List
+from typing import Optional, List, Set
 
 import boto3
 from src.core.utils import handle_aws_exceptions
@@ -7,11 +7,14 @@ from src.core.constants import SSO_ENTITLMENTS_APP_NAME
 
 class OrganizationsMapper:
 
-    def __init__(self, excluded_ou_names: Optional[List], excluded_account_names: Optional[List]) -> None:
+    def __init__(self) -> None:
         self._logger = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
 
-        self.exclude_ou_name_list = excluded_ou_names
-        self.exclude_account_name_list = excluded_account_names
+        self.excluded_ou_names: Set[str] = set()
+        self.invalid_ou_names: Set[str] = set()
+
+        self.excluded_account_names: Set[str] = set()
+        self.invalid_account_names: Set[str] = set()
 
         self._ou_name_id_map: dict = {}
         self.ou_accounts_map: dict = {}
@@ -28,7 +31,7 @@ class OrganizationsMapper:
 
         for page in aws_ou_iterator:
             for ou in page.get("OrganizationalUnits", []):
-                if ou["Name"] not in self.exclude_ou_name_list and ou["Name"] not in self._ou_name_id_map:
+                if ou["Name"] not in self.excluded_ou_names and ou["Name"] not in self._ou_name_id_map:
                     self._logger.debug(f"Traversing non-excluded parent AWS OU: {ou['Name']}")
                     self._map_aws_organizational_units(ou["Id"])
                     self._ou_name_id_map[ou["Name"]] = ou["Id"]
@@ -43,7 +46,7 @@ class OrganizationsMapper:
             for page in accounts_iterator:
                 self._logger.info(f"{ou_name} OU contains {len(aws_accounts_flattened_list)} accounts, creating {ou_name}'s account itenerary...")
                 for account in page.get("Accounts", []):
-                    if account["Status"] == "ACTIVE" and account["Name"] not in self.exclude_account_name_list:
+                    if account["Status"] == "ACTIVE" and account["Name"] not in self.excluded_account_names:
                         self._logger.debug(f"Appending non-excluded AWS account to {ou_name}'s itenerary")
                         self.ou_accounts_map[ou_name].append({"Id": account["Id"], "Name": account["Name"]})
 
@@ -64,20 +67,23 @@ class OrganizationsMapper:
 
 
     @property
-    def excluded_ou_names():
+    def excluded_ou_names(self) -> Set[str]:
         pass
-
+    
     @excluded_ou_names.setter
-    # TODO: Filter out invalid OU names
-    def excluded_ou_names():
-        pass
+    def excluded_ou_names(self, names: List[str]) -> None:
+        # TODO: Filter out invalid OU names
+        self.excluded_ou_names = set(names)
+        self._logger.info(f"Set excluded AWS OU names: {', '.join(sorted(self.excluded_ou_names))}")
 
 
     @property
-    def excluded_account_names():
+    def excluded_account_names(self) -> Set[str]:
         pass
 
     @excluded_account_names.setter
-    def excluded_account_names():
+    def excluded_account_names(self, names: List[str) -> None:
         # TODO: Filter out invalid account names
-        pass
+        self.excluded_account_names = set(names)
+        self._logger.info(f"Set excluded AWS account names: {', '.join(sorted(self.excluded_account_names))}")
+
