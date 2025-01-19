@@ -4,19 +4,21 @@ import time
 from typing import Callable, Any
 
 import boto3
-from src.core.constants import SSO_ENTITLMENTS_APP_NAME
+from src.core.constants import SSO_ENTITLMENTS_APP_NAME, MAX_RETRIES, RETRY_DELAY_SECONDS
 
 logger = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
 sso_admin_client = boto3.client("sso-admin")
 aws_organization_client = boto3.client("organizations")
 
 def handle_aws_exceptions(
-    max_retries: int = 3, 
-    retry_delay_seconds: float = 2.0,
+    max_retries: int = MAX_RETRIES, 
+    retry_delay_seconds: float = RETRY_DELAY_SECONDS,
     retryable_exceptions: tuple = (
         sso_admin_client.exceptions.InternalServerException,
-        aws_organization_client.exceptions.ServiceException
-        aws_organization_client.exceptions.TooManyRequestsException
+        sso_admin_client.exceptions.ConflictException,
+        sso_admin_client.exceptions.ThrottlingException,
+        aws_organizations_client.exceptions.ServiceException,
+        aws_organizations_client.exceptions.TooManyRequestsException
     )
 ) -> Callable:
     """
