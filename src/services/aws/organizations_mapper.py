@@ -36,19 +36,16 @@ class OrganizationsMapper:
         """
         Maps AWS organizational units starting from the given parent OU ID.
         """
-        aws_ous_flattened_list = []
         parent_ou_id = parent_ou_id if parent_ou_id else self.root_ou_id
         ou_paginator = self._organizations_client.get_paginator("list_organizational_units_for_parent")
         aws_ou_iterator = ou_paginator.paginate(ParentId=parent_ou_id)
 
         for page in aws_ou_iterator:
-            aws_ous_flattened_list.extend(page["OrganizationalUnits"])
-
-        for ou in aws_ous_flattened_list:
-            if ou["Name"] not in self.exclude_ou_name_list and ou["Name"] not in self._ou_name_id_map:
-                self._logger.debug(f"Traversing non-excluded parent AWS OU: {ou['Name']}")
-                self._map_aws_organizational_units(ou["Id"])
-                self._ou_name_id_map[ou["Name"]] = ou["Id"]
+            for ou in page.get("OrganizationalUnits", []):
+                if ou["Name"] not in self.exclude_ou_name_list and ou["Name"] not in self._ou_name_id_map:
+                    self._logger.debug(f"Traversing non-excluded parent AWS OU: {ou['Name']}")
+                    self._map_aws_organizational_units(ou["Id"])
+                    self._ou_name_id_map[ou["Name"]] = ou["Id"]
         self._ou_name_id_map["root"] = self.root_ou_id
 
     @handle_aws_exceptions()
@@ -61,16 +58,12 @@ class OrganizationsMapper:
         for ou_name, ou_id in self._ou_name_id_map.items():
             self.ou_accounts_map[ou_name] = []
             accounts_iterator = accounts_paginator.paginate(ParentId=ou_id)
-            aws_accounts_flattened_list = []
-
             for page in accounts_iterator:
-                aws_accounts_flattened_list.extend(page["Accounts"])
-
-            self._logger.info(f"{ou_name} OU contains {len(aws_accounts_flattened_list)} accounts, creating {ou_name}'s account itenerary...")
-            for account in aws_accounts_flattened_list:
-                if account["Status"] == "ACTIVE" and account["Name"] not in self.exclude_account_name_list:
-                    self._logger.debug(f"Appending non-excluded AWS account to {ou_name}'s itenerary")
-                    self.ou_accounts_map[ou_name].append({"Id": account["Id"], "Name": account["Name"]})
+                self._logger.info(f"{ou_name} OU contains {len(aws_accounts_flattened_list)} accounts, creating {ou_name}'s account itenerary...")
+                for account in page.get("Accounts", []):
+                    if account["Status"] == "ACTIVE" and account["Name"] not in self.exclude_account_name_list:
+                        self._logger.debug(f"Appending non-excluded AWS account to {ou_name}'s itenerary")
+                        self.ou_accounts_map[ou_name].append({"Id": account["Id"], "Name": account["Name"]})
 
     def _map_aws_accounts(self) -> None:
         """
