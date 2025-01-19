@@ -1,6 +1,6 @@
 import logging
 import boto3
-from src.core.constants import SSO_ENTITLMENTS_APP_NAME, MAX_RETRIES, RETRY_DELAY_SECONDS
+from src.core.constants import SSO_ENTITLMENTS_APP_NAME
 from .utils import handle_aws_exceptions
 
 class OrganizationsMapper:
@@ -31,7 +31,7 @@ class OrganizationsMapper:
         self._organizations_client: boto3.client = boto3.client("organizations")
         self.root_ou_id: str = self._organizations_client.list_roots()["Roots"][0]["Id"]
 
-    @handle_aws_exceptions(max_retries=MAX_RETRIES, retry_delay_seconds=RETRY_DELAY_SECONDS)
+    @handle_aws_exceptions()
     def _map_aws_organizational_units(self, parent_ou_id: str = "") -> None:
         """
         Maps AWS organizational units starting from the given parent OU ID.
@@ -51,7 +51,7 @@ class OrganizationsMapper:
                 self._ou_name_id_map[ou["Name"]] = ou["Id"]
         self._ou_name_id_map["root"] = self.root_ou_id
 
-    @handle_aws_exceptions(max_retries=MAX_RETRIES, retry_delay_seconds=RETRY_DELAY_SECONDS)
+    @handle_aws_exceptions()
     def _map_aws_ou_to_accounts(self) -> None:
         """
         Maps AWS accounts to their respective organizational units.
