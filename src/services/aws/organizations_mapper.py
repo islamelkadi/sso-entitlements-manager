@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, List, Set
+from typing import List, Set
 
 import boto3
 from src.core.utils import handle_aws_exceptions
@@ -26,13 +26,14 @@ class OrganizationsMapper:
         self._logger.info("Creating AWS OU names to ID map")
         self._map_aws_organizational_units(self.root_ou_id)
 
+        self._logger.info("Creating AWS account names to ID map")
+        self._map_aws_accounts()
+
     @handle_aws_exceptions()
     def _map_aws_organizational_units(self, parent_ou_id: str = "") -> None:
         parent_ou_id = parent_ou_id if parent_ou_id else self.root_ou_id
         ou_paginator = self._organizations_client.get_paginator("list_organizational_units_for_parent")
-        aws_ou_iterator = ou_paginator.paginate(ParentId=parent_ou_id)
-
-        for page in aws_ou_iterator:
+        for page in ou_paginator.paginate(ParentId=parent_ou_id):
             for ou in page.get("OrganizationalUnits", []):
                 if ou["Name"] not in self.excluded_ou_names and ou["Name"] not in self._ou_name_id_map:
                     self._logger.debug(f"Traversing non-excluded parent AWS OU: {ou['Name']}")
@@ -53,18 +54,18 @@ class OrganizationsMapper:
                         self._logger.debug(f"Appending non-excluded AWS account to {ou_name}'s itenerary")
                         self.ou_accounts_map[ou_name].append({"Id": account["Id"], "Name": account["Name"]})
 
+    @handle_aws_exceptions()
     def _map_aws_accounts(self) -> None:
-        for aws_accounts in self.ou_accounts_map.values():
-            for account in aws_accounts:
+        accounts_paginator = self._organizations_client.get_paginator("list_accounts")
+        for page in accounts_paginator.paginate():
+            for account in page.get("Accounts", []):
                 self.account_name_id_map[account["Name"]] = account["Id"]
+
 
     def run_ous_accounts_mapper(self) -> None:
 
         self._logger.info("Creating AWS OU names to account details map")
         self._map_aws_ou_to_accounts()
-
-        self._logger.info("Create AWS account name to ID map")
-        self._map_aws_accounts()
 
 
     @property
@@ -87,8 +88,12 @@ class OrganizationsMapper:
         pass
 
     @excluded_account_names.setter
-    def excluded_account_names(self, names: List[str) -> None:
-        # TODO: Filter out invalid account names
-        self.excluded_account_names = set(names)
-        self._logger.info(f"Set excluded AWS account names: {', '.join(sorted(self.excluded_account_names))}")
+    def excluded_account_names(self, names: List[str]) -> None:
+        excluded_account_names = set(names)
+        self._logger.debug(f"Provided AWS account names to exclude: {', '.join(sorted(self.excluded_account_names))}")
 
+        self.excluded_account_names = {x for x in excluded_account_names if x in self.account_name_id_map}
+        self._logger.debug(f"Valid AWS OU names to exclude: {', '.join(sorted(self.excluded_account_names))}")
+
+        self.invalid_account_names = excluded_account_names - self.excluded_account_names
+        self._logger.debug(f"Invalid provided AWS account names: {', '.join(sorted(self.invalid_account_names))}")
