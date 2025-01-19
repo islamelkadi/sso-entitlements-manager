@@ -12,7 +12,7 @@ aws_organization_client = boto3.client("organizations")
 
 def handle_aws_exceptions(
     max_retries: int = 3, 
-    retry_delay: float = 1.0,
+    retry_delay_seconds: float = 2.0,
     retryable_exceptions: tuple = (
         sso_admin_client.exceptions.InternalServerException,
         aws_organization_client.exceptions.ServiceException
