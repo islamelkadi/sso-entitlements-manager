@@ -188,12 +188,9 @@ class OrganizationsMapper:
         ------
         self._map_aws_accounts()
         """
-        aws_accounts = []
         for account_set in self.ou_accounts_map.values():
-            aws_accounts.extend(account_set)
-
-        for account in aws_accounts:
-            self.account_name_id_map[account["Name"]] = account["Id"]
+            for account in aws_accounts:
+                self.account_name_id_map[account["Name"]] = account["Id"]
 
     def run_ous_accounts_mapper(self) -> None:
         """
