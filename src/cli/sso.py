@@ -19,7 +19,7 @@ from src.core.utils import setup_logging
 from src.core.access_control_file_reader import AccessControlFileReader
 from src.services.aws.organizations_mapper import OrganizationsMapper
 from src.services.aws.sso_admin_manager import SsoAdminManager
-from src.core.constances import SSO_ENTITLMENTS_APP_NAME
+from src.core.constants import SSO_ENTITLMENTS_APP_NAME
 
 # Globals vars
 CWD = os.path.dirname(os.path.realpath(__file__))

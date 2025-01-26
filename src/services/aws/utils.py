@@ -8,7 +8,7 @@ from src.core.constants import SSO_ENTITLMENTS_APP_NAME, MAX_RETRIES, RETRY_DELA
 
 logger = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
 sso_admin_client = boto3.client("sso-admin")
-aws_organization_client = boto3.client("organizations")
+aws_organizations_client = boto3.client("organizations")
 
 def handle_aws_exceptions(
     max_retries: int = MAX_RETRIES, 
@@ -52,7 +52,7 @@ def handle_aws_exceptions(
                         logger.error(f"Max retries ({max_retries}) exceeded: {e}")
                         raise e
                     
-                    wait_time = retry_delay * (2 ** (retries - 1))  # Exponential backoff
+                    wait_time = retry_delay_seconds * (2 ** (retries - 1))  # Exponential backoff
                     logger.warning(
                         f"Retryable error occurred: {e}. "
                         f"Attempt {retries}/{max_retries}. "
