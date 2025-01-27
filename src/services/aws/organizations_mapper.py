@@ -8,12 +8,10 @@ from src.services.aws.utils import handle_aws_exceptions
 
 class OrganizationsMapper:
 
-    def __init__(self, exclude_ou_names = set(), exclude_account_names = set()) -> None:
+    def __init__(self) -> None:
     
         self.ou_accounts_map = {}
         self._logger = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
-        self._excluded_ou_names = exclude_ou_names if exclude_ou_names else set()
-        self._excluded_account_names = exclude_account_names if exclude_account_names else set()
 
         # Initialize AWS clients
         self._organizations_client = boto3.client("organizations")
@@ -22,11 +20,11 @@ class OrganizationsMapper:
         self.root_ou_id = self._organizations_client.list_roots()["Roots"][0]["Id"]
 
         self._logger.info("Mapping AWS organization")
-        self._map_aws_organization(self.root_ou_id)
+        self._generate_aws_organization_map(self.root_ou_id)
 
 
     @handle_aws_exceptions()
-    def _map_aws_organization(self, ou_id: str) -> None:
+    def _generate_aws_organization_map(self, ou_id: str) -> None:
 
         # Get ou name
         if ou_id != self.root_ou_id:
@@ -37,26 +35,39 @@ class OrganizationsMapper:
 
         # Add ou entry to ou_accounts map
         if ou_name not in self.ou_accounts_map:
-            self.ou_accounts_map[ou_name] = {"id": ou_id, "accounts": []}
+            self.ou_accounts_map[ou_name] = {"Id": ou_id, "accounts": []}
 
         # Get accounts under OU
         accounts_paginator = self._organizations_client.get_paginator("list_accounts_for_parent")
         for page in accounts_paginator.paginate(ParentId=ou_id):
             for account in page.get("Accounts", []):
                 if account["Status"] == "ACTIVE":
-                    self.ou_accounts_map[ou_name]["accounts"].append({"id": account["Id"], "name": account["Name"]})
+                    self.ou_accounts_map[ou_name]["accounts"].append(account)
 
         # Recursively populate ou account map
         ou_paginator = self._organizations_client.get_paginator("list_organizational_units_for_parent")
         for page in ou_paginator.paginate(ParentId=ou_id):
             for child_ou in page.get("OrganizationalUnits", []):
-                self._map_aws_organization(child_ou["Id"])
+                self._generate_aws_organization_map(child_ou["Id"])
+
+
+    @property
+    def ou_accounts_map(self):
+        return self.ou_accounts_map
+
 
     @cached_property
-    def get_org_map(self):
-        ou_name_id_map = {}
-        account_name_id_map = {}
-        for ou_name, ou_detail in self.ou_accounts_map.items():
-            ou_name_id_map[ou_name] = ou_detail["id"]
-            for account_details in ou_detail["accounts"]:
-                account_name_id_map[account_details["name"]] = account_details["id"]
+    def account_name_id_map(self):
+        account_name_id_map: dict[str, str] = {}
+        for ou_details in self.ou_accounts_map.values():
+            for account_details in ou_details:
+                account_name_id_map[account_details["Name"]] = account_details["Id"]
+        return account_name_id_map
+
+
+    @cached_property
+    def ou_name_id_map(self):
+        ou_name_id_map: dict[str, str] = {}
+        for ou_name, ou_details in self.ou_accounts_map.items():
+                ou_name_id_map[ou_name] = ou_details["Id"]
+        return ou_name_id_map
