@@ -35,14 +35,14 @@ class OrganizationsMapper:
 
         # Add ou entry to ou_accounts map
         if ou_name not in self.ou_accounts_map:
-            self.ou_accounts_map[ou_name] = {"Id": ou_id, "accounts": []}
+            self.ou_accounts_map[ou_name] = {"Id": ou_id, "Accounts": []}
 
         # Get accounts under OU
         accounts_paginator = self._organizations_client.get_paginator("list_accounts_for_parent")
         for page in accounts_paginator.paginate(ParentId=ou_id):
             for account in page.get("Accounts", []):
                 if account["Status"] == "ACTIVE":
-                    self.ou_accounts_map[ou_name]["accounts"].append(account)
+                    self.ou_accounts_map[ou_name]["Accounts"].append({"Id": account["Id"], "Name": account["Name"]})
 
         # Recursively populate ou account map
         ou_paginator = self._organizations_client.get_paginator("list_organizational_units_for_parent")
@@ -51,7 +51,7 @@ class OrganizationsMapper:
                 self._generate_aws_organization_map(child_ou["Id"])
 
 
-    @property
+    @cached_property
     def ou_accounts_map(self):
         return self.ou_accounts_map
 

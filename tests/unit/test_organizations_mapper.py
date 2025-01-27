@@ -56,21 +56,11 @@ def test_list_active_included_aws_accounts(
     specified accounts and OUs, does not match boto3's list_accounts.
     """
     # Arrange
-    excluded_ou_accounts = []
-    for ou, accounts in setup_mock_aws_environment["ou_accounts_map"].items():
-        if ou in excluded_ous:
-            excluded_ou_accounts.extend([x["Name"] for x in accounts])
-    accounts_to_filter_out = set(excluded_ou_accounts + excluded_accounts)
+    py_aws_organizations = OrganizationsMapper()
 
     # Act
-    py_aws_organizations = OrganizationsMapper()
-    print(py_aws_organizations.ou_accounts_map)
-    # setattr(py_aws_organizations, "exclude_ou_name_list", excluded_ous)
-    # setattr(py_aws_organizations, "exclude_account_name_list", excluded_accounts)
-    # py_aws_organizations.run_ous_accounts_mapper()
-
     # active_aws_accounts_via_class = [x["Name"] for x in list(itertools.chain(*py_aws_organizations.ou_accounts_map.values()))]
-    # active_aws_account_names_via_boto3 = [x["Name"] for x in organizations_client.list_accounts()["Accounts"] if x["Name"] not in accounts_to_filter_out]
+    # active_aws_account_names_via_boto3 = [x["Name"] for x in organizations_client.list_accounts()["Accounts"]]
 
     # # Assert
     # assert sorted(active_aws_accounts_via_class) == sorted(active_aws_account_names_via_boto3)
