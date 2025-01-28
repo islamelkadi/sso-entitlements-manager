@@ -17,10 +17,10 @@ class OrganizationsMapper:
         self._logger: logging.Logger = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
 
         # Initialize AWS clients
-        self._organizations_client: boto3.client = boto3.client("organizations")
-        self.root_ou_id: str = self._organizations_client.list_roots()["Roots"][0]["Id"]
-        self._ous_paginator: boto3.client.Paginator = self._organizations_client.get_paginator("list_organizational_units_for_parent")
-        self._accounts_pagniator: boto3.client.Paginator = self._organizations_client.get_paginator("list_accounts_for_parent")
+        self._organizations_client = boto3.client("organizations")
+        self.root_ou_id = self._organizations_client.list_roots()["Roots"][0]["Id"]
+        self._ous_paginator = self._organizations_client.get_paginator("list_organizational_units_for_parent")
+        self._accounts_pagniator = self._organizations_client.get_paginator("list_accounts_for_parent")
 
         self._logger.info("Mapping AWS organization")
         self._generate_aws_organization_map(self.root_ou_id)
@@ -41,15 +41,13 @@ class OrganizationsMapper:
             self.ou_accounts_map[ou_name] = {"Id": ou_id, "Accounts": []}
 
         # Get accounts under OU
-        accounts_paginator = self._organizations_client.get_paginator("list_accounts_for_parent")
-        for page in accounts_paginator.paginate(ParentId=ou_id):
+        for page in self._accounts_pagniator.paginate(ParentId=ou_id):
             for account in page.get("Accounts", []):
                 if account["Status"] == "ACTIVE":
                     self.ou_accounts_map[ou_name]["Accounts"].append({"Id": account["Id"], "Name": account["Name"]})
 
         # Recursively populate ou account map
-        ou_paginator = self._organizations_client.get_paginator("list_organizational_units_for_parent")
-        for page in ou_paginator.paginate(ParentId=ou_id):
+        for page in self._ous_paginator.paginate(ParentId=ou_id):
             for child_ou in page.get("OrganizationalUnits", []):
                 self._generate_aws_organization_map(child_ou["Id"])
 

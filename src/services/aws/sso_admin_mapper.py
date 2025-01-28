@@ -9,10 +9,6 @@ import boto3
 from src.core.utils import SSO_ENTITLMENTS_APP_NAME
 from src.services.aws.utils import handle_aws_exceptions
 
-# Type hints
-Boto3Paginator: TypeAlias = boto3.client.Paginator
-Boto3PagesIterator: TypeAlias = boto3.client.Paginator.PageIterator
-
 class SsoAdminManager:
     """
     Class for resolving AWS resources and creating RBAC (Role-Based Access Control)
@@ -30,12 +26,12 @@ class SsoAdminManager:
         self.sso_groups: dict[str, str] = {}
         self.permission_sets: dict[str,str] = {}
 
-        self._sso_admin_client: boto3.client = boto3.client("sso-admin")
-        self._identity_store_client: boto3.client = boto3.client("identitystore")
+        self._sso_admin_client = boto3.client("sso-admin")
+        self._identity_store_client = boto3.client("identitystore")
 
-        self._list_groups_paginator: Boto3Paginator = self._identity_store_client.get_paginator("list_groups")
-        self._list_sso_users_pagniator: Boto3Paginator = self._identity_store_client.get_paginator("list_users")
-        self._list_permission_sets_paginator: Boto3Paginator = self._sso_admin_client.get_paginator("list_permission_sets")
+        self._list_groups_paginator = self._identity_store_client.get_paginator("list_groups")
+        self._list_sso_users_pagniator = self._identity_store_client.get_paginator("list_users")
+        self._list_permission_sets_paginator = self._sso_admin_client.get_paginator("list_permission_sets")
 
         self._logger: logging.Logger = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
 
@@ -51,7 +47,7 @@ class SsoAdminManager:
         """
         Lists all groups in the identity store and maps DisplayName to GroupId.
         """
-        sso_groups_pages: Boto3PagesIterator = self._list_groups_paginator.paginate(IdentityStoreId=self.identity_store_id)
+        sso_groups_pages = self._list_groups_paginator.paginate(IdentityStoreId=self.identity_store_id)
         for page in sso_groups_pages:
             for group in page.get("Groups", []):
                 self.sso_groups[group["DisplayName"]] = group["GroupId"]
@@ -61,7 +57,7 @@ class SsoAdminManager:
         """
         Lists all users in the identity store and maps UserName to UserId.
         """
-        sso_users_pages: Boto3PagesIterator = self._list_sso_users_pagniator.paginate(IdentityStoreId=self.identity_store_id)
+        sso_users_pages = self._list_sso_users_pagniator.paginate(IdentityStoreId=self.identity_store_id)
         for page in sso_users_pages:
             for user in page.get("Users", []):
                 self.sso_users[user["UserName"]] = user["UserId"]
@@ -71,7 +67,7 @@ class SsoAdminManager:
         """
         Lists all permission sets and maps Name to PermissionSetArn.
         """
-        permission_sets_pages: Boto3PagesIterator = self._list_permission_sets_paginator.paginate(InstanceArn=self.identity_store_arn)
+        permission_sets_pages = self._list_permission_sets_paginator.paginate(InstanceArn=self.identity_store_arn)
         for page in permission_sets_pages:
             for permission_set in page.get("PermissionSets", []):
                 described_permission_set = self._sso_admin_client.describe_permission_set(InstanceArn=self.identity_store_arn, PermissionSetArn=permission_set)
