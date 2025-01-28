@@ -1,10 +1,13 @@
 import logging
-from typing import Set
+from typing import Union, TypeAlias
 from functools import cached_property
 
 import boto3
 from src.core.constants import SSO_ENTITLMENTS_APP_NAME
 from src.services.aws.utils import handle_aws_exceptions
+
+# Type hints
+OuAccountsObject: TypeAlias = list[dict[str, str]]
 
 class OrganizationsMapper:
 
@@ -14,10 +17,10 @@ class OrganizationsMapper:
         self._logger = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
 
         # Initialize AWS clients
-        self._organizations_client = boto3.client("organizations")
+        self._organizations_client: boto3.client = boto3.client("organizations")
+        self.root_ou_id: str = self._organizations_client.list_roots()["Roots"][0]["Id"]
         self._ous_paginator = self._organizations_client.get_paginator("list_organizational_units_for_parent")
         self._accounts_pagniator = self._organizations_client.get_paginator("list_accounts_for_parent")
-        self.root_ou_id = self._organizations_client.list_roots()["Roots"][0]["Id"]
 
         self._logger.info("Mapping AWS organization")
         self._generate_aws_organization_map(self.root_ou_id)
@@ -52,12 +55,12 @@ class OrganizationsMapper:
 
 
     @cached_property
-    def ou_accounts_map(self):
+    def ou_accounts_map(self) -> dict[str, dict[str, Union[str, OuAccountsObject]]]:
         return self.ou_accounts_map
 
 
     @cached_property
-    def account_name_id_map(self):
+    def account_name_id_map(self) -> dict[str, str]:
         account_name_id_map: dict[str, str] = {}
         for ou_details in self.ou_accounts_map.values():
             for account_details in ou_details:
@@ -66,7 +69,7 @@ class OrganizationsMapper:
 
 
     @cached_property
-    def ou_name_id_map(self):
+    def ou_name_id_map(self) -> dict[str, str]:
         ou_name_id_map: dict[str, str] = {}
         for ou_name, ou_details in self.ou_accounts_map.items():
                 ou_name_id_map[ou_name] = ou_details["Id"]
