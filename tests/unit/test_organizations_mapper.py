@@ -10,30 +10,22 @@ Tests:
     Correct listing of active AWS accounts.
 """
 
-import itertools
-from typing import List
 import boto3
 import pytest
 from src.services.aws.organizations_mapper import OrganizationsMapper
 
 
 @pytest.mark.parametrize(
-    "setup_mock_aws_environment, excluded_ous, excluded_accounts",
+    "setup_mock_aws_environment",
     [
-        ("aws_org_1.json", [], []),
-        ("aws_org_1.json", ["suspended"], []),
-        ("aws_org_1.json", ["suspended", "prod"], []),
-        ("aws_org_1.json", [], ["workload_1_dev"]),
-        ("aws_org_1.json", [], ["workload_1_dev", "workload_2_test", "workload_2_prod"]),
-        ("aws_org_1.json", ["suspended", "prod"], ["workload_1_dev", "workload_2_test"]),
+        "aws_org_1.json",
+        "aws_org_2.json"
     ],
     indirect=["setup_mock_aws_environment"],
 )
 def test_list_active_included_aws_accounts(
     organizations_client: boto3.client,
-    setup_mock_aws_environment: pytest.fixture,
-    excluded_ous: List[str],
-    excluded_accounts: List[str],
+    setup_mock_aws_environment: pytest.fixture
 ) -> None:
     """
     Test case to verify listing active AWS accounts with optional
@@ -59,8 +51,15 @@ def test_list_active_included_aws_accounts(
     py_aws_organizations = OrganizationsMapper()
 
     # Act
-    # active_aws_accounts_via_class = [x["Name"] for x in list(itertools.chain(*py_aws_organizations.ou_accounts_map.values()))]
-    # active_aws_account_names_via_boto3 = [x["Name"] for x in organizations_client.list_accounts()["Accounts"]]
+    active_aws_accounts_via_class: list[str] = []
+    for ou in py_aws_organizations.ou_accounts_map.values():
+        for account in ou["Accounts"]:
+            active_aws_accounts_via_class.append(account["Name"])
 
-    # # Assert
-    # assert sorted(active_aws_accounts_via_class) == sorted(active_aws_account_names_via_boto3)
+    active_aws_account_names_via_boto3: list[str] = []
+    for account in organizations_client.list_accounts()["Accounts"]:
+        if account["Status"] == "ACTIVE":
+            active_aws_account_names_via_boto3.append(account["Name"])
+
+    # Assert
+    assert sorted(active_aws_accounts_via_class) == sorted(active_aws_account_names_via_boto3)
