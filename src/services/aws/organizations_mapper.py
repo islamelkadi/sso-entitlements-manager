@@ -14,13 +14,13 @@ class OrganizationsMapper:
     def __init__(self) -> None:
     
         self.ou_accounts_map = {}
-        self._logger = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
+        self._logger: logging.Logger = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
 
         # Initialize AWS clients
         self._organizations_client: boto3.client = boto3.client("organizations")
         self.root_ou_id: str = self._organizations_client.list_roots()["Roots"][0]["Id"]
-        self._ous_paginator = self._organizations_client.get_paginator("list_organizational_units_for_parent")
-        self._accounts_pagniator = self._organizations_client.get_paginator("list_accounts_for_parent")
+        self._ous_paginator: boto3.client.Paginator = self._organizations_client.get_paginator("list_organizational_units_for_parent")
+        self._accounts_pagniator: boto3.client.Paginator = self._organizations_client.get_paginator("list_accounts_for_parent")
 
         self._logger.info("Mapping AWS organization")
         self._generate_aws_organization_map(self.root_ou_id)
