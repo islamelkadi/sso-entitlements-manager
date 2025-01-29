@@ -38,7 +38,13 @@ AccessControlFileReader
 
 import jsonschema
 from src.core.utils import load_file, convert_specific_keys_to_uppercase
-from src.core.constants import OU_TARGET_TYPE_LABEL, ACCOUNT_TARGET_TYPE_LABEL, USER_PRINCIPAL_TYPE_LABEL, GROUP_PRINCIPAL_TYPE_LABEL, PERMISSION_SET_TYPE_LABEL
+from src.core.constants import (
+    OU_TARGET_TYPE_LABEL,
+    ACCOUNT_TARGET_TYPE_LABEL,
+    USER_PRINCIPAL_TYPE_LABEL,
+    GROUP_PRINCIPAL_TYPE_LABEL,
+    PERMISSION_SET_TYPE_LABEL,
+)
 
 
 class AccessControlFileReader:
@@ -93,7 +99,11 @@ class AccessControlFileReader:
         self.excluded_sso_user_names: list = []
         self.excluded_sso_group_names: list = []
         self.excluded_permission_set_names: list = []
-        self._manifest_file_keys_to_uppercase: list = ["principal_type", "target_type", "exclude_target_type"]
+        self._manifest_file_keys_to_uppercase: list = [
+            "principal_type",
+            "target_type",
+            "exclude_target_type",
+        ]
 
     def _load_sso_manifest_file(self) -> None:
         """

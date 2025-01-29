@@ -36,9 +36,22 @@ VALID_MANIFEST_DEFINITION_FILES = [os.path.abspath(x) for x in glob.glob(VALID_M
 
 
 @pytest.mark.parametrize(
-    "account_assignment_range, setup_mock_aws_environment, manifest_filename", list(itertools.product(PRE_TEST_ACCOUNT_ASSIGNMENT_PERCENTAGES, AWS_ORG_DEFINITION_FILES, VALID_MANIFEST_DEFINITION_FILES)), indirect=["setup_mock_aws_environment"]
+    "account_assignment_range, setup_mock_aws_environment, manifest_filename",
+    list(
+        itertools.product(
+            PRE_TEST_ACCOUNT_ASSIGNMENT_PERCENTAGES,
+            AWS_ORG_DEFINITION_FILES,
+            VALID_MANIFEST_DEFINITION_FILES,
+        )
+    ),
+    indirect=["setup_mock_aws_environment"],
 )
-def test_create_account_assignments(sso_admin_client, account_assignment_range: float, setup_mock_aws_environment: pytest.fixture, manifest_filename: str) -> None:
+def test_create_account_assignments(
+    sso_admin_client,
+    account_assignment_range: float,
+    setup_mock_aws_environment: pytest.fixture,
+    manifest_filename: str,
+) -> None:
     """
     Test the creation of account assignments based on the provided manifest file and setup environment.
 
@@ -76,19 +89,47 @@ def test_create_account_assignments(sso_admin_client, account_assignment_range: 
     # Act
     identity_center_manager = SsoAdminManager()
     setattr(identity_center_manager, "rbac_rules", rbac_rules)
-    setattr(identity_center_manager, "sso_users", setup_mock_aws_environment["sso_username_id_map"])
-    setattr(identity_center_manager, "sso_groups", setup_mock_aws_environment["sso_group_name_id_map"])
-    setattr(identity_center_manager, "permission_sets", setup_mock_aws_environment["sso_permission_set_name_id_map"])
-    setattr(identity_center_manager, "ou_accounts_map", setup_mock_aws_environment["ou_accounts_map"])
-    setattr(identity_center_manager, "account_name_id_map", setup_mock_aws_environment["account_name_id_map"])
+    setattr(
+        identity_center_manager,
+        "sso_users",
+        setup_mock_aws_environment["sso_username_id_map"],
+    )
+    setattr(
+        identity_center_manager,
+        "sso_groups",
+        setup_mock_aws_environment["sso_group_name_id_map"],
+    )
+    setattr(
+        identity_center_manager,
+        "permission_sets",
+        setup_mock_aws_environment["sso_permission_set_name_id_map"],
+    )
+    setattr(
+        identity_center_manager,
+        "ou_accounts_map",
+        setup_mock_aws_environment["ou_accounts_map"],
+    )
+    setattr(
+        identity_center_manager,
+        "account_name_id_map",
+        setup_mock_aws_environment["account_name_id_map"],
+    )
     identity_center_manager.run_access_control_resolver()
 
     # Assert
     assert expected_account_assignments[upper_bound_range:] == sorted(identity_center_manager.assignments_to_create, key=sort_keys)
 
 
-@pytest.mark.parametrize("setup_mock_aws_environment, manifest_filename", list(itertools.product(AWS_ORG_DEFINITION_FILES, VALID_MANIFEST_DEFINITION_FILES)), indirect=["setup_mock_aws_environment"])
-def test_delete_account_assignments(sso_admin_client: pytest.fixture, setup_mock_aws_environment: pytest.fixture, manifest_filename: str) -> None:
+@pytest.mark.parametrize(
+    "setup_mock_aws_environment, manifest_filename",
+    list(itertools.product(AWS_ORG_DEFINITION_FILES, VALID_MANIFEST_DEFINITION_FILES)),
+    indirect=["setup_mock_aws_environment"],
+)
+def test_delete_account_assignments(
+    sso_admin_client: pytest.fixture,
+    setup_mock_aws_environment: pytest.fixture,
+    manifest_filename: str,
+) -> None:
     """
     Test the deletion of account assignments based on the provided manifest file and setup environment.
 
@@ -131,9 +172,21 @@ def test_delete_account_assignments(sso_admin_client: pytest.fixture, setup_mock
 
         def create_single_assignment(assignment):
             sso_admin_client.create_account_assignment(
-                InstanceArn=setup_mock_aws_environment["identity_store_arn"], PermissionSetArn=assignment[2], PrincipalId=assignment[0], PrincipalType=assignment[1], TargetId=assignment[3], TargetType="AWS_ACCOUNT"
+                InstanceArn=setup_mock_aws_environment["identity_store_arn"],
+                PermissionSetArn=assignment[2],
+                PrincipalId=assignment[0],
+                PrincipalType=assignment[1],
+                TargetId=assignment[3],
+                TargetType="AWS_ACCOUNT",
             )
-            return {"PrincipalId": assignment[0], "PrincipalType": assignment[1], "PermissionSetArn": assignment[2], "TargetId": assignment[3], "TargetType": "AWS_ACCOUNT", "InstanceArn": setup_mock_aws_environment["identity_store_arn"]}
+            return {
+                "PrincipalId": assignment[0],
+                "PrincipalType": assignment[1],
+                "PermissionSetArn": assignment[2],
+                "TargetId": assignment[3],
+                "TargetType": "AWS_ACCOUNT",
+                "InstanceArn": setup_mock_aws_environment["identity_store_arn"],
+            }
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             assignments = list(executor.map(create_single_assignment, assignments_to_create))
@@ -153,11 +206,31 @@ def test_delete_account_assignments(sso_admin_client: pytest.fixture, setup_mock
     # Act
     identity_center_manager = SsoAdminManager()
     setattr(identity_center_manager, "rbac_rules", rbac_rules)
-    setattr(identity_center_manager, "sso_users", setup_mock_aws_environment["sso_username_id_map"])
-    setattr(identity_center_manager, "sso_groups", setup_mock_aws_environment["sso_group_name_id_map"])
-    setattr(identity_center_manager, "permission_sets", setup_mock_aws_environment["sso_permission_set_name_id_map"])
-    setattr(identity_center_manager, "ou_accounts_map", setup_mock_aws_environment["ou_accounts_map"])
-    setattr(identity_center_manager, "account_name_id_map", setup_mock_aws_environment["account_name_id_map"])
+    setattr(
+        identity_center_manager,
+        "sso_users",
+        setup_mock_aws_environment["sso_username_id_map"],
+    )
+    setattr(
+        identity_center_manager,
+        "sso_groups",
+        setup_mock_aws_environment["sso_group_name_id_map"],
+    )
+    setattr(
+        identity_center_manager,
+        "permission_sets",
+        setup_mock_aws_environment["sso_permission_set_name_id_map"],
+    )
+    setattr(
+        identity_center_manager,
+        "ou_accounts_map",
+        setup_mock_aws_environment["ou_accounts_map"],
+    )
+    setattr(
+        identity_center_manager,
+        "account_name_id_map",
+        setup_mock_aws_environment["account_name_id_map"],
+    )
     identity_center_manager.run_access_control_resolver()
 
     # Assert
@@ -165,7 +238,11 @@ def test_delete_account_assignments(sso_admin_client: pytest.fixture, setup_mock
     assert sorted(assignments_to_delete, key=sort_keys) == sorted(identity_center_manager.assignments_to_delete, key=sort_keys)
 
 
-@pytest.mark.parametrize("setup_mock_aws_environment, manifest_filename", list(itertools.product(AWS_ORG_DEFINITION_FILES, VALID_MANIFEST_DEFINITION_FILES)), indirect=["setup_mock_aws_environment"])
+@pytest.mark.parametrize(
+    "setup_mock_aws_environment, manifest_filename",
+    list(itertools.product(AWS_ORG_DEFINITION_FILES, VALID_MANIFEST_DEFINITION_FILES)),
+    indirect=["setup_mock_aws_environment"],
+)
 def test_generate_invalid_assignments_report(setup_mock_aws_environment: pytest.fixture, manifest_filename: str) -> None:
     """
     Test the generation of a report for invalid account assignments based on the provided manifest file and setup environment.
@@ -184,11 +261,31 @@ def test_generate_invalid_assignments_report(setup_mock_aws_environment: pytest.
     # Act
     identity_center_manager = SsoAdminManager()
     setattr(identity_center_manager, "rbac_rules", rbac_rules)
-    setattr(identity_center_manager, "sso_users", setup_mock_aws_environment["sso_username_id_map"])
-    setattr(identity_center_manager, "sso_groups", setup_mock_aws_environment["sso_group_name_id_map"])
-    setattr(identity_center_manager, "permission_sets", setup_mock_aws_environment["sso_permission_set_name_id_map"])
-    setattr(identity_center_manager, "ou_accounts_map", setup_mock_aws_environment["ou_accounts_map"])
-    setattr(identity_center_manager, "account_name_id_map", setup_mock_aws_environment["account_name_id_map"])
+    setattr(
+        identity_center_manager,
+        "sso_users",
+        setup_mock_aws_environment["sso_username_id_map"],
+    )
+    setattr(
+        identity_center_manager,
+        "sso_groups",
+        setup_mock_aws_environment["sso_group_name_id_map"],
+    )
+    setattr(
+        identity_center_manager,
+        "permission_sets",
+        setup_mock_aws_environment["sso_permission_set_name_id_map"],
+    )
+    setattr(
+        identity_center_manager,
+        "ou_accounts_map",
+        setup_mock_aws_environment["ou_accounts_map"],
+    )
+    setattr(
+        identity_center_manager,
+        "account_name_id_map",
+        setup_mock_aws_environment["account_name_id_map"],
+    )
     identity_center_manager.run_access_control_resolver()
 
     # Generate invalid assignments report

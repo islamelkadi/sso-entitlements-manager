@@ -17,16 +17,10 @@ from src.services.aws.organizations_mapper import OrganizationsMapper
 
 @pytest.mark.parametrize(
     "setup_mock_aws_environment",
-    [
-        "aws_org_1.json",
-        "aws_org_2.json"
-    ],
+    ["aws_org_1.json", "aws_org_2.json"],
     indirect=["setup_mock_aws_environment"],
 )
-def test_list_active_included_aws_accounts(
-    organizations_client: boto3.client,
-    setup_mock_aws_environment: pytest.fixture
-) -> None:
+def test_list_active_included_aws_accounts(organizations_client: boto3.client, setup_mock_aws_environment: pytest.fixture) -> None:
     """
     Test case to verify listing active AWS accounts with optional
     exclusion of specific OUs and accounts.

@@ -28,7 +28,14 @@ def get_ignore_accounts(manifest_file, ou_map) -> Set[str]:
     return ignore_accounts
 
 
-def remove_ignored_targets(manifest_file, ou_map, valid_accounts, sso_users_map, sso_groups_map, sso_permission_sets):
+def remove_ignored_targets(
+    manifest_file,
+    ou_map,
+    valid_accounts,
+    sso_users_map,
+    sso_groups_map,
+    sso_permission_sets,
+):
     """
     Remove targets specified in ignore rules from the provided mappings.
 
@@ -109,7 +116,14 @@ def generate_expected_account_assignments(
     Returns:
         List[Dict[str, Any]]: A list of expected account assignment dictionaries.
     """
-    remove_ignored_targets(manifest_file, ou_map, valid_accounts, sso_users_map, sso_groups_map, sso_permission_sets)
+    remove_ignored_targets(
+        manifest_file,
+        ou_map,
+        valid_accounts,
+        sso_users_map,
+        sso_groups_map,
+        sso_permission_sets,
+    )
 
     expected_assignments = []
     rbac_rules = manifest_file.get("rbac_rules", [])
@@ -161,7 +175,10 @@ def setup_s3_environment(manifest_definition_filepath: str, bucket_name: str = "
     upload_file_to_s3(bucket_name, manifest_definition_filepath)
 
     monkeypatch = pytest.MonkeyPatch()
-    monkeypatch.setenv("MANIFEST_FILE_S3_LOCATION", f"s3://{bucket_name}/{os.path.basename(manifest_definition_filepath)}")
+    monkeypatch.setenv(
+        "MANIFEST_FILE_S3_LOCATION",
+        f"s3://{bucket_name}/{os.path.basename(manifest_definition_filepath)}",
+    )
 
     return s3_client
 

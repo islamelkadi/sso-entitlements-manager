@@ -1,6 +1,5 @@
 import logging
 from typing import Union, TypeAlias
-from functools import cached_property
 
 import boto3
 from src.core.constants import SSO_ENTITLMENTS_APP_NAME
@@ -9,11 +8,13 @@ from src.services.aws.utils import handle_aws_exceptions
 # Type hints
 OuAccountsObject: TypeAlias = list[dict[str, str]]
 
-class OrganizationsMapper:
 
+class OrganizationsMapper:
     def __init__(self) -> None:
-    
-        self.ou_accounts_map = {}
+        self._ou_accounts_map = {}
+        self._ou_name_id_map = {}
+        self._account_name_id_map: dict[str, str] = {}
+
         self._logger: logging.Logger = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
 
         # Initialize AWS clients
@@ -25,10 +26,8 @@ class OrganizationsMapper:
         self._logger.info("Mapping AWS organization")
         self._generate_aws_organization_map(self.root_ou_id)
 
-
     @handle_aws_exceptions()
     def _generate_aws_organization_map(self, ou_id: str) -> None:
-
         # Get ou name
         if ou_id != self.root_ou_id:
             ou_details = self._organizations_client.describe_organizational_unit(OrganizationalUnitId=ou_id)
@@ -37,38 +36,37 @@ class OrganizationsMapper:
             ou_name = "root"
 
         # Add ou entry to ou_accounts map
-        if ou_name not in self.ou_accounts_map:
-            self.ou_accounts_map[ou_name] = {"Id": ou_id, "Accounts": []}
+        if ou_name not in self._ou_accounts_map:
+            self._ou_accounts_map[ou_name] = {"Id": ou_id, "Accounts": []}
 
         # Get accounts under OU
         for page in self._accounts_pagniator.paginate(ParentId=ou_id):
             for account in page.get("Accounts", []):
                 if account["Status"] == "ACTIVE":
-                    self.ou_accounts_map[ou_name]["Accounts"].append({"Id": account["Id"], "Name": account["Name"]})
+                    self._ou_accounts_map[ou_name]["Accounts"].append({"Id": account["Id"], "Name": account["Name"]})
 
         # Recursively populate ou account map
         for page in self._ous_paginator.paginate(ParentId=ou_id):
             for child_ou in page.get("OrganizationalUnits", []):
                 self._generate_aws_organization_map(child_ou["Id"])
 
+        # Create Account name ID map
+        for ou_name, ou_details in self._ou_accounts_map.items():
+            self._ou_name_id_map[ou_name] = ou_details["Id"]
 
-    @cached_property
+        # Create OU name ID map
+        for ou_details in self._ou_accounts_map.values():
+            for account_details in ou_details.get("Accounts", []):
+                self._account_name_id_map[account_details["Name"]] = account_details["Id"]
+
+    @property
     def ou_accounts_map(self) -> dict[str, dict[str, Union[str, OuAccountsObject]]]:
-        return self.ou_accounts_map
+        return self._ou_accounts_map
 
-
-    @cached_property
+    @property
     def account_name_id_map(self) -> dict[str, str]:
-        account_name_id_map: dict[str, str] = {}
-        for ou_details in self.ou_accounts_map.values():
-            for account_details in ou_details:
-                account_name_id_map[account_details["Name"]] = account_details["Id"]
-        return account_name_id_map
+        return self._account_name_id_map
 
-
-    @cached_property
+    @property
     def ou_name_id_map(self) -> dict[str, str]:
-        ou_name_id_map: dict[str, str] = {}
-        for ou_name, ou_details in self.ou_accounts_map.items():
-                ou_name_id_map[ou_name] = ou_details["Id"]
-        return ou_name_id_map
+        return self._ou_name_id_map

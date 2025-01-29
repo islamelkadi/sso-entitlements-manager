@@ -33,6 +33,7 @@ MANIFEST_SCHEMA_DEFINITION_FILEPATH = os.path.join(
 # Setup non-root logger
 logger = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
 
+
 def create_sso_assignments(manifest_file_path: str, auto_approve: bool = False, log_level: str = "INFO") -> dict:
     """Process AWS SSO access management based on manifest file."""
 
@@ -78,10 +79,29 @@ if __name__ == "__main__":
     cli_arguments_parser = argparse.ArgumentParser(description="CLI tool to help manage SSO assignments access at scale")
 
     # Add CLI arguments
-    cli_arguments_parser.add_argument("--manifest-filepath", required=True, type=pathlib.Path, help="Local path to the manifest file")
-    cli_arguments_parser.add_argument("--auto-approve", default=False, action="store_true", help="Run in auto-approve mode without making any changes")
-    cli_arguments_parser.add_argument("--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], help="Log level (default: INFO)")
+    cli_arguments_parser.add_argument(
+        "--manifest-filepath",
+        required=True,
+        type=pathlib.Path,
+        help="Local path to the manifest file",
+    )
+    cli_arguments_parser.add_argument(
+        "--auto-approve",
+        default=False,
+        action="store_true",
+        help="Run in auto-approve mode without making any changes",
+    )
+    cli_arguments_parser.add_argument(
+        "--log-level",
+        default="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="Log level (default: INFO)",
+    )
     cli_arguments = cli_arguments_parser.parse_args()
 
     # Create SSO assignments
-    create_sso_assignments(str(cli_arguments.manifest_filepath), cli_arguments.auto_approve, cli_arguments.log_level)
+    create_sso_assignments(
+        str(cli_arguments.manifest_filepath),
+        cli_arguments.auto_approve,
+        cli_arguments.log_level,
+    )

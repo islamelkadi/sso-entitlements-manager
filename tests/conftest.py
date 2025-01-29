@@ -34,7 +34,13 @@ MONKEYPATCH = pytest.MonkeyPatch()
 
 
 def create_aws_ous_accounts(
-    orgs_client: boto3.client, aws_organization_definitions: list[dict], root_ou_id: str, parent_ou_id: str = "", account_name_id_map: Optional[dict] = None, ou_accounts_map: Optional[dict] = None, parent_ou_name: str = "root"
+    orgs_client: boto3.client,
+    aws_organization_definitions: list[dict],
+    root_ou_id: str,
+    parent_ou_id: str = "",
+    account_name_id_map: Optional[dict] = None,
+    ou_accounts_map: Optional[dict] = None,
+    parent_ou_name: str = "root",
 ) -> None:
     """
     Fixture helper function to setup AWS mock organizations:
@@ -77,7 +83,15 @@ def create_aws_ous_accounts(
 
             # Recursively setup OU
             if organization_resource.get("children"):
-                create_aws_ous_accounts(orgs_client, organization_resource["children"], root_ou_id, nested_ou_id, account_name_id_map, ou_accounts_map, organization_resource["name"])
+                create_aws_ous_accounts(
+                    orgs_client,
+                    organization_resource["children"],
+                    root_ou_id,
+                    nested_ou_id,
+                    account_name_id_map,
+                    ou_accounts_map,
+                    organization_resource["name"],
+                )
 
         elif organization_resource["type"] == "ACCOUNT":
             # Create account
@@ -318,104 +332,21 @@ def setup_mock_aws_environment(
 
         # Delete SSO users
         for user_id in created_sso_users.values():
-            identity_store_client.delete_user(IdentityStoreId=identity_store_instance["IdentityStoreId"], UserId=user_id)
+            identity_store_client.delete_user(
+                IdentityStoreId=identity_store_instance["IdentityStoreId"],
+                UserId=user_id,
+            )
 
         # Delete SSO groups
         for group_id in created_sso_groups.values():
-            identity_store_client.delete_group(IdentityStoreId=identity_store_instance["IdentityStoreId"], GroupId=group_id)
+            identity_store_client.delete_group(
+                IdentityStoreId=identity_store_instance["IdentityStoreId"],
+                GroupId=group_id,
+            )
 
         # Delete permission sets
         for permission_set_arn in created_permission_sets.values():
-            sso_admin_client.delete_permission_set(InstanceArn=identity_store_instance["InstanceArn"], PermissionSetArn=permission_set_arn)
-
-
-################################################
-#      Fixtures - Live Integration Testing     #
-################################################
-
-
-@pytest.fixture(scope="session")
-def setup_live_aws_environment(
-    request: str,
-) -> dict:
-    """
-    Fixture to setup AWS environment:
-        1. Create AWS organization
-        2. Setup AWS mock organizations with OUs and accounts
-        3. Setup AWS Identity Center with users, groups, and permission sets
-
-    Parameters:
-    ----------
-    - request: str
-        Parameter from pytest marker or fixture definition.
-    - organizations_client: boto3.client
-        AWS Organizations client.
-    - identity_store_client: boto3.client
-        AWS Identity Store client.
-    """
-
-    created_sso_users = {}
-    created_sso_groups = {}
-    created_permission_sets = {}
-
-    try:
-        # Set boto3 clients
-        sso_admin_client = boto3.client("sso-admin")
-        identity_store_client = boto3.client("identitystore")
-
-        # Set environment variables
-        identity_store_instance = sso_admin_client.list_instances()["Instances"][0]
-        identity_store_instance["InstanceArn"] = identity_store_instance["InstanceArn"]
-        identity_store_instance["IdentityStoreId"] = identity_store_instance["IdentityStoreId"]
-
-        # Load JSON definitions
-        organizations_map_filepath = request.param
-        with open(organizations_map_filepath, "r", encoding="utf-8") as fp:
-            aws_environment_details = json.load(fp)
-
-        sso_users = aws_environment_details.get("sso_users", [])
-        sso_groups = aws_environment_details.get("sso_groups", [])
-        permission_set_definitions = aws_environment_details.get("permission_sets", [])
-
-        # Setup AWS Identity center
-        for user in sso_users:
-            user_details = identity_store_client.create_user(
-                IdentityStoreId=identity_store_instance["IdentityStoreId"],
-                UserName=user["username"],
-                DisplayName=user["name"]["Formatted"],
-                Name=user["name"],
-                Emails=user["email"],
-            )
-            created_sso_users[user["username"]] = user_details["UserId"]
-
-        for group in sso_groups:
-            group_details = identity_store_client.create_group(
-                IdentityStoreId=identity_store_instance["IdentityStoreId"],
-                DisplayName=group["name"],
-                Description=group["description"],
-            )
-            created_sso_groups[group["name"]] = group_details["GroupId"]
-
-        for permission_set in permission_set_definitions:
-            permission_set_details = sso_admin_client.create_permission_set(
+            sso_admin_client.delete_permission_set(
                 InstanceArn=identity_store_instance["InstanceArn"],
-                Name=permission_set["name"],
-                Description=permission_set["description"],
-            )["PermissionSet"]
-            created_permission_sets[permission_set["name"]] = permission_set_details["PermissionSetArn"]
-
-        yield {
-            "sso_group_name_id_map": created_sso_groups,
-            "sso_username_id_map": created_sso_users,
-            "sso_permission_set_name_id_map": created_permission_sets,
-        }
-
-    finally:
-        for user_id in created_sso_users.values():
-            identity_store_client.delete_user(IdentityStoreId=identity_store_instance["IdentityStoreId"], UserId=user_id)
-
-        for group_id in created_sso_groups.values():
-            identity_store_client.delete_group(IdentityStoreId=identity_store_instance["IdentityStoreId"], GroupId=group_id)
-
-        for permission_set_arn in created_permission_sets.values():
-            sso_admin_client.delete_permission_set(InstanceArn=identity_store_instance["InstanceArn"], PermissionSetArn=permission_set_arn)
+                PermissionSetArn=permission_set_arn,
+            )

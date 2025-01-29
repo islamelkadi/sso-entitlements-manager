@@ -8,14 +8,22 @@ from datetime import datetime
 from typing import Optional, Dict, List
 from dataclasses import dataclass, field
 import boto3
-from src.core.constants import OU_TARGET_TYPE_LABEL, ACCOUNT_TARGET_TYPE_LABEL, USER_PRINCIPAL_TYPE_LABEL, GROUP_PRINCIPAL_TYPE_LABEL, SSO_ENTITLMENTS_APP_NAME
+from src.core.constants import (
+    OU_TARGET_TYPE_LABEL,
+    ACCOUNT_TARGET_TYPE_LABEL,
+    USER_PRINCIPAL_TYPE_LABEL,
+    GROUP_PRINCIPAL_TYPE_LABEL,
+    SSO_ENTITLMENTS_APP_NAME,
+)
 from .utils import handle_aws_exceptions
+
 
 @dataclass(frozen=True)
 class AccountAssignment:
     """
     Dataclass defining the schema for SSO account assignments
     """
+
     target_id: str
     principal_id: str
     principal_type: str  # "USER" or "GROUP"
@@ -37,7 +45,7 @@ class SsoAdminManager:
         Args:
             identity_store_arn (str): The ARN of the AWS Identity Store.
         """
-        self.permission_sets: Dict[str,str] = {}
+        self.permission_sets: Dict[str, str] = {}
         self.sso_groups: Dict[str, str] = {}
         self.sso_users: Dict[str, str] = {}
 
@@ -104,7 +112,10 @@ class SsoAdminManager:
         permission_sets_pages = permission_sets_paginator.paginate(InstanceArn=self.identity_store_arn)
         for page in permission_sets_pages:
             for permission_set in page.get("PermissionSets", []):
-                described_permission_set= self._sso_admin_client.describe_permission_set(InstanceArn=self.identity_store_arn, PermissionSetArn=permission_set)
+                described_permission_set = self._sso_admin_client.describe_permission_set(
+                    InstanceArn=self.identity_store_arn,
+                    PermissionSetArn=permission_set,
+                )
                 permission_set = described_permission_set.get("PermissionSet")
                 if permission_set["Name"] not in self.exclude_permission_sets:
                     self.permission_sets[permission_set["Name"]] = permission_set["PermissionSetArn"]
@@ -114,12 +125,19 @@ class SsoAdminManager:
         """
         Lists the current account assignments for the principals in the identity store.
         """
-        principal_type_map = {"USER": self.sso_users.values(), "GROUP": self.sso_groups.values()}
+        principal_type_map = {
+            "USER": self.sso_users.values(),
+            "GROUP": self.sso_groups.values(),
+        }
         principal_assignments_paginator = self._sso_admin_client.get_paginator("list_account_assignments_for_principal")
 
         for principal_type, principals in principal_type_map.items():
             for principal_id in principals:
-                assignments_iterator = principal_assignments_paginator.paginate(PrincipalId=principal_id, InstanceArn=self.identity_store_arn, PrincipalType=principal_type)
+                assignments_iterator = principal_assignments_paginator.paginate(
+                    PrincipalId=principal_id,
+                    InstanceArn=self.identity_store_arn,
+                    PrincipalType=principal_type,
+                )
                 for page in assignments_iterator:
                     self._current_account_assignments.extend(page["AccountAssignments"])
 
@@ -154,11 +172,26 @@ class SsoAdminManager:
                 Optional[str]: The resource ID if valid, None otherwise.
             """
             resource_maps = {
-                OU_TARGET_TYPE_LABEL: (self.ou_accounts_map, self._invalid_manifest_file_ou_names),
-                ACCOUNT_TARGET_TYPE_LABEL: (self.account_name_id_map, self._invalid_manifest_file_account_names),
-                GROUP_PRINCIPAL_TYPE_LABEL: (self.sso_groups, self._invalid_manifest_file_group_names),
-                USER_PRINCIPAL_TYPE_LABEL: (self.sso_users, self._invalid_manifest_file_user_names),
-                "permission_set": (self.permission_sets, self._invalid_manifest_file_permission_sets),
+                OU_TARGET_TYPE_LABEL: (
+                    self.ou_accounts_map,
+                    self._invalid_manifest_file_ou_names,
+                ),
+                ACCOUNT_TARGET_TYPE_LABEL: (
+                    self.account_name_id_map,
+                    self._invalid_manifest_file_account_names,
+                ),
+                GROUP_PRINCIPAL_TYPE_LABEL: (
+                    self.sso_groups,
+                    self._invalid_manifest_file_group_names,
+                ),
+                USER_PRINCIPAL_TYPE_LABEL: (
+                    self.sso_users,
+                    self._invalid_manifest_file_user_names,
+                ),
+                "permission_set": (
+                    self.permission_sets,
+                    self._invalid_manifest_file_permission_sets,
+                ),
             }
 
             resource_map, invalid_set = resource_maps[resource_type]
@@ -181,7 +214,14 @@ class SsoAdminManager:
             Args:
                 target_id (str): The target ID for the assignment.
             """
-            assignment = {"TargetId": target_id, "TargetType": "AWS_ACCOUNT", "PrincipalId": rule["principal_id"], "PrincipalType": rule["principal_type"], "PermissionSetArn": rule["permission_set_arn"], "InstanceArn": self.identity_store_arn}
+            assignment = {
+                "TargetId": target_id,
+                "TargetType": "AWS_ACCOUNT",
+                "PrincipalId": rule["principal_id"],
+                "PrincipalType": rule["principal_type"],
+                "PermissionSetArn": rule["permission_set_arn"],
+                "InstanceArn": self.identity_store_arn,
+            }
 
             if assignment not in self._local_account_assignments:
                 self._local_account_assignments.append(assignment)
@@ -206,12 +246,22 @@ class SsoAdminManager:
                     add_unique_assignment(target_id)
 
         self._logger.info("Creating itenerary of SSO account assignments to create")
-        assignments_to_create = list(itertools.filterfalse(lambda i: i in self._current_account_assignments, self._local_account_assignments))
+        assignments_to_create = list(
+            itertools.filterfalse(
+                lambda i: i in self._current_account_assignments,
+                self._local_account_assignments,
+            )
+        )
         for assignment in assignments_to_create:
             self.assignments_to_create.append(assignment)
 
         self._logger.warning("Creating itenerary of SSO account assignments to delete")
-        assignments_to_delete = list(itertools.filterfalse(lambda i: i in self._local_account_assignments, self._current_account_assignments))
+        assignments_to_delete = list(
+            itertools.filterfalse(
+                lambda i: i in self._local_account_assignments,
+                self._current_account_assignments,
+            )
+        )
         for assignment in assignments_to_delete:
             self.assignments_to_delete.append(assignment)
 
@@ -237,7 +287,7 @@ class SsoAdminManager:
 
         self._logger.info("Fetching IAM identity center tenant information")
         self._describe_identity_center_instance()
-        
+
         self._logger.info("Creating AWS SSO user name to ID map")
         self._map_sso_users()
 
@@ -252,7 +302,7 @@ class SsoAdminManager:
 
         self._logger.info("Generating RBAC AWS account SSO assignments to process")
         self._generate_rbac_assignments()
-        
+
         if self.is_auto_approved:
             self._logger.warning("Running in auto-approved mode")
             self._logger.info("Executing RBAC assignments")
@@ -260,4 +310,3 @@ class SsoAdminManager:
 
         self._logger.info("Generate invalid AWS account SSO assignments")
         self._generate_invalid_assignments_report()
-

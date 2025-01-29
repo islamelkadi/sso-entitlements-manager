@@ -125,7 +125,10 @@ def load_file(filepath: str) -> dict:
         raise ValueError("Unsupported file format. Only .yaml, .yml, and .json are supported.")
 
 
-def setup_logging(log_level: str = "INFO", logging_config_filepath: str = "logging/configs/config.json") -> None:
+def setup_logging(
+    log_level: str = "INFO",
+    logging_config_filepath: str = "logging/configs/config.json",
+) -> None:
     # Load logging file
     config_file = pathlib.Path(logging_config_filepath)
     with open(config_file) as fp:
