@@ -18,7 +18,7 @@ import argparse
 from src.core.utils import setup_logging
 from src.core.access_control_file_reader import AccessControlFileReader
 from src.services.aws.organizations_mapper import OrganizationsMapper
-from src.services.aws.sso_admin_manager import SsoAdminManager
+from src.services.aws.access_control_resolver import SsoAdminManager
 from src.core.constants import SSO_ENTITLMENTS_APP_NAME
 
 # Globals vars
@@ -50,8 +50,6 @@ def create_sso_assignments(manifest_file_path: str, auto_approve: bool = False, 
 
     # Initialize OU & Accounts map
     aws_org = OrganizationsMapper()
-    aws_org.exclude_ou_name_list = manifest_file.excluded_ou_names
-    aws_org.exclude_account_name_list = manifest_file.excluded_account_names
     aws_org.run_ous_accounts_mapper()
 
     # Create account assignments

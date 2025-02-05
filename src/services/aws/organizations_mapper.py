@@ -50,23 +50,6 @@ class OrganizationsMapper:
             for child_ou in page.get("OrganizationalUnits", []):
                 self._generate_aws_organization_map(child_ou["Id"])
 
-        # Create Account name ID map
-        for ou_name, ou_details in self._ou_accounts_map.items():
-            self._ou_name_id_map[ou_name] = ou_details["Id"]
-
-        # Create OU name ID map
-        for ou_details in self._ou_accounts_map.values():
-            for account_details in ou_details.get("Accounts", []):
-                self._account_name_id_map[account_details["Name"]] = account_details["Id"]
-
     @property
     def ou_accounts_map(self) -> dict[str, dict[str, Union[str, OuAccountsObject]]]:
         return self._ou_accounts_map
-
-    @property
-    def account_name_id_map(self) -> dict[str, str]:
-        return self._account_name_id_map
-
-    @property
-    def ou_name_id_map(self) -> dict[str, str]:
-        return self._ou_name_id_map
