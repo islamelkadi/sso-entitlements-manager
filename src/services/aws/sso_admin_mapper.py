@@ -56,6 +56,9 @@ class SsoAdminMapper:
             for user in page.get("Users", []):
                 self._sso_users[user["UserName"]] = user["UserId"]
 
+        if not (self._sso_groups and self._sso_users):
+            raise Exception("No SSO groups or users principals found to assign access")
+
         # SSO Permission Sets
         self._logger.info("Mapping SSO permission sets")
         permission_sets_pages = self._list_permission_sets_paginator.paginate(InstanceArn=self._identity_store_arn)
@@ -65,10 +68,17 @@ class SsoAdminMapper:
                 permission_set = described_permission_set.get("PermissionSet")
                 self._permission_sets[permission_set["Name"]] = permission_set["PermissionSetArn"]
 
+        if not self._permission_sets:
+            raise Exception("No permission sets found to assign to groups or users principals")
+
     @property
-    def sso_environment(self) -> dict[str, dict[str, str]]:
-        return {
-            "users": self._sso_users,
-            "groups": self._sso_groups,
-            "permission_sets": self._permission_sets
-        }
+    def sso_users_name_id_map(self) -> dict[str, str]:
+        return self._sso_users
+
+    @property
+    def sso_groups_name_id_map(self) -> dict[str, str]:
+        return self._sso_groups
+
+    @property
+    def permission_sets_name_id_map(self) -> dict[str, str]:
+        return self._permission_sets

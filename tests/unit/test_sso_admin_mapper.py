@@ -26,11 +26,11 @@ def test_list_sso_admin_entities(setup_mock_aws_environment: pytest.fixture) -> 
     sso_admin_mapper = SsoAdminMapper(identity_store_arn, identity_store_id)
 
     # Assert
-    sso_usernames_via_class = sso_admin_mapper.sso_environment["users"]
+    sso_usernames_via_class = sso_admin_mapper.sso_users_name_id_map
     assert sso_usernames_via_class == setup_mock_aws_environment["sso_username_id_map"]
 
-    sso_groups_via_class = sso_admin_mapper.sso_environment["groups"]
+    sso_groups_via_class = sso_admin_mapper.sso_groups_name_id_map
     assert sso_groups_via_class == setup_mock_aws_environment["sso_group_name_id_map"]
 
-    permission_sets_via_class = sso_admin_mapper.sso_environment["permission_sets"]
+    permission_sets_via_class = sso_admin_mapper.permission_sets_name_id_map
     assert permission_sets_via_class == setup_mock_aws_environment["sso_permission_set_name_id_map"]

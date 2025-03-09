@@ -46,8 +46,8 @@ def test_list_active_included_aws_accounts(organizations_client: boto3.client, s
 
     # Act
     active_aws_accounts_via_class: list[str] = []
-    for ou in py_aws_organizations.ou_accounts_map.values():
-        for account in ou["Accounts"]:
+    for accounts_information in py_aws_organizations.ou_accounts_map.values():
+        for account in accounts_information:
             active_aws_accounts_via_class.append(account["Name"])
 
     active_aws_account_names_via_boto3: list[str] = []

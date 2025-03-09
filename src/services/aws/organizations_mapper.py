@@ -12,7 +12,6 @@ OuAccountsObject: TypeAlias = list[dict[str, str]]
 class OrganizationsMapper:
     def __init__(self) -> None:
         self._ou_accounts_map = {}
-        self._ou_name_id_map = {}
         self._account_name_id_map: dict[str, str] = {}
 
         self._logger: logging.Logger = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
@@ -37,13 +36,16 @@ class OrganizationsMapper:
 
         # Add ou entry to ou_accounts map
         if ou_name not in self._ou_accounts_map:
-            self._ou_accounts_map[ou_name] = {"Id": ou_id, "Accounts": []}
+            self._ou_accounts_map[ou_name] = []
 
         # Get accounts under OU
         for page in self._accounts_pagniator.paginate(ParentId=ou_id):
             for account in page.get("Accounts", []):
                 if account["Status"] == "ACTIVE":
-                    self._ou_accounts_map[ou_name]["Accounts"].append({"Id": account["Id"], "Name": account["Name"]})
+                    self._ou_accounts_map[ou_name].append({"Id": account["Id"], "Name": account["Name"]})
+                
+                if account["Name"] not in self._account_name_id_map:
+                    self._account_name_id_map[account["Name"]] = account["Id"]
 
         # Recursively populate ou account map
         for page in self._ous_paginator.paginate(ParentId=ou_id):
@@ -51,5 +53,9 @@ class OrganizationsMapper:
                 self._generate_aws_organization_map(child_ou["Id"])
 
     @property
-    def ou_accounts_map(self) -> dict[str, dict[str, Union[str, OuAccountsObject]]]:
+    def ou_accounts_map(self) -> dict[str, OuAccountsObject]:
         return self._ou_accounts_map
+
+    @property
+    def accounts_name_id_map(self) -> dict[str, str]:
+        return self._account_name_id_map
