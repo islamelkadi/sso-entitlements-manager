@@ -88,36 +88,12 @@ def test_create_account_assignments(
 
     # Act
     identity_center_manager = SsoAdminManager(setup_mock_aws_environment["identity_store_arn"])
-    setattr(
-        identity_center_manager,
-        "manifest_file_rbac_rules",
-        rbac_rules
-    )
-    setattr(
-        identity_center_manager,
-        "sso_users",
-        setup_mock_aws_environment["sso_username_id_map"],
-    )
-    setattr(
-        identity_center_manager,
-        "sso_groups",
-        setup_mock_aws_environment["sso_group_name_id_map"],
-    )
-    setattr(
-        identity_center_manager,
-        "sso_permission_sets",
-        setup_mock_aws_environment["sso_permission_set_name_id_map"],
-    )
-    setattr(
-        identity_center_manager,
-        "ou_accounts_map",
-        setup_mock_aws_environment["ou_accounts_map"],
-    )
-    setattr(
-        identity_center_manager,
-        "account_name_id_map",
-        setup_mock_aws_environment["account_name_id_map"],
-    )
+    identity_center_manager.manifest_file_rbac_rules = rbac_rules
+    identity_center_manager.sso_users = setup_mock_aws_environment["sso_username_id_map"]
+    identity_center_manager.sso_groups = setup_mock_aws_environment["sso_group_name_id_map"]
+    identity_center_manager.sso_permission_sets = setup_mock_aws_environment["sso_permission_set_name_id_map"]
+    identity_center_manager.ou_accounts_map = setup_mock_aws_environment["ou_accounts_map"]
+    identity_center_manager.account_name_id_map = setup_mock_aws_environment["account_name_id_map"]
     identity_center_manager.run_access_control_resolver()
 
     # Assert
@@ -209,32 +185,12 @@ def test_delete_account_assignments(
 
     # Act
     identity_center_manager = SsoAdminManager(setup_mock_aws_environment["identity_store_arn"])
-    setattr(identity_center_manager, "manifest_file_rbac_rules", rbac_rules)
-    setattr(
-        identity_center_manager,
-        "sso_users",
-        setup_mock_aws_environment["sso_username_id_map"],
-    )
-    setattr(
-        identity_center_manager,
-        "sso_groups",
-        setup_mock_aws_environment["sso_group_name_id_map"],
-    )
-    setattr(
-        identity_center_manager,
-        "sso_permission_sets",
-        setup_mock_aws_environment["sso_permission_set_name_id_map"],
-    )
-    setattr(
-        identity_center_manager,
-        "ou_accounts_map",
-        setup_mock_aws_environment["ou_accounts_map"],
-    )
-    setattr(
-        identity_center_manager,
-        "account_name_id_map",
-        setup_mock_aws_environment["account_name_id_map"],
-    )
+    identity_center_manager.manifest_file_rbac_rules = rbac_rules
+    identity_center_manager.sso_users = setup_mock_aws_environment["sso_username_id_map"]
+    identity_center_manager.sso_groups = setup_mock_aws_environment["sso_group_name_id_map"]
+    identity_center_manager.sso_permission_sets = setup_mock_aws_environment["sso_permission_set_name_id_map"]
+    identity_center_manager.ou_accounts_map = setup_mock_aws_environment["ou_accounts_map"]
+    identity_center_manager.account_name_id_map = setup_mock_aws_environment["account_name_id_map"]
     identity_center_manager.run_access_control_resolver()
 
     # Assert
@@ -264,32 +220,12 @@ def test_generate_invalid_assignments_report(setup_mock_aws_environment: pytest.
 
     # Act
     identity_center_manager = SsoAdminManager(setup_mock_aws_environment["identity_store_arn"])
-    setattr(identity_center_manager, "manifest_file_rbac_rules", rbac_rules)
-    setattr(
-        identity_center_manager,
-        "sso_users",
-        setup_mock_aws_environment["sso_username_id_map"],
-    )
-    setattr(
-        identity_center_manager,
-        "sso_groups",
-        setup_mock_aws_environment["sso_group_name_id_map"],
-    )
-    setattr(
-        identity_center_manager,
-        "sso_permission_sets",
-        setup_mock_aws_environment["sso_permission_set_name_id_map"],
-    )
-    setattr(
-        identity_center_manager,
-        "ou_accounts_map",
-        setup_mock_aws_environment["ou_accounts_map"],
-    )
-    setattr(
-        identity_center_manager,
-        "account_name_id_map",
-        setup_mock_aws_environment["account_name_id_map"],
-    )
+    identity_center_manager.manifest_file_rbac_rules = rbac_rules
+    identity_center_manager.sso_users = setup_mock_aws_environment["sso_username_id_map"]
+    identity_center_manager.sso_groups = setup_mock_aws_environment["sso_group_name_id_map"]
+    identity_center_manager.sso_permission_sets = setup_mock_aws_environment["sso_permission_set_name_id_map"]
+    identity_center_manager.ou_accounts_map = setup_mock_aws_environment["ou_accounts_map"]
+    identity_center_manager.account_name_id_map = setup_mock_aws_environment["account_name_id_map"]
     identity_center_manager.run_access_control_resolver()
 
     # Generate invalid assignments report

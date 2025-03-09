@@ -162,7 +162,8 @@ def test_main(
     """
     invalid_assignments_report_sort_keys = operator.itemgetter("rule_number", "resource_type", "resource_name")
     created_assignments_sort_keys = operator.itemgetter("PermissionSetArn", "PrincipalType", "PrincipalId", "TargetId")
-
+    print("MANFIEST FILENAME")
+    print(manifest_filepath)
     manifest_file = load_file(manifest_filepath)
 
     expected_account_assignments = generate_expected_account_assignments(

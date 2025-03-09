@@ -54,12 +54,8 @@ def test_rules_invalid_manifest_schema(manifest_filename: str) -> None:
     with pytest.raises(jsonschema.ValidationError):
         # Act
         access_manifest_reader = AccessControlFileReader()
-        setattr(
-            access_manifest_reader,
-            "schema_definition_filepath",
-            MANIFEST_SCHEMA_DEFINITION_FILEPATH,
-        )
-        setattr(access_manifest_reader, "manifest_definition_filepath", manifest_filename)
+        access_manifest_reader.schema_definition_filepath = MANIFEST_SCHEMA_DEFINITION_FILEPATH
+        access_manifest_reader.manifest_definition_filepath = manifest_filename
         access_manifest_reader.run_access_manifest_reader()
 
 
@@ -76,12 +72,8 @@ def test_rules_valid_manifest_schema(manifest_filename: str) -> None:
     # Act
     manifest_file_via_local = load_file(manifest_filename)
     manifest_file_via_class = AccessControlFileReader()
-    setattr(
-        manifest_file_via_class,
-        "schema_definition_filepath",
-        MANIFEST_SCHEMA_DEFINITION_FILEPATH,
-    )
-    setattr(manifest_file_via_class, "manifest_definition_filepath", manifest_filename)
+    manifest_file_via_class.schema_definition_filepath = MANIFEST_SCHEMA_DEFINITION_FILEPATH
+    manifest_file_via_class.manifest_definition_filepath = manifest_filename
     manifest_file_via_class.run_access_manifest_reader()
 
     # Extract excluded lists from the manifest loaded via local
