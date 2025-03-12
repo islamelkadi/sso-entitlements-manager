@@ -12,7 +12,7 @@ Tests:
 
 import boto3
 import pytest
-from src.services.aws.organizations_mapper import OrganizationsMapper
+from src.services.aws.aws_organizations_manager import OrganizationsMapper
 
 
 @pytest.mark.parametrize(
