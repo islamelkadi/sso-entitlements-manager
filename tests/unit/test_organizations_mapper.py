@@ -42,7 +42,8 @@ def test_list_active_included_aws_accounts(organizations_client: boto3.client, s
     specified accounts and OUs, does not match boto3's list_accounts.
     """
     # Arrange
-    py_aws_organizations = OrganizationsMapper()
+    root_ou_id = setup_mock_aws_environment["root_ou_id"]
+    py_aws_organizations = OrganizationsMapper(root_ou_id)
 
     # Act
     active_aws_accounts_via_class: list[str] = []

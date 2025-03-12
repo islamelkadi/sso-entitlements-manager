@@ -13,15 +13,15 @@ from src.core.constants import (
 
 class AccessControlFileReader:
 
-    def __init__(self) -> None:
-        self.schema_definition_filepath: str = ""  # TODO: Add default path
-        self.manifest_definition_filepath: str = ""
-        self._excluded_ou_names: list = []
-        self._excluded_account_names: list = []
-        self._excluded_sso_user_names: list = []
-        self._excluded_sso_group_names: list = []
-        self._excluded_permission_set_names: list = []
-        self._manifest_file_keys_to_uppercase: list = [
+    def __init__(self, manifest_definition_filepath, schema_definition_filepath) -> None:
+        self._schema_definition_filepath: str = schema_definition_filepath
+        self._manifest_definition_filepath: str = manifest_definition_filepath
+        self._excluded_ou_names: list[str] = []
+        self._excluded_account_names: list[str] = []
+        self._excluded_sso_user_names: list[str] = []
+        self._excluded_sso_group_names: list[str] = []
+        self._excluded_permission_set_names: list[str] = []
+        self._manifest_file_keys_to_uppercase: list[str] = [
             "principal_type",
             "target_type",
             "exclude_target_type",
@@ -32,8 +32,8 @@ class AccessControlFileReader:
         self._generate_excluded_targets_lists()
 
     def _load_sso_manifest_file(self) -> None:
-        self._schema_definition = load_file(self.schema_definition_filepath)
-        manifest_data = load_file(self.manifest_definition_filepath)
+        self._schema_definition = load_file(self._schema_definition_filepath)
+        manifest_data = load_file(self._manifest_definition_filepath)
         self._manifest_definition = convert_specific_keys_to_uppercase(manifest_data, self._manifest_file_keys_to_uppercase)
 
     def _validate_sso_manifest_file(self) -> None:
@@ -55,16 +55,27 @@ class AccessControlFileReader:
             target_list = target_map.get(item["target_type"])
             target_list.extend(item["target_names"])
 
+
     @property
     def rbac_rules(self) -> list:
         return self._manifest_definition.get("rbac_rules", [])
 
     @property
-    def exclusions(self) -> dict[str, list[str]]:
-        return {
-            "aws_ou_names": self._excluded_ou_names,
-            "aws_account_names": self._excluded_account_names,
-            "sso_user_names": self._excluded_sso_user_names,
-            "sso_group_names": self._excluded_sso_group_names,
-            "sso_permission_sets": self._excluded_permission_set_names
-        }
+    def excluded_ou_names(self) -> dict[str, list[str]]:
+        return self._excluded_ou_names
+
+    @property
+    def excluded_account_names(self) -> dict[str, list[str]]:
+        return self._excluded_account_names
+
+    @property
+    def excluded_sso_user_names(self) -> dict[str, list[str]]:
+        return self._excluded_sso_user_names
+
+    @property
+    def excluded_sso_group_names(self) -> dict[str, list[str]]:
+        return self._excluded_sso_group_names
+
+    @property
+    def excluded_permission_set_names(self) -> dict[str, list[str]]:
+        return self._excluded_permission_set_names

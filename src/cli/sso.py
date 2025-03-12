@@ -34,7 +34,11 @@ MANIFEST_SCHEMA_DEFINITION_FILEPATH = os.path.join(
 logger = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
 
 
-def create_sso_assignments(manifest_file_path: str, auto_approve: bool = False, log_level: str = "INFO") -> dict:
+def create_sso_assignments(
+    manifest_file_path: str,
+    auto_approve: bool = False,
+    log_level: str = "INFO"
+) -> dict:
     """Process AWS SSO access management based on manifest file."""
 
     # Setup logger
@@ -43,10 +47,7 @@ def create_sso_assignments(manifest_file_path: str, auto_approve: bool = False, 
     logger.info("Creating SSO access control assignments")
 
     # Process manifest file
-    manifest_file = AccessControlFileReader()
-    manifest_file.manifest_definition_filepath = manifest_file_path
-    manifest_file.schema_definition_filepath = MANIFEST_SCHEMA_DEFINITION_FILEPATH
-    manifest_file.run_access_manifest_reader()
+    manifest_file = AccessControlFileReader(manifest_file_path, MANIFEST_SCHEMA_DEFINITION_FILEPATH)
 
     # Initialize OU & Accounts map
     aws_org = OrganizationsMapper()

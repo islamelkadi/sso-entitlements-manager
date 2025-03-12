@@ -314,6 +314,7 @@ def setup_mock_aws_environment(
             created_permission_sets[permission_set["name"]] = permission_set_details["PermissionSetArn"]
 
         yield {
+            "root_ou_id": root_ou_id,
             "identity_store_arn": identity_store_instance["InstanceArn"],
             "identity_store_id": identity_store_instance["IdentityStoreId"],
             "sso_group_name_id_map": created_sso_groups,

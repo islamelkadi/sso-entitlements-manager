@@ -10,25 +10,24 @@ OuAccountsObject: TypeAlias = list[dict[str, str]]
 
 
 class OrganizationsMapper:
-    def __init__(self) -> None:
+    def __init__(self, root_ou_id) -> None:
         self._ou_accounts_map = {}
         self._account_name_id_map: dict[str, str] = {}
-
         self._logger: logging.Logger = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
 
         # Initialize AWS clients
+        self._root_ou_id = root_ou_id
         self._organizations_client = boto3.client("organizations")
-        self.root_ou_id = self._organizations_client.list_roots()["Roots"][0]["Id"]
-        self._ous_paginator = self._organizations_client.get_paginator("list_organizational_units_for_parent")
         self._accounts_pagniator = self._organizations_client.get_paginator("list_accounts_for_parent")
+        self._ous_paginator = self._organizations_client.get_paginator("list_organizational_units_for_parent")
 
         self._logger.info("Mapping AWS organization")
-        self._generate_aws_organization_map(self.root_ou_id)
+        self._generate_aws_organization_map(self._root_ou_id)
 
     @handle_aws_exceptions()
     def _generate_aws_organization_map(self, ou_id: str) -> None:
         # Get ou name
-        if ou_id != self.root_ou_id:
+        if ou_id != self._root_ou_id:
             ou_details = self._organizations_client.describe_organizational_unit(OrganizationalUnitId=ou_id)
             ou_name = ou_details["OrganizationalUnit"]["Name"]
         else:
