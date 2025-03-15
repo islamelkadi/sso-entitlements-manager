@@ -313,6 +313,11 @@ def setup_mock_aws_environment(
             )["PermissionSet"]
             created_permission_sets[permission_set["name"]] = permission_set_details["PermissionSetArn"]
 
+        # SET ENV VARS
+        MONKEYPATCH.setenv("ROOT_OU_ID", root_ou_id)
+        MONKEYPATCH.setenv("IDENTITY_STORE_ID", identity_store_instance["IdentityStoreId"])
+        MONKEYPATCH.setenv("IDENTITY_STORE_ARN", identity_store_instance["InstanceArn"])
+
         yield {
             "root_ou_id": root_ou_id,
             "identity_store_arn": identity_store_instance["InstanceArn"],

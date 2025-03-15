@@ -23,7 +23,7 @@ from src.services.aws.aws_identity_centre_manager import IdentityCentreManager
 
 # Constant vars
 ROOT_OU_ID = os.getenv("ROOT_OU_ID")
-IDENTITY_STORE_ID = os.getenv("ROOT_OU_ID")
+IDENTITY_STORE_ID = os.getenv("IDENTITY_STORE_ID")
 IDENTITY_STORE_ARN = os.getenv("IDENTITY_STORE_ARN")
 LOGGER = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
 CWD = os.path.dirname(os.path.realpath(__file__))
