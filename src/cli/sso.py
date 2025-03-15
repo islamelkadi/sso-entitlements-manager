@@ -8,7 +8,7 @@ in the manifest.
 Modules and Classes Used:
 -------------------------
 - AccessControlFileReader: Reads and validates the AWS SSO manifest file.
-- OrganizationsMapper: Maps AWS Organizations entities such as OUs and accounts.
+- AwsOrganizationsManager: Maps AWS Organizations entities such as OUs and accounts.
 - SsoAdminManager: Manages Identity Center assignments and RBAC rules.
 """
 import os
@@ -16,11 +16,10 @@ import logging
 import pathlib
 import argparse
 from src.core.utils import setup_logging
-from src.core.access_control_file_reader import AccessControlFileReader
-from src.services.aws.aws_organizations_manager import OrganizationsMapper
-from src.services.aws.sso_admin_mapper import SsoAdminMapper
-from src.services.aws.access_control_resolver import SsoAdminManager
 from src.core.constants import SSO_ENTITLMENTS_APP_NAME
+from src.core.access_control_file_reader import AccessControlFileReader
+from src.services.aws.aws_organizations_manager import AwsOrganizationsManager
+from src.services.aws.aws_identity_centre_manager import IdentityCentreManager
 
 # Constant vars
 ROOT_OU_ID = os.getenv("ROOT_OU_ID")
@@ -49,29 +48,22 @@ def create_sso_assignments(
     LOGGER.info("Creating SSO access control assignments")
 
     manifest_file = AccessControlFileReader(manifest_file_path, MANIFEST_SCHEMA_DEFINITION_FILEPATH)
-    aws_organization_map = OrganizationsMapper(ROOT_OU_ID)
-    sso_environment_map = SsoAdminMapper(IDENTITY_STORE_ARN, IDENTITY_STORE_ID)
-    access_control_manager = SsoAdminManager(IDENTITY_STORE_ARN)
+    aws_organization_manager = AwsOrganizationsManager(ROOT_OU_ID)
+    identity_centre_manager = IdentityCentreManager(IDENTITY_STORE_ARN, IDENTITY_STORE_ID)
 
     # Create account assignments
-    access_control_manager.is_auto_approved = auto_approve
-    access_control_manager.manifest_file_rbac_rules = manifest_file.rbac_rules
-    access_control_manager.
-    # identity_center_manager.is_auto_approved = auto_approve
-    # identity_center_manager.rbac_rules = manifest_file.rbac_rules
-    # identity_center_manager.exclude_sso_users = manifest_file.excluded_sso_user_names
-    # identity_center_manager.exclude_sso_groups = manifest_file.excluded_sso_group_names
-    # identity_center_manager.exclude_permission_sets = manifest_file.excluded_permission_set_names
-    # identity_center_manager.account_name_id_map = aws_org.account_name_id_map
-    # identity_center_manager.ou_accounts_map = aws_org.ou_accounts_map
-    # identity_center_manager.run_access_control_resolver()
+    identity_centre_manager.is_auto_approved = auto_approve
+    identity_centre_manager.manifest_file_rbac_rules = manifest_file.rbac_rules
+    identity_centre_manager.account_name_id_map = aws_organization_manager.accounts_name_id_map
+    identity_centre_manager.ou_accounts_map = aws_organization_manager.ou_accounts_map
+    identity_centre_manager.run_access_control_resolver()
 
     LOGGER.info("Successfully created SSO access control assignments")
 
     return {
-        "created": identity_center_manager.assignments_to_create,
-        "deleted": identity_center_manager.assignments_to_delete,
-        "invalid": identity_center_manager.invalid_manifest_rules_report,
+        "created": identity_centre_manager.assignments_to_create,
+        "deleted": identity_centre_manager.assignments_to_delete,
+        "invalid": identity_centre_manager.invalid_assignments_report,
     }
 
 

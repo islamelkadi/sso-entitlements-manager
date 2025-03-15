@@ -1,15 +1,13 @@
+# pylint: disable=E1120
 """
-Unit tests for the SsoAdminManager class.
+Unit tests to validate functionality of AwsIdentityCentre from identity_center_mapper.
 
-This module contains tests for the AWS Access Control Resolver, verifying the creation,
-deletion, and reporting of account assignments based on the provided manifest files and
-AWS environment setup. The tests utilize pytest for parameterization and fixtures for
-mocking AWS resources.
-
-Functions:
-    test_create_assignments: Test the creation of account assignments.
-    test_generate_invalid_assignments_report: Test the generation of a report for invalid assignments.
-    test_delete_account_assignments: Test the deletion of account assignments.
+Tests:
+- test_missing_default_constructor_parameters:
+    Verify TypeError is raised when identity_store_arn parameter is missing.
+- test_list_identity_center_entities:
+    Test listing SSO groups, users, and permission sets using pytest parameterization
+    and indirect fixture setup_mock_aws_environment.
 """
 import os
 import glob
@@ -20,8 +18,9 @@ from typing import Dict, List, Any
 
 import pytest
 from src.core.utils import load_file
-from src.services.aws.access_control_resolver import SsoAdminManager
+from src.services.aws.aws_identity_centre_manager import IdentityCentreManager
 from tests.utils import generate_expected_account_assignments
+
 
 # Globals vars
 CWD = os.path.dirname(os.path.realpath(__file__))
@@ -33,6 +32,26 @@ AWS_ORG_DEFINITION_FILES = [os.path.basename(x) for x in glob.glob(AWS_ORG_DEFIN
 
 VALID_MANIFEST_DEFINITION_FILES_PATH = os.path.join(CWD, "..", "manifests", "valid_schema", "*.yaml")
 VALID_MANIFEST_DEFINITION_FILES = [os.path.abspath(x) for x in glob.glob(VALID_MANIFEST_DEFINITION_FILES_PATH)]
+
+
+@pytest.mark.parametrize(
+    "setup_mock_aws_environment",
+    ["aws_org_1.json", "aws_org_2.json"],
+    indirect=["setup_mock_aws_environment"],
+)
+def test_list_sso_admin_entities(setup_mock_aws_environment: pytest.fixture) -> None:
+    # Arrange/Act
+    identity_center_manager = IdentityCentreManager(setup_mock_aws_environment["identity_store_arn"], setup_mock_aws_environment["identity_store_id"])
+
+    # Assert
+    sso_usernames_via_class = identity_center_manager.sso_users
+    assert sso_usernames_via_class == setup_mock_aws_environment["sso_username_id_map"]
+
+    sso_groups_via_class = identity_center_manager.sso_groups
+    assert sso_groups_via_class == setup_mock_aws_environment["sso_group_name_id_map"]
+
+    permission_sets_via_class = identity_center_manager.sso_permission_sets
+    assert permission_sets_via_class == setup_mock_aws_environment["sso_permission_set_name_id_map"]
 
 
 @pytest.mark.parametrize(
@@ -87,11 +106,8 @@ def test_create_account_assignments(
         sso_admin_client.create_account_assignment(**assignment)
 
     # Act
-    identity_center_manager = SsoAdminManager(setup_mock_aws_environment["identity_store_arn"])
+    identity_center_manager = IdentityCentreManager(setup_mock_aws_environment["identity_store_arn"], setup_mock_aws_environment["identity_store_id"])
     identity_center_manager.manifest_file_rbac_rules = rbac_rules
-    identity_center_manager.sso_users = setup_mock_aws_environment["sso_username_id_map"]
-    identity_center_manager.sso_groups = setup_mock_aws_environment["sso_group_name_id_map"]
-    identity_center_manager.sso_permission_sets = setup_mock_aws_environment["sso_permission_set_name_id_map"]
     identity_center_manager.ou_accounts_map = setup_mock_aws_environment["ou_accounts_map"]
     identity_center_manager.account_name_id_map = setup_mock_aws_environment["account_name_id_map"]
     identity_center_manager.run_access_control_resolver()
@@ -184,11 +200,8 @@ def test_delete_account_assignments(
     current_account_assignments += create_assignments(sso_group_ids, "GROUP")
 
     # Act
-    identity_center_manager = SsoAdminManager(setup_mock_aws_environment["identity_store_arn"])
+    identity_center_manager = IdentityCentreManager(setup_mock_aws_environment["identity_store_arn"], setup_mock_aws_environment["identity_store_id"])
     identity_center_manager.manifest_file_rbac_rules = rbac_rules
-    identity_center_manager.sso_users = setup_mock_aws_environment["sso_username_id_map"]
-    identity_center_manager.sso_groups = setup_mock_aws_environment["sso_group_name_id_map"]
-    identity_center_manager.sso_permission_sets = setup_mock_aws_environment["sso_permission_set_name_id_map"]
     identity_center_manager.ou_accounts_map = setup_mock_aws_environment["ou_accounts_map"]
     identity_center_manager.account_name_id_map = setup_mock_aws_environment["account_name_id_map"]
     identity_center_manager.run_access_control_resolver()
@@ -219,11 +232,8 @@ def test_generate_invalid_assignments_report(setup_mock_aws_environment: pytest.
     rbac_rules = manifest_file.get("rbac_rules", [])
 
     # Act
-    identity_center_manager = SsoAdminManager(setup_mock_aws_environment["identity_store_arn"])
+    identity_center_manager = IdentityCentreManager(setup_mock_aws_environment["identity_store_arn"], setup_mock_aws_environment["identity_store_id"])
     identity_center_manager.manifest_file_rbac_rules = rbac_rules
-    identity_center_manager.sso_users = setup_mock_aws_environment["sso_username_id_map"]
-    identity_center_manager.sso_groups = setup_mock_aws_environment["sso_group_name_id_map"]
-    identity_center_manager.sso_permission_sets = setup_mock_aws_environment["sso_permission_set_name_id_map"]
     identity_center_manager.ou_accounts_map = setup_mock_aws_environment["ou_accounts_map"]
     identity_center_manager.account_name_id_map = setup_mock_aws_environment["account_name_id_map"]
     identity_center_manager.run_access_control_resolver()

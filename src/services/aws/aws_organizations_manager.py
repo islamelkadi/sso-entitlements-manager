@@ -9,7 +9,7 @@ from src.services.aws.utils import handle_aws_exceptions
 OuAccountsObject: TypeAlias = list[dict[str, str]]
 
 
-class OrganizationsMapper:
+class AwsOrganizationsManager:
     def __init__(self, root_ou_id) -> None:
         self._ou_accounts_map = {}
         self._account_name_id_map: dict[str, str] = {}

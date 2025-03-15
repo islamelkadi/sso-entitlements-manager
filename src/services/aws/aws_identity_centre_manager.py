@@ -1,7 +1,3 @@
-"""
-Module for resolving AWS resources and creating access
-control assignments based on ingested customer manifest file.
-"""
 import logging
 import itertools
 from typing import Optional
@@ -11,26 +7,24 @@ from src.core.constants import *
 from src.services.aws.utils import handle_aws_exceptions
 
 
-class SsoAdminMapper:
-    """
-    Class for resolving AWS resources and creating RBAC (Role-Based Access Control)
-    assignments based on a manifest file.
-    """
+class IdentityCentreManager:
 
     def __init__(self, identity_store_arn: str, identity_store_id: str) -> None:
-        """
-        Initializes AwsAccessControlResolver with the provided identity store ARN.
-
-        Args:
-            identity_store_arn (str): The ARN of the AWS Identity Store.
-        """
 
         self._identity_store_arn = identity_store_arn
         self._identity_store_id = identity_store_id
 
-        self._sso_users: dict[str, str] = {}
-        self._sso_groups: dict[str, str] = {}
-        self._permission_sets: dict[str, str] = {}
+        self.sso_users: dict[str, str] = {}
+        self.sso_groups: dict[str, str] = {}
+        self.sso_permission_sets: dict[str, str] = {}
+
+        # Settable input attributes
+        self.manifest_file_exclusions = None
+        self.manifest_file_rbac_rules: list = []
+
+        self.ou_accounts_map = {}
+        self.account_name_id_map = {}
+        self.is_auto_approved: bool = False
 
         # Define boto3 clients
         self._sso_admin_client = boto3.client("sso-admin")
@@ -41,9 +35,23 @@ class SsoAdminMapper:
         self._list_sso_users_pagniator = self._identity_store_client.get_paginator("list_users")
         self._list_permission_sets_paginator = self._sso_admin_client.get_paginator("list_permission_sets")
 
+        # Define assingment variables
+        self._local_account_assignments: list = []
+        self._current_account_assignments: list = []
+
+        self.assignments_to_create: list = []
+        self.assignments_to_delete: list = []
+
+        # Define invalid report variables
+        self._invalid_manifest_file_ou_names: list = []
+        self._invalid_manifest_file_account_names: list = []
+        self._invalid_manifest_file_group_names: list = []
+        self._invalid_manifest_file_user_names: list = []
+        self._invalid_manifest_file_permission_sets: list = []
+
         # Define logger
         self._logger: logging.Logger = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
-        
+
         # Setup workflow
         self._map_sso_environment()
         self._list_current_account_assignments()
@@ -56,16 +64,16 @@ class SsoAdminMapper:
         sso_groups_pages = self._list_groups_paginator.paginate(IdentityStoreId=self._identity_store_id)
         for page in sso_groups_pages:
             for group in page.get("Groups", []):
-                self._sso_groups[group["DisplayName"]] = group["GroupId"]
+                self.sso_groups[group["DisplayName"]] = group["GroupId"]
 
         # SSO Users
         self._logger.info("Mapping SSO users")
         sso_users_pages = self._list_sso_users_pagniator.paginate(IdentityStoreId=self._identity_store_id)
         for page in sso_users_pages:
             for user in page.get("Users", []):
-                self._sso_users[user["UserName"]] = user["UserId"]
+                self.sso_users[user["UserName"]] = user["UserId"]
 
-        if not (self._sso_groups and self._sso_users):
+        if not (self.sso_groups and self.sso_users):
             raise Exception("No SSO groups or users principals found to assign access")
 
         # SSO Permission Sets
@@ -75,9 +83,9 @@ class SsoAdminMapper:
             for permission_set in page.get("PermissionSets", []):
                 described_permission_set = self._sso_admin_client.describe_permission_set(InstanceArn=self._identity_store_arn, PermissionSetArn=permission_set)
                 permission_set = described_permission_set.get("PermissionSet")
-                self._permission_sets[permission_set["Name"]] = permission_set["PermissionSetArn"]
+                self.sso_permission_sets[permission_set["Name"]] = permission_set["PermissionSetArn"]
 
-        if not self._permission_sets:
+        if not self.sso_permission_sets:
             raise Exception("No permission sets found to assign to groups or users principals")
 
 

@@ -1,6 +1,6 @@
 # pylint: disable=E1120
 """
-Unit tests for OrganizationsMapper to test listing AWS accounts, handling
+Unit tests for AwsOrganizationsManager to test listing AWS accounts, handling
 organizational units, and excluding specific accounts and organizational units.
 
 Tests:
@@ -12,7 +12,7 @@ Tests:
 
 import boto3
 import pytest
-from src.services.aws.aws_organizations_manager import OrganizationsMapper
+from src.services.aws.aws_organizations_manager import AwsOrganizationsManager
 
 
 @pytest.mark.parametrize(
@@ -38,12 +38,12 @@ def test_list_active_included_aws_accounts(organizations_client: boto3.client, s
 
     Raises:
     ------
-    AssertionError: If the number of active accounts retrieved via OrganizationsMapper, excluding
+    AssertionError: If the number of active accounts retrieved via AwsOrganizationsManager, excluding
     specified accounts and OUs, does not match boto3's list_accounts.
     """
     # Arrange
     root_ou_id = setup_mock_aws_environment["root_ou_id"]
-    py_aws_organizations = OrganizationsMapper(root_ou_id)
+    py_aws_organizations = AwsOrganizationsManager(root_ou_id)
 
     # Act
     active_aws_accounts_via_class: list[str] = []
