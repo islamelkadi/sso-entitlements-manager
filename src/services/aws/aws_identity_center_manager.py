@@ -7,7 +7,7 @@ from src.core.constants import *
 from src.services.aws.utils import handle_aws_exceptions
 
 
-class IdentityCentreManager:
+class IdentityCenterManager:
 
     def __init__(self, identity_store_arn: str, identity_store_id: str) -> None:
 

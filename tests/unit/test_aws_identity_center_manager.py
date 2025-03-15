@@ -1,6 +1,6 @@
 # pylint: disable=E1120
 """
-Unit tests to validate functionality of AwsIdentityCentre from identity_center_mapper.
+Unit tests to validate functionality of AwsIdentityCenter from identity_center_mapper.
 
 Tests:
 - test_missing_default_constructor_parameters:
@@ -18,7 +18,7 @@ from typing import Dict, List, Any
 
 import pytest
 from src.core.utils import load_file
-from src.services.aws.aws_identity_centre_manager import IdentityCentreManager
+from src.services.aws.aws_identity_center_manager import IdentityCenterManager
 from tests.utils import generate_expected_account_assignments
 
 
@@ -41,7 +41,7 @@ VALID_MANIFEST_DEFINITION_FILES = [os.path.abspath(x) for x in glob.glob(VALID_M
 )
 def test_list_sso_admin_entities(setup_mock_aws_environment: pytest.fixture) -> None:
     # Arrange/Act
-    identity_center_manager = IdentityCentreManager(setup_mock_aws_environment["identity_store_arn"], setup_mock_aws_environment["identity_store_id"])
+    identity_center_manager = IdentityCenterManager(setup_mock_aws_environment["identity_store_arn"], setup_mock_aws_environment["identity_store_id"])
 
     # Assert
     sso_usernames_via_class = identity_center_manager.sso_users
@@ -106,7 +106,7 @@ def test_create_account_assignments(
         sso_admin_client.create_account_assignment(**assignment)
 
     # Act
-    identity_center_manager = IdentityCentreManager(setup_mock_aws_environment["identity_store_arn"], setup_mock_aws_environment["identity_store_id"])
+    identity_center_manager = IdentityCenterManager(setup_mock_aws_environment["identity_store_arn"], setup_mock_aws_environment["identity_store_id"])
     identity_center_manager.manifest_file_rbac_rules = rbac_rules
     identity_center_manager.ou_accounts_map = setup_mock_aws_environment["ou_accounts_map"]
     identity_center_manager.account_name_id_map = setup_mock_aws_environment["account_name_id_map"]
@@ -200,7 +200,7 @@ def test_delete_account_assignments(
     current_account_assignments += create_assignments(sso_group_ids, "GROUP")
 
     # Act
-    identity_center_manager = IdentityCentreManager(setup_mock_aws_environment["identity_store_arn"], setup_mock_aws_environment["identity_store_id"])
+    identity_center_manager = IdentityCenterManager(setup_mock_aws_environment["identity_store_arn"], setup_mock_aws_environment["identity_store_id"])
     identity_center_manager.manifest_file_rbac_rules = rbac_rules
     identity_center_manager.ou_accounts_map = setup_mock_aws_environment["ou_accounts_map"]
     identity_center_manager.account_name_id_map = setup_mock_aws_environment["account_name_id_map"]
@@ -232,7 +232,7 @@ def test_generate_invalid_assignments_report(setup_mock_aws_environment: pytest.
     rbac_rules = manifest_file.get("rbac_rules", [])
 
     # Act
-    identity_center_manager = IdentityCentreManager(setup_mock_aws_environment["identity_store_arn"], setup_mock_aws_environment["identity_store_id"])
+    identity_center_manager = IdentityCenterManager(setup_mock_aws_environment["identity_store_arn"], setup_mock_aws_environment["identity_store_id"])
     identity_center_manager.manifest_file_rbac_rules = rbac_rules
     identity_center_manager.ou_accounts_map = setup_mock_aws_environment["ou_accounts_map"]
     identity_center_manager.account_name_id_map = setup_mock_aws_environment["account_name_id_map"]

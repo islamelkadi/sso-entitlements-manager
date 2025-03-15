@@ -19,7 +19,7 @@ from src.core.utils import setup_logging
 from src.core.constants import SSO_ENTITLMENTS_APP_NAME
 from src.core.access_control_file_reader import AccessControlFileReader
 from src.services.aws.aws_organizations_manager import AwsOrganizationsManager
-from src.services.aws.aws_identity_centre_manager import IdentityCentreManager
+from src.services.aws.aws_identity_center_manager import IdentityCenterManager
 
 # Constant vars
 ROOT_OU_ID = os.getenv("ROOT_OU_ID")
@@ -49,21 +49,21 @@ def create_sso_assignments(
 
     manifest_file = AccessControlFileReader(manifest_file_path, MANIFEST_SCHEMA_DEFINITION_FILEPATH)
     aws_organization_manager = AwsOrganizationsManager(ROOT_OU_ID)
-    identity_centre_manager = IdentityCentreManager(IDENTITY_STORE_ARN, IDENTITY_STORE_ID)
+    identity_center_manager = IdentityCenterManager(IDENTITY_STORE_ARN, IDENTITY_STORE_ID)
 
     # Create account assignments
-    identity_centre_manager.is_auto_approved = auto_approve
-    identity_centre_manager.manifest_file_rbac_rules = manifest_file.rbac_rules
-    identity_centre_manager.account_name_id_map = aws_organization_manager.accounts_name_id_map
-    identity_centre_manager.ou_accounts_map = aws_organization_manager.ou_accounts_map
-    identity_centre_manager.run_access_control_resolver()
+    identity_center_manager.is_auto_approved = auto_approve
+    identity_center_manager.manifest_file_rbac_rules = manifest_file.rbac_rules
+    identity_center_manager.account_name_id_map = aws_organization_manager.accounts_name_id_map
+    identity_center_manager.ou_accounts_map = aws_organization_manager.ou_accounts_map
+    identity_center_manager.run_access_control_resolver()
 
     LOGGER.info("Successfully created SSO access control assignments")
 
     return {
-        "created": identity_centre_manager.assignments_to_create,
-        "deleted": identity_centre_manager.assignments_to_delete,
-        "invalid": identity_centre_manager.invalid_assignments_report,
+        "created": identity_center_manager.assignments_to_create,
+        "deleted": identity_center_manager.assignments_to_delete,
+        "invalid": identity_center_manager.invalid_assignments_report,
     }
 
 
