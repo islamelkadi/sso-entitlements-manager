@@ -10,7 +10,6 @@ from src.core.constants import (
     PERMISSION_SET_TYPE_LABEL,
 )
 
-from src.core.constants import MANIFEST_RULES_SCHEMA_LABELS
 
 class AccessControlFileReader:
 
@@ -23,27 +22,25 @@ class AccessControlFileReader:
         self._excluded_sso_group_names: list[str] = []
         self._excluded_permission_set_names: list[str] = []
         self._manifest_file_keys_to_uppercase: list[str] = [
-            MANIFEST_RULES_SCHEMA_LABELS.PRINCIPAL_TYPE_LABEL,
-            MANIFEST_RULES_SCHEMA_LABELS.TARGET_TYPE_LABEL,
+            "principal_type",
+            "target_type",
+            "exclude_target_type",
         ]
 
         self._load_sso_manifest_file()
         self._validate_sso_manifest_file()
         self._generate_excluded_targets_lists()
 
-
     def _load_sso_manifest_file(self) -> None:
         self._schema_definition = load_file(self._schema_definition_filepath)
         manifest_data = load_file(self._manifest_definition_filepath)
         self._manifest_definition = convert_specific_keys_to_uppercase(manifest_data, self._manifest_file_keys_to_uppercase)
-
 
     def _validate_sso_manifest_file(self) -> None:
         try:
             jsonschema.validate(instance=self._manifest_definition, schema=self._schema_definition)
         except jsonschema.ValidationError as e:
             raise jsonschema.ValidationError(f"Validation error: {e.message}")
-
 
     def _generate_excluded_targets_lists(self) -> None:
         target_map = {
@@ -54,14 +51,14 @@ class AccessControlFileReader:
             PERMISSION_SET_TYPE_LABEL: self._excluded_permission_set_names,
         }
 
-        for item in self._manifest_definition.get(MANIFEST_RULES_SCHEMA_LABELS.IGNORE_LABEL, []):
-            target_list = target_map.get(MANIFEST_RULES_SCHEMA_LABELS.TARGET_TYPE_LABEL)
-            target_list.extend(item[MANIFEST_RULES_SCHEMA_LABELS.TARGET_NAMES_LABEL])
+        for item in self._manifest_definition.get("ignore", []):
+            target_list = target_map.get(item["target_type"])
+            target_list.extend(item["target_names"])
 
 
     @property
     def rbac_rules(self) -> list:
-        return self._manifest_definition.get(MANIFEST_RULES_SCHEMA_LABELS.RBAC_RULES_LABEL, [])
+        return self._manifest_definition.get("rbac_rules", [])
 
     @property
     def excluded_ou_names(self) -> dict[str, list[str]]:

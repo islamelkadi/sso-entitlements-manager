@@ -3,8 +3,8 @@ import itertools
 from typing import Optional
 
 import boto3
+from src.core.constants import *
 from src.services.aws.utils import handle_aws_exceptions
-from src.core.constants import MANIFEST_RULES_SCHEMA_LABELS
 
 
 class IdentityCenterManager:
@@ -142,7 +142,7 @@ class IdentityCenterManager:
             resource_map, invalid_set = resource_maps[resource_type]
             if resource_name not in resource_map:
                 invalid_set.append({
-                    MANIFEST_RULES_SCHEMA_LABELS.RULE_NUMBER_LABELS: rule_number,
+                    "rule_number": rule_number,
                     "resource_type": resource_type,
                     "resource_name": resource_name,
                 })
@@ -171,29 +171,24 @@ class IdentityCenterManager:
 
         for i, rule in enumerate(self.manifest_file_rbac_rules):
             self._logger.info(rule)
-            rule[MANIFEST_RULES_SCHEMA_LABELS.RULE_NUMBER_LABELS] = i
-            rule[MANIFEST_RULES_SCHEMA_LABELS.PRINCIPAL_ID_LABEL] = validate_aws_resource(
-                rule_number = rule[MANIFEST_RULES_SCHEMA_LABELS.RULE_NUMBER_LABELS],
-                resource_name = rule[MANIFEST_RULES_SCHEMA_LABELS.PRINCIPAL_NAME_LABEL],
-                resource_type = rule[MANIFEST_RULES_SCHEMA_LABELS.PRINCIPAL_TYPE_LABEL]
-            )
-            rule["permission_set_arn"] = validate_aws_resource(
-                rule_number = rule[MANIFEST_RULES_SCHEMA_LABELS.RULE_NUMBER_LABELS],
-                resource_name = rule["permission_set_name"],
-                resource_type = "permission_set"
-            )
-            if not (rule[MANIFEST_RULES_SCHEMA_LABELS.PRINCIPAL_ID_LABEL] and rule["permission_set_arn"]):
+            rule["rule_number"] = i
+            rule["principal_id"] = validate_aws_resource(rule["rule_number"], rule["principal_name"], rule["principal_type"])
+            rule["permission_set_arn"] = validate_aws_resource(rule["rule_number"], rule["permission_set_name"], "permission_set")
+            if not (rule["principal_id"] and rule["permission_set_arn"]):
+                self._logger.info("CONTINUING")
+                self._logger.info(f"Principal name: {rule["principal_name"]}, {rule["principal_id"]}")
+                self._logger.info(f"Permission Set ARN: {rule["permission_set_name"]}, {rule["permission_set_arn"]}")
                 continue
 
-            for name in rule[MANIFEST_RULES_SCHEMA_LABELS.TARGET_NAMES_LABEL]:
-                is_valid_assignment_target = validate_aws_resource(rule[MANIFEST_RULES_SCHEMA_LABELS.RULE_NUMBER_LABELS], name, rule["target_type"])
+            for name in rule["target_names"]:
+                is_valid_assignment_target = validate_aws_resource(rule["rule_number"], name, rule["target_type"])
                 if is_valid_assignment_target:
                     if rule["target_type"] == OU_TARGET_TYPE_LABEL:
                         for child_ou_account in self.ou_accounts_map[name]:
-                            add_unique_assignment(child_ou_account["Id"], rule[MANIFEST_RULES_SCHEMA_LABELS.PRINCIPAL_ID_LABEL], rule[MANIFEST_RULES_SCHEMA_LABELS.PRINCIPAL_TYPE_LABEL], rule["permission_set_arn"])
+                            add_unique_assignment(child_ou_account["Id"], rule["principal_id"], rule["principal_type"], rule["permission_set_arn"])
                     else:
                         account_id = self.account_name_id_map[name]
-                        add_unique_assignment(account_id, rule[MANIFEST_RULES_SCHEMA_LABELS.PRINCIPAL_ID_LABEL], rule[MANIFEST_RULES_SCHEMA_LABELS.PRINCIPAL_TYPE_LABEL], rule["permission_set_arn"])
+                        add_unique_assignment(account_id, rule["principal_id"], rule["principal_type"], rule["permission_set_arn"])
 
         self._logger.info("Creating itenerary of SSO account assignments to create")
         assignments_to_create = list(itertools.filterfalse(lambda i: i in self._current_account_assignments, self._local_account_assignments))
