@@ -1,0 +1,56 @@
+@startuml
+
+hide footbox
+
+participant AwsOrganizationsManager
+participant AwsOrganizationsBoto3Client
+participant AwsOrganizationsService
+
+Note over AwsOrganizationsManager,AwsOrganizationsService: _generate_aws_organization_map(ou_id)
+
+alt ou_id != self._root_ou_id
+    AwsOrganizationsManager -> AwsOrganizationsBoto3Client
+    AwsOrganizationsBoto3Client -> AwsOrganizationsService: ou_details = describe_organizational_unit(ou_id)
+    AwsOrganizationsService --> AwsOrganizationsBoto3Client: ou_details
+    AwsOrganizationsBoto3Client --> AwsOrganizationsManager: ou_name = ou_details["OrganizationalUnit"]["Name"]
+else
+    AwsOrganizationsManager -> AwsOrganizationsManager: ou_name = "root"
+end
+
+
+alt ou_name not in self._ou_accounts_map
+    AwsOrganizationsManager -> AwsOrganizationsManager: self._ou_accounts_map[ou_name] = []
+end
+
+
+loop
+    AwsOrganizationsManager -> AwsOrganizationsBoto3Client
+    AwsOrganizationsBoto3Client -> AwsOrganizationsService: list_accounts_for_parent(ou_id)
+    AwsOrganizationsService -> AwsOrganizationsBoto3Client: AWS Accounts
+    AwsOrganizationsBoto3Client -> AwsOrganizationsManager
+    
+    loop for account in aws_accounts.get("Accounts")
+        AwsOrganizationsManager -> AwsOrganizationsManager
+        alt account["Status"] == "ACTIVE"
+            AwsOrganizationsManager -> AwsOrganizationsManager: self._ou_accounts_map[ou_name].append({"Id": account["Id"], "Name": account["Name"]})
+        end
+
+        alt account["Name"] not in self._account_name_id_map
+            AwsOrganizationsManager -> AwsOrganizationsManager: self._account_name_id_map[account["Name"]] = account["Id"]
+        end
+    end
+end
+
+
+loop
+    AwsOrganizationsManager -> AwsOrganizationsBoto3Client
+    AwsOrganizationsBoto3Client -> AwsOrganizationsService: list_organizational_units_for_parent(ou_id)
+    AwsOrganizationsService -> AwsOrganizationsBoto3Client: AWS Child OUs
+    AwsOrganizationsBoto3Client -> AwsOrganizationsManager
+
+    loop for child_ou in aws_ous.get("OrganizationalUnits")
+        AwsOrganizationsManager -> AwsOrganizationsManager: _generate_aws_organization_map(child_ou["Id"])
+    end
+end
+
+@enduml

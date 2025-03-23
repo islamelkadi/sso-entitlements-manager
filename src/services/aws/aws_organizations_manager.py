@@ -1,5 +1,5 @@
 import logging
-from typing import Union, TypeAlias
+from typing import TypeAlias
 
 import boto3
 from src.core.constants import SSO_ENTITLMENTS_APP_NAME
@@ -10,7 +10,7 @@ OuAccountsObject: TypeAlias = list[dict[str, str]]
 
 
 class AwsOrganizationsManager:
-    def __init__(self, root_ou_id) -> None:
+    def __init__(self, root_ou_id: str) -> None:
         self._ou_accounts_map = {}
         self._account_name_id_map: dict[str, str] = {}
         self._logger: logging.Logger = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
