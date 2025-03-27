@@ -1,30 +1,54 @@
 """
 Utils module for handling various utility functions related to RBAC management.
-"""
-import os
-import dataclasses
-from typing import Dict, Set, List, Any
 
-import boto3
-import pytest
+This module provides utility functions for processing and managing Role-Based Access 
+Control (RBAC) rules within an AWS Organizations context. It supports operations 
+such as identifying accounts to ignore, removing specified targets, and generating 
+expected account assignments based on a manifest file.
+
+Key Functions:
+- get_ignore_accounts: Identifies accounts to be excluded from processing
+- remove_ignored_targets: Removes specified targets from various mappings
+- generate_valid_targets: Filters and validates target accounts
+- generate_expected_account_assignments: Creates account assignment configurations
+"""
+
+from typing import Dict, Set, List, Any
 
 
 def get_ignore_accounts(manifest_file, ou_map) -> Set[str]:
     """
     Determine which accounts should be ignored based on the manifest file and organizational unit map.
 
+    This function processes both explicitly excluded account names and accounts
+    within excluded organizational units. It builds a comprehensive set of account
+    names that should be ignored during further processing.
+
     Args:
         manifest_file (ManifestFile): The manifest file containing RBAC rules and exclusions.
-        ou_map (OuMap): A map of organizational units and their child accounts.
+            This object is expected to have attributes for excluded account and OU names.
+        ou_map (OuMap): A hierarchical map of organizational units and their child accounts.
+            Used to recursively identify accounts within excluded OUs.
 
     Returns:
-        Set[str]: A set of account names to ignore.
+        Set[str]: A set of account names that should be ignored in subsequent operations.
+            This includes both directly specified account names and accounts
+            belonging to excluded organizational units.
+
+    Example:
+        # Assuming manifest_file contains excluded accounts and OUs
+        ignore_accounts = get_ignore_accounts(manifest_file, ou_map)
+        # ignore_accounts will contain names of accounts to be skipped
     """
     ignore_accounts = set()
     ignore_accounts.update(manifest_file.excluded_account_names)
     for ou_name in manifest_file.excluded_ou_names:
         if ou_name in ou_map:
-            ignore_accounts.update(account["name"] for account in ou_map[ou_name]["children"] if account["type"] == "ACCOUNT")
+            ignore_accounts.update(
+                account["name"]
+                for account in ou_map[ou_name]["children"]
+                if account["type"] == "ACCOUNT"
+            )
     return ignore_accounts
 
 
@@ -39,13 +63,28 @@ def remove_ignored_targets(
     """
     Remove targets specified in ignore rules from the provided mappings.
 
+    This function processes ignore rules from the manifest file and removes
+    corresponding targets from various mappings. It supports removing targets
+    across different types: users, groups, permission sets, accounts, and
+    organizational units.
+
     Args:
         manifest_file (ManifestFile): The manifest file containing RBAC rules and exclusions.
+            Used to retrieve ignore rules for target removal.
         ou_map (OuMap): A map of organizational units and their child accounts.
+            Used to resolve accounts within excluded organizational units.
         valid_accounts (Dict[str, str]): A dictionary mapping valid account names to their IDs.
+            Accounts matching ignore rules will be removed from this mapping.
         sso_users_map (Dict[str, str]): A dictionary mapping SSO user names to their IDs.
+            Users matching ignore rules will be removed from this mapping.
         sso_groups_map (Dict[str, str]): A dictionary mapping SSO group names to their IDs.
+            Groups matching ignore rules will be removed from this mapping.
         sso_permission_sets (Dict[str, str]): A dictionary mapping permission set names to their ARNs.
+            Permission sets matching ignore rules will be removed from this mapping.
+
+    Note:
+        This function modifies the input mappings in-place. The original dictionaries
+        will be updated to remove targets specified in the ignore rules.
     """
     ignore_rules = manifest_file.get("ignore", [])
     for rule in ignore_rules:
@@ -71,14 +110,32 @@ def generate_valid_targets(rule, target_names, valid_accounts, ou_map) -> List[s
     """
     Generate a list of valid targets based on the rule and target names.
 
+    This function filters and validates target accounts based on the rule's
+    target type. It supports two target types: specific accounts and
+    organizational units.
+
     Args:
-        rule (Dict[str, Any]): The RBAC rule.
+        rule (Dict[str, Any]): The RBAC rule containing targeting information.
+            Must include a 'target_type' key specifying the type of targets.
         target_names (List[str]): The list of target names from the rule.
+            These names will be validated against available accounts.
         valid_accounts (Dict[str, str]): A dictionary mapping valid account names to their IDs.
+            Used to filter and validate target accounts.
         ou_map (OuMap): A map of organizational units and their child accounts.
+            Used to resolve accounts within organizational units.
 
     Returns:
-        List[str]: A list of valid target IDs.
+        List[str]: A list of validated target account IDs.
+            These are account IDs that match the rule's targeting criteria.
+
+    Example:
+        # For an ACCOUNT type rule
+        valid_targets = generate_valid_targets(
+            {'target_type': 'ACCOUNT'},
+            ['Prod Account', 'Dev Account'],
+            valid_accounts,
+            ou_map
+        )
     """
     valid_targets = []
     if rule["target_type"] == "ACCOUNT":
@@ -105,16 +162,42 @@ def generate_expected_account_assignments(
     """
     Generate the expected account assignments based on the manifest file and provided mappings.
 
+    This function processes RBAC rules from the manifest file to create a comprehensive
+    list of expected account assignments. It handles user and group principal types,
+    filters invalid targets, and generates assignment configurations for AWS SSO.
+
     Args:
         manifest_file (ManifestFile): The manifest file containing RBAC rules.
+            Used to retrieve and process role-based access control configurations.
         ou_map (OuMap): A map of organizational units and their child accounts.
+            Used to resolve accounts within organizational units.
+        identity_store_arn (str): The Amazon Resource Name (ARN) of the AWS SSO identity store.
+            Required for creating account assignments.
         valid_accounts (Dict[str, str]): A dictionary mapping valid account names to their IDs.
+            Used to validate and resolve target accounts.
         sso_users_map (Dict[str, str]): A dictionary mapping SSO user names to their IDs.
+            Used to resolve user principals for assignments.
         sso_groups_map (Dict[str, str]): A dictionary mapping SSO group names to their IDs.
+            Used to resolve group principals for assignments.
         sso_permission_sets (Dict[str, str]): A dictionary mapping permission set names to their ARNs.
+            Used to resolve permission sets for assignments.
 
     Returns:
         List[Dict[str, Any]]: A list of expected account assignment dictionaries.
+            Each dictionary represents a unique account assignment with details
+            such as principal ID, principal type, permission set ARN, and target account.
+
+    Note:
+        - Skips rules with invalid principals or permission sets
+        - Ensures no duplicate assignments are generated
+        - Supports both user and group-based assignments
+
+    Example:
+        # Generate account assignments based on RBAC manifest
+        expected_assignments = generate_expected_account_assignments(
+            manifest_file, ou_map, identity_store_arn,
+            valid_accounts, sso_users_map, sso_groups_map, sso_permission_sets
+        )
     """
     remove_ignored_targets(
         manifest_file,
@@ -128,21 +211,31 @@ def generate_expected_account_assignments(
     expected_assignments = []
     rbac_rules = manifest_file.get("rbac_rules", [])
     for rule in rbac_rules:
-        if rule["principal_type"] == "USER" and rule["principal_name"] not in sso_users_map:
+        if (
+            rule["principal_type"] == "USER"
+            and rule["principal_name"] not in sso_users_map
+        ):
             continue
 
-        if rule["principal_type"] == "GROUP" and rule["principal_name"] not in sso_groups_map:
+        if (
+            rule["principal_type"] == "GROUP"
+            and rule["principal_name"] not in sso_groups_map
+        ):
             continue
 
         if rule["permission_set_name"] not in sso_permission_sets:
             continue
 
         target_names = rule.get("target_names", [])
-        valid_targets = generate_valid_targets(rule, target_names, valid_accounts, ou_map)
+        valid_targets = generate_valid_targets(
+            rule, target_names, valid_accounts, ou_map
+        )
 
         for target in valid_targets:
             target_assignment_item = {
-                "PrincipalId": sso_users_map[rule["principal_name"]] if rule["principal_type"] == "USER" else sso_groups_map[rule["principal_name"]],
+                "PrincipalId": sso_users_map[rule["principal_name"]]
+                if rule["principal_type"] == "USER"
+                else sso_groups_map[rule["principal_name"]],
                 "PrincipalType": rule["principal_type"],
                 "PermissionSetArn": sso_permission_sets[rule["permission_set_name"]],
                 "TargetId": target,
@@ -154,106 +247,3 @@ def generate_expected_account_assignments(
                 expected_assignments.append(target_assignment_item)
 
     return expected_assignments
-
-
-def setup_s3_environment(manifest_definition_filepath: str, bucket_name: str = "my-test-bucket") -> boto3.client:
-    """
-    Sets up the S3 environment for testing.
-
-    Parameters:
-    ----------
-    manifest_definition_filepath : str
-        The file path to the manifest definition.
-
-    Returns:
-    -------
-    boto3.client
-        The boto3 S3 client.
-    """
-    s3_client = boto3.client("s3")
-    s3_client.create_bucket(Bucket=bucket_name)
-    upload_file_to_s3(bucket_name, manifest_definition_filepath)
-
-    monkeypatch = pytest.MonkeyPatch()
-    monkeypatch.setenv(
-        "MANIFEST_FILE_S3_LOCATION",
-        f"s3://{bucket_name}/{os.path.basename(manifest_definition_filepath)}",
-    )
-
-    return s3_client
-
-
-def upload_file_to_s3(bucket_name: str, filepath: str) -> str:
-    """
-    Upload a file to an S3 bucket.
-
-    Parameters
-    ----------
-    s3_client : boto3.client
-        The boto3 S3 client.
-
-    bucket_name : str
-        The name of the S3 bucket.
-
-    filepath : str
-        The local file path to upload.
-
-    Returns
-    -------
-    str
-        The object key of the uploaded file.
-    """
-    s3_client = boto3.client("s3")
-
-    with open(filepath, "rb") as f:
-        object_key = os.path.basename(filepath)
-        s3_client.upload_fileobj(f, bucket_name, object_key)
-    return object_key
-
-
-def generate_lambda_context() -> dataclasses.dataclass:
-    """
-    Creates an AWS Lambda context object instance.
-
-    Returns:
-    -------
-    LambdaContext:
-        Dataclass object representing AWS Lambda context.
-    """
-
-    @dataclasses.dataclass
-    class LambdaContext:
-        """
-        AWS Lambda context class mock attributes.
-
-        Attributes:
-        ----------
-        function_name: str
-            Default: "test"
-        function_version: str
-            Default: "$LATEST"
-        invoked_function_arn: str
-            Default: "arn:aws:lambda:us-east-1:123456789101:function:test"
-        memory_limit_in_mb: int
-            Default: 256
-        aws_request_id: str
-            Default: "43723370-e382-466b-848e-5400507a5e86"
-        log_group_name: str
-            Default: "/aws/lambda/test"
-        log_stream_name: str
-            Default: "my-log-stream"
-        """
-
-        function_name: str = "test"
-        function_version: str = "$LATEST"
-        invoked_function_arn: str = f"arn:aws:lambda:us-east-1:123456789101:function:{function_name}"
-        memory_limit_in_mb: int = 256
-        aws_request_id: str = "43723370-e382-466b-848e-5400507a5e86"
-        log_group_name: str = f"/aws/lambda/{function_name}"
-        log_stream_name: str = "my-log-stream"
-
-        def get_remaining_time_in_millis(self) -> int:
-            """Returns mock remaining time in milliseconds for Lambda."""
-            return 5
-
-    return LambdaContext()

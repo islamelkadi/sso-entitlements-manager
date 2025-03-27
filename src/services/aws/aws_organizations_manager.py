@@ -1,3 +1,34 @@
+"""
+AWS Organizations Mapping Module
+
+This module provides tools for comprehensive mapping and analysis of AWS Organization structures.
+
+The module defines a class `AwsOrganizationsManager` that can recursively explore and document
+the hierarchical structure of an AWS Organization, including:
+- Mapping organizational units (OUs)
+- Tracking active accounts within each OU
+- Creating lookup maps for accounts and organizational units
+
+Key Features:
+- Recursive traversal of AWS Organization hierarchy
+- Retrieval of active accounts per organizational unit
+- Creation of name-to-ID mapping for accounts
+
+Example:
+    # Initialize the manager with a root OU ID
+    org_manager = AwsOrganizationsManager('ou-root-123abc')
+    
+    # Access the full OU to accounts mapping
+    ou_accounts = org_manager.ou_accounts_map
+    
+    # Get a mapping of account names to their AWS account IDs
+    account_ids = org_manager.accounts_name_id_map
+
+Note:
+    Requires appropriate AWS IAM permissions to list and describe 
+    organizational units and accounts.
+"""
+
 import logging
 from typing import TypeAlias
 
@@ -10,7 +41,57 @@ OuAccountsObject: TypeAlias = list[dict[str, str]]
 
 
 class AwsOrganizationsManager:
+    """
+    Manages and maps the structure of an AWS Organization.
+
+    This class provides a comprehensive mapping of AWS organizational units
+    and their associated accounts, allowing for easy traversal and retrieval
+    of organizational structure details.
+
+    Attributes:
+        _ou_accounts_map (dict): A nested mapping of organizational unit names to their accounts.
+        _account_name_id_map (dict): A mapping of account names to their unique AWS account IDs.
+        _logger (logging.Logger): Logger for tracking organization mapping process.
+
+    Properties:
+        ou_accounts_map (dict[str, OuAccountsObject]):
+            A dictionary where keys are Organizational Unit names and values are
+            lists of active accounts. Each account is represented as a dictionary
+            with 'Id' and 'Name' keys.
+
+            Example:
+                {
+                    'root': [
+                        {'Id': '123456789012', 'Name': 'Production Account'},
+                        {'Id': '210987654321', 'Name': 'Development Account'}
+                    ],
+                    'Infrastructure': [
+                        {'Id': '345678901234', 'Name': 'Network Account'}
+                    ]
+                }
+
+        accounts_name_id_map (dict[str, str]):
+            A dictionary mapping account names to their unique AWS account IDs.
+
+            Example:
+                {
+                    'Production Account': '123456789012',
+                    'Development Account': '210987654321',
+                    'Network Account': '345678901234'
+                }
+    """
+
     def __init__(self, root_ou_id: str) -> None:
+        """
+        Initialize the AWS Organizations manager and generate the organization map.
+
+        Args:
+            root_ou_id (str): The root Organizational Unit (OU) ID to start mapping from.
+
+        Note:
+            This method automatically initiates the organization mapping process
+            during instantiation.
+        """
         self._ou_accounts_map = {}
         self._account_name_id_map: dict[str, str] = {}
         self._logger: logging.Logger = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
@@ -18,17 +99,37 @@ class AwsOrganizationsManager:
         # Initialize AWS clients
         self._root_ou_id = root_ou_id
         self._organizations_client = boto3.client("organizations")
-        self._accounts_pagniator = self._organizations_client.get_paginator("list_accounts_for_parent")
-        self._ous_paginator = self._organizations_client.get_paginator("list_organizational_units_for_parent")
+        self._accounts_pagniator = self._organizations_client.get_paginator(
+            "list_accounts_for_parent"
+        )
+        self._ous_paginator = self._organizations_client.get_paginator(
+            "list_organizational_units_for_parent"
+        )
 
         self._logger.info("Mapping AWS organization")
         self._generate_aws_organization_map(self._root_ou_id)
 
     @handle_aws_exceptions()
     def _generate_aws_organization_map(self, ou_id: str) -> None:
+        """
+        Recursively generate a comprehensive map of the AWS organization structure.
+
+        This method traverses the organizational hierarchy, collecting information
+        about organizational units and their associated accounts.
+
+        Args:
+            ou_id (str): The Organizational Unit ID to map.
+
+        Note:
+            - Populates _ou_accounts_map with active accounts for each OU
+            - Populates _account_name_id_map with unique account identifiers
+            - Recursively processes child organizational units
+        """
         # Get ou name
         if ou_id != self._root_ou_id:
-            ou_details = self._organizations_client.describe_organizational_unit(OrganizationalUnitId=ou_id)
+            ou_details = self._organizations_client.describe_organizational_unit(
+                OrganizationalUnitId=ou_id
+            )
             ou_name = ou_details["OrganizationalUnit"]["Name"]
         else:
             ou_name = "root"
@@ -41,8 +142,10 @@ class AwsOrganizationsManager:
         for page in self._accounts_pagniator.paginate(ParentId=ou_id):
             for account in page.get("Accounts", []):
                 if account["Status"] == "ACTIVE":
-                    self._ou_accounts_map[ou_name].append({"Id": account["Id"], "Name": account["Name"]})
-                
+                    self._ou_accounts_map[ou_name].append(
+                        {"Id": account["Id"], "Name": account["Name"]}
+                    )
+
                 if account["Name"] not in self._account_name_id_map:
                     self._account_name_id_map[account["Name"]] = account["Id"]
 
@@ -53,8 +156,21 @@ class AwsOrganizationsManager:
 
     @property
     def ou_accounts_map(self) -> dict[str, OuAccountsObject]:
+        """
+        Retrieves the mapping of Organizational Units to their accounts.
+
+        Returns:
+            dict[str, OuAccountsObject]: A dictionary where keys are OU names
+            and values are lists of account dictionaries.
+        """
         return self._ou_accounts_map
 
     @property
     def accounts_name_id_map(self) -> dict[str, str]:
+        """
+        Retrieves the mapping of account names to their AWS account IDs.
+
+        Returns:
+            dict[str, str]: A dictionary mapping account names to their unique IDs.
+        """
         return self._account_name_id_map

@@ -1,3 +1,18 @@
+"""
+AWS Service Exception Handling Utility
+
+This module provides a decorator for robust error handling and retry mechanisms 
+for AWS Organizations and SSO Admin API calls. It implements intelligent retry 
+strategies with exponential backoff and comprehensive exception logging.
+
+Key Features:
+- Automatic retry for transient AWS service exceptions
+- Exponential backoff between retry attempts
+- Detailed logging of errors and retry attempts
+- Configurable retry parameters
+- Specialized handling for AWS Organizations and SSO Admin exceptions
+"""
+
 import logging
 import functools
 import time
@@ -10,38 +25,54 @@ from src.core.constants import (
     RETRY_DELAY_SECONDS,
 )
 
-logger = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
-sso_admin_client = boto3.client("sso-admin")
-aws_organizations_client = boto3.client("organizations")
+# Define constants
+LOGGER = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
+SSO_ADMIN_CLIENT = boto3.client("sso-admin")
+AWS_ORGANIZATIONS_CLIENT = boto3.client("organizations")
 
 
+# Define functions
 def handle_aws_exceptions(
     max_retries: int = MAX_RETRIES,
     retry_delay_seconds: float = RETRY_DELAY_SECONDS,
     retryable_exceptions: tuple = (
-        sso_admin_client.exceptions.InternalServerException,
-        sso_admin_client.exceptions.ConflictException,
-        sso_admin_client.exceptions.ThrottlingException,
-        aws_organizations_client.exceptions.ServiceException,
-        aws_organizations_client.exceptions.TooManyRequestsException,
+        SSO_ADMIN_CLIENT.exceptions.InternalServerException,
+        SSO_ADMIN_CLIENT.exceptions.ConflictException,
+        SSO_ADMIN_CLIENT.exceptions.ThrottlingException,
+        AWS_ORGANIZATIONS_CLIENT.exceptions.ServiceException,
+        AWS_ORGANIZATIONS_CLIENT.exceptions.TooManyRequestsException,
     ),
 ) -> Callable:
     """
-    Decorator to handle AWS Organizations API exceptions with retry logic.
+    A decorator that provides robust exception handling and retry mechanism for AWS service calls.
 
-    Parameters:
-    -----------
-    max_retries: int
-        Maximum number of retry attempts
-    retry_delay: float
-        Delay in seconds between retries (will be exponentially increased)
-    retryable_exceptions: tuple
-        Tuple of exceptions that should trigger a retry
+    This decorator wraps methods to handle common AWS service exceptions, implementing
+    an intelligent retry strategy with exponential backoff. It can handle transient
+    service errors, throttling, and other recoverable exceptions.
+
+    Args:
+        max_retries (int, optional): Maximum number of retry attempts before giving up.
+            Defaults to MAX_RETRIES from constants.
+        retry_delay_seconds (float, optional): Initial delay between retry attempts.
+            The delay increases exponentially with each retry. Defaults to RETRY_DELAY_SECONDS.
+        retryable_exceptions (tuple, optional): A tuple of exception types that trigger
+            a retry attempt. Defaults to common AWS service exceptions.
 
     Returns:
-    --------
-    Callable
-        The wrapped function
+        Callable: A decorator that can be applied to methods to add retry and exception handling.
+
+    Raises:
+        Various AWS service-specific exceptions after max retries are exhausted, including:
+        - ParentNotFoundException
+        - AccessDeniedException
+        - ServiceQuotaExceededException
+        - ResourceNotFoundException
+
+    Examples:
+        @handle_aws_exceptions()
+        def list_aws_accounts(self):
+            # Method implementation that might throw AWS service exceptions
+            return organizations_client.list_accounts()
     """
 
     def decorator(func: Callable) -> Callable:
@@ -55,31 +86,51 @@ def handle_aws_exceptions(
                 except retryable_exceptions as e:
                     retries += 1
                     if retries > max_retries:
-                        logger.error(f"Max retries ({max_retries}) exceeded: {e}")
+                        # Lazy formatting using %r for safe representation
+                        LOGGER.error("Max retries (%d) exceeded: %r", max_retries, e)
                         raise e
 
-                    wait_time = retry_delay_seconds * (2 ** (retries - 1))  # Exponential backoff
-                    logger.warning(f"Retryable error occurred: {e}. " f"Attempt {retries}/{max_retries}. " f"Retrying in {wait_time} seconds...")
+                    wait_time = retry_delay_seconds * (
+                        2 ** (retries - 1)
+                    )  # Exponential backoff
+                    # Lazy formatting for warning log
+                    LOGGER.warning(
+                        "Retryable error occurred: %r. Attempt %d/%d. Retrying in %f seconds...",
+                        e,
+                        retries,
+                        max_retries,
+                        wait_time,
+                    )
                     time.sleep(wait_time)
                     continue
 
                 # AWS Organizations related exceptions
-                except aws_organizations_client.exceptions.ParentNotFoundException as e:
-                    logger.error(f"Invalid parent OU name: {e}")
+                except AWS_ORGANIZATIONS_CLIENT.exceptions.ParentNotFoundException as e:
+                    # Lazy formatting for error log
+                    LOGGER.error("Invalid parent OU name: %r", e)
                     raise e
-                except aws_organizations_client.exceptions.AccessDeniedException as e:
-                    logger.error(f"Missing required IAM policy permissions: {e}")
+                except AWS_ORGANIZATIONS_CLIENT.exceptions.AccessDeniedException as e:
+                    # Lazy formatting for error log
+                    LOGGER.error("Missing required IAM policy permissions: %r", e)
                     raise e
 
                 # AWS SSO Admin related exceptions
-                except sso_admin_client.exceptions.AccessDeniedException as e:
-                    logger.error(f"Missing required IAM policy permissions: {e}")
+                except SSO_ADMIN_CLIENT.exceptions.AccessDeniedException as e:
+                    # Lazy formatting for error log
+                    LOGGER.error("Missing required IAM policy permissions: %r", e)
                     raise e
-                except sso_admin_client.exceptions.ServiceQuotaExceededException as e:
-                    logger.error(f"Exceeded limit of allowed AWS account assignments, " f"request service quota increase: {e}")
+                except SSO_ADMIN_CLIENT.exceptions.ServiceQuotaExceededException as e:
+                    # Lazy formatting for error log
+                    LOGGER.error(
+                        "Exceeded limit of allowed AWS account assignments, request service quota increase: %r",
+                        e,
+                    )
                     raise e
-                except sso_admin_client.exceptions.ResourceNotFoundException as e:
-                    logger.error(f"Invalid TargetID, PrincipalID, or PermissionSetArn: {e}")
+                except SSO_ADMIN_CLIENT.exceptions.ResourceNotFoundException as e:
+                    # Lazy formatting for error log
+                    LOGGER.error(
+                        "Invalid TargetID, PrincipalID, or PermissionSetArn: %r", e
+                    )
                     raise e
 
         return wrapper

@@ -1,7 +1,20 @@
 """
-Unit tests for AWS Lambda function using moto to mock S3 interactions.
+Unit Tests for AWS Lambda Function Manifest Schema Validation
 
-This module contains helper functions and test cases for the Lambda function.
+This module contains unit tests for validating manifest file schemas using 
+the AccessControlFileReader. It provides test cases for both valid and 
+invalid manifest file schemas, ensuring proper validation of configuration files.
+
+Key Features:
+- Parameterized tests for schema validation
+- Dynamic loading of test manifest files
+- Comprehensive schema validation checks
+
+Attributes:
+    CWD (str): Current working directory path.
+    MANIFEST_SCHEMA_DEFINITION_FILEPATH (str): Path to the manifest schema definition file.
+    VALID_MANIFEST_DEFINITION_FILES (list[str]): List of paths to valid manifest files.
+    INVALID_MANIFEST_DEFINITION_FILES (list[str]): List of paths to invalid manifest files.
 """
 
 # Imports
@@ -23,67 +36,121 @@ MANIFEST_SCHEMA_DEFINITION_FILEPATH = os.path.join(
     "manifest_schema_definition.json",
 )
 
-
 # Dynamic generation of filenames
-VALID_MANIFEST_DEFINITION_FILES_PATH = os.path.join(CWD, "..", "manifests", "valid_schema", "*.yaml")
-VALID_MANIFEST_DEFINITION_FILES = [os.path.abspath(x) for x in glob.glob(VALID_MANIFEST_DEFINITION_FILES_PATH)]
+VALID_MANIFEST_DEFINITION_FILES_PATH = os.path.join(
+    CWD, "..", "manifests", "valid_schema", "*.yaml"
+)
+VALID_MANIFEST_DEFINITION_FILES = [
+    os.path.abspath(x) for x in glob.glob(VALID_MANIFEST_DEFINITION_FILES_PATH)
+]
 
-INVALID_MANIFEST_DEFINITION_FILES_PATH = os.path.join(CWD, "..", "manifests", "invalid_schema", "*.yaml")
-INVALID_MANIFEST_DEFINITION_FILES = [os.path.abspath(x) for x in glob.glob(INVALID_MANIFEST_DEFINITION_FILES_PATH)]
+INVALID_MANIFEST_DEFINITION_FILES_PATH = os.path.join(
+    CWD, "..", "manifests", "invalid_schema", "*.yaml"
+)
+INVALID_MANIFEST_DEFINITION_FILES = [
+    os.path.abspath(x) for x in glob.glob(INVALID_MANIFEST_DEFINITION_FILES_PATH)
+]
 
 
-# Test cases
 @pytest.mark.parametrize("manifest_filename", INVALID_MANIFEST_DEFINITION_FILES)
 def test_rules_invalid_manifest_schema(manifest_filename: str) -> None:
     """
-    Test to validate manifest files with invalid schema definitions.
+    Validate that manifest files with invalid schema definitions raise a ValidationError.
 
-    This test checks if manifest files with various invalid schema
-    configurations raise a jsonschema.ValidationError when processed
-    by the AccessControlFileReader.
+    This test ensures that AccessControlFileReader properly validates manifest file schemas
+    and raises a jsonschema.ValidationError for configurations that do not meet the
+    defined schema requirements.
 
-    Parameters:
-    ----------
-        manifest_filename (str): Path to the manifest file to validate.
+    Args:
+        manifest_filename (str): Absolute path to the manifest file to be validated.
 
-    Asserts:
-    -------
-        jsonschema.ValidationError: If the manifest file schema is invalid.
+    Raises:
+        jsonschema.ValidationError: If the manifest file does not conform to the
+            defined schema requirements.
+
+    Note:
+        This test is parameterized to run against multiple invalid manifest files.
     """
-    # Assert
+    # Assert that an invalid manifest file raises a ValidationError
     with pytest.raises(jsonschema.ValidationError):
-        # Act
+        # Attempt to create AccessControlFileReader with an invalid manifest
         AccessControlFileReader(manifest_filename, MANIFEST_SCHEMA_DEFINITION_FILEPATH)
 
 
 @pytest.mark.parametrize("manifest_filename", VALID_MANIFEST_DEFINITION_FILES)
 def test_rules_valid_manifest_schema(manifest_filename: str) -> None:
     """
-    Test the lambda_handler function with a mocked S3 environment.
+    Validate the correct parsing of manifest files with valid schema definitions.
 
-    Parameters:
-    ----------
-    manifest_filename : str
-        The filename of the manifest to be tested.
+    This test verifies that:
+    1. The manifest file can be loaded successfully using both local loading
+       and AccessControlFileReader methods.
+    2. Excluded lists (OU, Account, SSO User, SSO Group, Permission Set)
+       are correctly extracted and match between different loading methods.
+
+    Args:
+        manifest_filename (str): Absolute path to the manifest file to be tested.
+
+    Raises:
+        AssertionError: If the excluded lists do not match between different
+            loading methods or if loading fails.
+
+    Note:
+        This test is parameterized to run against multiple valid manifest files.
     """
-    # Act
+    # Load manifest file via local method and AccessControlFileReader
     manifest_file_via_local = load_file(manifest_filename)
-    manifest_file_via_class = AccessControlFileReader(manifest_filename, MANIFEST_SCHEMA_DEFINITION_FILEPATH)
+    manifest_file_via_class = AccessControlFileReader(
+        manifest_filename, MANIFEST_SCHEMA_DEFINITION_FILEPATH
+    )
 
-
-    # Extract excluded lists from the manifest loaded via local
+    # Helper function to extract excluded names from a manifest
     def get_excluded_names(manifest, target_type):
-        return [name for item in manifest.get("ignore", []) if item["target_type"] == target_type for name in item.get("target_names", [])]
+        """
+        Extract excluded names for a specific target type from a manifest.
 
+        Args:
+            manifest (dict): The manifest dictionary to extract names from.
+            target_type (str): The type of target to filter (e.g., 'OU', 'ACCOUNT').
+
+        Returns:
+            list: A list of excluded names for the specified target type.
+        """
+        return [
+            name
+            for item in manifest.get("ignore", [])
+            if item["target_type"] == target_type
+            for name in item.get("target_names", [])
+        ]
+
+    # Extract excluded names using the helper function
     excluded_ou_names_local = get_excluded_names(manifest_file_via_local, "OU")
-    excluded_account_names_local = get_excluded_names(manifest_file_via_local, "ACCOUNT")
+    excluded_account_names_local = get_excluded_names(
+        manifest_file_via_local, "ACCOUNT"
+    )
     excluded_sso_user_names_local = get_excluded_names(manifest_file_via_local, "USER")
-    excluded_sso_group_names_local = get_excluded_names(manifest_file_via_local, "GROUP")
-    excluded_permission_set_names_local = get_excluded_names(manifest_file_via_local, "PERMISSION_SET")
+    excluded_sso_group_names_local = get_excluded_names(
+        manifest_file_via_local, "GROUP"
+    )
+    excluded_permission_set_names_local = get_excluded_names(
+        manifest_file_via_local, "PERMISSION_SET"
+    )
 
-    # Assert
-    assert manifest_file_via_class.excluded_ou_names == excluded_ou_names_local, "excluded_ou_names do not match"
-    assert manifest_file_via_class.excluded_account_names == excluded_account_names_local, "excluded_account_names do not match"
-    assert manifest_file_via_class.excluded_sso_user_names == excluded_sso_user_names_local, "excluded_sso_user_names do not match"
-    assert manifest_file_via_class.excluded_sso_group_names == excluded_sso_group_names_local, "excluded_sso_group_names do not match"
-    assert manifest_file_via_class.excluded_permission_set_names == excluded_permission_set_names_local, "excluded_permission_set_names do not match"
+    # Assert that excluded names match between local and class methods
+    assert (
+        manifest_file_via_class.excluded_ou_names == excluded_ou_names_local
+    ), "excluded_ou_names do not match"
+    assert (
+        manifest_file_via_class.excluded_account_names == excluded_account_names_local
+    ), "excluded_account_names do not match"
+    assert (
+        manifest_file_via_class.excluded_sso_user_names == excluded_sso_user_names_local
+    ), "excluded_sso_user_names do not match"
+    assert (
+        manifest_file_via_class.excluded_sso_group_names
+        == excluded_sso_group_names_local
+    ), "excluded_sso_group_names do not match"
+    assert (
+        manifest_file_via_class.excluded_permission_set_names
+        == excluded_permission_set_names_local
+    ), "excluded_permission_set_names do not match"

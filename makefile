@@ -30,7 +30,7 @@ unittest:
 .PHONY: format
 format:
 	@echo "Running python formatting"
-	@poetry run black $(sources) --safe --line-length 250
+	@poetry run black $(sources) --safe
 
 	@echo "Running python linter"
 	@poetry run pylint $(sources)

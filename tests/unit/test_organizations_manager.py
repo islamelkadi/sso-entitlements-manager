@@ -1,13 +1,26 @@
 # pylint: disable=E1120
 """
-Unit tests for AwsOrganizationsManager to test listing AWS accounts, handling
-organizational units, and excluding specific accounts and organizational units.
+Unit Tests for AWS Organizations Manager
 
-Tests:
-- test_missing_constructor_parameter:
-    Proper initialization with required parameters.
-- test_list_active_included_aws_accounts:
-    Correct listing of active AWS accounts.
+This module contains comprehensive test cases for validating the AwsOrganizationsManager's 
+functionality, focusing on:
+- AWS account listing
+- Organizational unit handling
+- Account and OU exclusion mechanisms
+
+Key Test Scenarios:
+- Verifying correct initialization with required parameters
+- Validating active AWS account retrieval
+- Comparing AwsOrganizationsManager output with boto3 list_accounts
+
+Dependencies:
+- pytest
+- boto3
+- AwsOrganizationsManager from src.services.aws
+
+Test Coverage:
+- Validates organizational structure mapping
+- Ensures consistent account retrieval across different methods
 """
 
 import boto3
@@ -20,26 +33,35 @@ from src.services.aws.aws_organizations_manager import AwsOrganizationsManager
     ["aws_org_1.json", "aws_org_2.json"],
     indirect=["setup_mock_aws_environment"],
 )
-def test_list_active_included_aws_accounts(organizations_client: boto3.client, setup_mock_aws_environment: pytest.fixture) -> None:
+def test_list_active_included_aws_accounts(
+    organizations_client: boto3.client, setup_mock_aws_environment: pytest.fixture
+) -> None:
     """
-    Test case to verify listing active AWS accounts with optional
-    exclusion of specific OUs and accounts.
+    Validate active AWS account listing across different retrieval methods.
 
-    Parameters:
-    ----------
-    organizations_client: boto3.client
-        Fixture providing an AWS Organizations client.
-    setup_mock_aws_environment: pytest.fixture
-        Fixture providing setup data including root_ou_id and aws_organization_definitions.
-    excluded_ous: list
-        List of specific OU names to exclude from account listing.
-    excluded_accounts: list
-        List of specific account names to exclude from account listing.
+    This test compares accounts retrieved via AwsOrganizationsManager against
+    those retrieved directly through boto3's list_accounts method. It ensures:
+    - Consistent account retrieval
+    - Accurate active account filtering
+    - Correct mapping of organizational structure
+
+    Test Methodology:
+    1. Initialize AwsOrganizationsManager with root OU ID
+    2. Extract account names from OU accounts map
+    3. Retrieve active account names using boto3 list_accounts
+    4. Compare sorted lists of account names
+
+    Args:
+        organizations_client (boto3.client): Mocked AWS Organizations client
+        setup_mock_aws_environment (pytest.fixture): Fixture providing mock AWS environment setup
 
     Raises:
-    ------
-    AssertionError: If the number of active accounts retrieved via AwsOrganizationsManager, excluding
-    specified accounts and OUs, does not match boto3's list_accounts.
+        AssertionError: If retrieved account lists do not match exactly
+
+    Note:
+        This test assumes:
+        - All accounts in the organization are active
+        - Account names are unique and consistent across retrieval methods
     """
     # Arrange
     root_ou_id = setup_mock_aws_environment["root_ou_id"]
@@ -57,4 +79,6 @@ def test_list_active_included_aws_accounts(organizations_client: boto3.client, s
             active_aws_account_names_via_boto3.append(account["Name"])
 
     # Assert
-    assert sorted(active_aws_accounts_via_class) == sorted(active_aws_account_names_via_boto3)
+    assert sorted(active_aws_accounts_via_class) == sorted(
+        active_aws_account_names_via_boto3
+    )

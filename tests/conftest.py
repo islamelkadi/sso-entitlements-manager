@@ -1,18 +1,28 @@
 """
-This module provides fixtures and helper functions for testing AWS Organizations,
-Identity Store, and SSO Admin services using the moto library and pytest framework.
+AWS Organizations and Identity Center Test Fixtures Module
 
-The module includes:
-- Helper functions to create and delete AWS Organizational Units (OUs) and accounts.
-- Fixtures to set up and tear down AWS environment variables.
-- Fixtures to mock AWS clients for Organizations, Identity Store, and SSO Admin services.
-- A fixture to set up the AWS environment, including OUs, accounts, Identity Center users,
-  groups, and permission sets.
+This module provides comprehensive testing utilities for AWS services using moto 
+and pytest. It facilitates the creation of mock AWS environments, including:
+- Organizational Units (OUs)
+- Accounts
+- Identity Center users and groups
+- Permission sets
+
+Key Features:
+- Helper functions for creating and deleting AWS organizational structures
+- Pytest fixtures for mocking AWS service clients
+- Session-scoped environment setup and teardown
+- Flexible configuration loading for test environments
+
+Attributes:
+    MONKEYPATCH (pytest.MonkeyPatch): Global MonkeyPatch instance for 
+        environment variable manipulation.
+
+Dependencies:
+    - moto
+    - boto3
+    - pytest
 """
-
-################################################
-#                    Imports                   #
-################################################
 
 import os
 import json
@@ -22,17 +32,11 @@ import moto
 import boto3
 import pytest
 
-################################################
-#                    Globals                   #
-################################################
-
+# Define constants
 MONKEYPATCH = pytest.MonkeyPatch()
 
-################################################
-#               Helper functions               #
-################################################
 
-
+# Define helper functions
 def create_aws_ous_accounts(
     orgs_client: boto3.client,
     aws_organization_definitions: list[dict],
@@ -41,29 +45,34 @@ def create_aws_ous_accounts(
     account_name_id_map: Optional[dict] = None,
     ou_accounts_map: Optional[dict] = None,
     parent_ou_name: str = "root",
-) -> None:
+) -> tuple[dict, dict]:
     """
-    Fixture helper function to setup AWS mock organizations:
-        1. Create AWS organization units (OUs)
-        2. Create AWS accounts
-        3. Move accounts under designated OUs
+    Recursively create AWS Organizational Units (OUs) and accounts.
 
-    Parameters:
-    ----------
-    - orgs_client: boto3.client
-        AWS Organizations client.
-    - aws_organization_definitions: list[dict]
-        List of dictionaries defining AWS organizational structure.
-    - root_ou_id: str
-        Root organizational unit ID.
-    - parent_ou_id: str, optional
-        Parent organizational unit ID for nested setup.
-    - account_name_id_map: dict, optional
-        Dictionary to keep track of account names and their IDs.
-    - ou_accounts_map: dict, optional
-        Dictionary to keep track of OUs and their accounts.
-    - parent_ou_name: str, optional
-        Name of the parent OU for nested setup.
+    This function performs the following tasks:
+    1. Create organizational units based on the provided definitions
+    2. Create accounts within those organizational units
+    3. Move accounts to their designated organizational units
+    4. Maintain mappings of account names to IDs and OU structure
+
+    Args:
+        orgs_client (boto3.client): AWS Organizations client for API calls.
+        aws_organization_definitions (list[dict]): Hierarchical definition of
+            organizational structure and accounts.
+        root_ou_id (str): ID of the root organizational unit.
+        parent_ou_id (str, optional): ID of the parent OU for nested creation.
+            Defaults to empty string.
+        account_name_id_map (dict, optional): Mapping of account names to their
+            AWS account IDs. Defaults to None.
+        ou_accounts_map (dict, optional): Mapping of OUs to their accounts.
+            Defaults to None.
+        parent_ou_name (str, optional): Name of the parent OU for nested creation.
+            Defaults to "root".
+
+    Returns:
+        tuple[dict, dict]: A tuple containing:
+            - Updated account name to ID mapping
+            - Updated OU to accounts mapping
     """
     if account_name_id_map is None:
         account_name_id_map = {}
@@ -77,9 +86,7 @@ def create_aws_ous_accounts(
             nested_ou_id = orgs_client.create_organizational_unit(
                 ParentId=parent_ou_id if parent_ou_id else root_ou_id,
                 Name=organization_resource["name"],
-            )[
-                "OrganizationalUnit"
-            ]["Id"]
+            )["OrganizationalUnit"]["Id"]
 
             # Recursively setup OU
             if organization_resource.get("children"):
@@ -98,9 +105,7 @@ def create_aws_ous_accounts(
             account_id = orgs_client.create_account(
                 Email=f"{organization_resource['name']}@testing.com",
                 AccountName=organization_resource["name"],
-            )[
-                "CreateAccountStatus"
-            ]["AccountId"]
+            )["CreateAccountStatus"]["AccountId"]
 
             # Move account to OU
             orgs_client.move_account(
@@ -116,36 +121,48 @@ def create_aws_ous_accounts(
             if parent_ou_name not in ou_accounts_map:
                 ou_accounts_map[parent_ou_name] = []
 
-            ou_accounts_map[parent_ou_name].append({"Id": account_id, "Name": organization_resource["name"]})
+            ou_accounts_map[parent_ou_name].append(
+                {"Id": account_id, "Name": organization_resource["name"]}
+            )
 
     return account_name_id_map, ou_accounts_map
 
 
-def delete_aws_ous_accounts(orgs_client: boto3.client, root_ou_id: str, parent_ou_id: str = "") -> None:
+def delete_aws_ous_accounts(
+    orgs_client: boto3.client, root_ou_id: str, parent_ou_id: str = ""
+) -> None:
     """
-    Recursively delete AWS accounts from nested organizational units (OUs).
+    Recursively delete AWS accounts from organizational units.
 
-    Parameters:
-    ----------
+    This function traverses the AWS organization structure and removes
+    accounts from specified organizational units, supporting nested
+    organizational hierarchies.
 
-    - orgs_client: boto3.client
-        AWS Organizations client.
-    - root_ou_id: str
-        Root organizational unit ID.
-    - parent_ou_id: str, optional
-        Parent organizational unit ID for nested deletion.
+    Args:
+        orgs_client (boto3.client): AWS Organizations client for API calls.
+        root_ou_id (str): ID of the root organizational unit.
+        parent_ou_id (str, optional): ID of the parent OU for targeted deletion.
+            Defaults to empty string.
+
+    Notes:
+        - Deletes accounts in the specified OU and its child OUs
+        - Uses pagination to handle large numbers of accounts and OUs
     """
 
     # Function to delete accounts in the current OU
     def delete_accounts_in_ou(ou_id: str) -> None:
-        accounts_to_delete = orgs_client.list_accounts_for_parent(ParentId=ou_id)["Accounts"]
+        accounts_to_delete = orgs_client.list_accounts_for_parent(ParentId=ou_id)[
+            "Accounts"
+        ]
         for account in accounts_to_delete:
             orgs_client.remove_account_from_organization(AccountId=account["Id"])
 
     # Function to recursively delete accounts in child OUs
     def delete_accounts_in_child_ous(parent_id: str) -> None:
         child_ous_paginator = orgs_client.get_paginator("list_children")
-        for page in child_ous_paginator.paginate(ParentId=parent_id, ChildType="ORGANIZATIONAL_UNIT"):
+        for page in child_ous_paginator.paginate(
+            ParentId=parent_id, ChildType="ORGANIZATIONAL_UNIT"
+        ):
             for child in page.get("Children", []):
                 delete_accounts_in_ou(child["Id"])
                 delete_accounts_in_child_ous(child["Id"])
@@ -159,15 +176,21 @@ def delete_aws_ous_accounts(orgs_client: boto3.client, root_ou_id: str, parent_o
         delete_accounts_in_child_ous(root_ou_id)
 
 
-################################################
-#         Fixtures - AWS Env & Env Vars        #
-################################################
-
-
+# Define fixtures
 @pytest.fixture(scope="session")
 def setup_env_vars() -> None:
     """
-    Fixture to set environment variables using MonkeyPatch for session scope.
+    Set up environment variables for AWS testing.
+
+    This fixture uses MonkeyPatch to set mock AWS credentials and region
+    for the entire test session, ensuring consistent test environment
+    configuration.
+
+    Env Vars Set:
+    - AWS_SESSION_TOKEN: Mock session token
+    - AWS_ACCESS_KEY_ID: Mock access key
+    - AWS_SECRET_ACCESS_KEY: Mock secret access key
+    - AWS_DEFAULT_REGION: Default testing region (us-east-1)
     """
     MONKEYPATCH.setenv("AWS_SESSION_TOKEN", "test")
     MONKEYPATCH.setenv("AWS_ACCESS_KEY_ID", "test")
@@ -179,11 +202,14 @@ def setup_env_vars() -> None:
 @pytest.fixture(scope="session")
 def organizations_client(setup_env_vars: pytest.fixture) -> boto3.client:
     """
-    Fixture to mock AWS Organizations client using moto for session scope.
+    Create a mocked AWS Organizations client for testing.
+
+    Returns a moto-mocked AWS Organizations client with session scope,
+    allowing for simulated AWS Organizations API interactions without
+    making actual AWS service calls.
 
     Returns:
-    -------
-    - boto3.client: Mocked AWS Organizations client.
+        boto3.client: Mocked AWS Organizations client
     """
     with moto.mock_aws():
         yield boto3.client("organizations")
@@ -192,11 +218,14 @@ def organizations_client(setup_env_vars: pytest.fixture) -> boto3.client:
 @pytest.fixture(scope="session")
 def identity_store_client(setup_env_vars: pytest.fixture) -> boto3.client:
     """
-    Fixture to mock AWS Identity Store client using moto for session scope.
+    Create a mocked AWS Identity Store client for testing.
+
+    Returns a moto-mocked AWS Identity Store client with session scope,
+    allowing for simulated AWS Identity Store API interactions without
+    making actual AWS service calls.
 
     Returns:
-    -------
-    - boto3.client: Mocked AWS Identity Store client.
+        boto3.client: Mocked AWS Identity Store client
     """
     with moto.mock_aws():
         yield boto3.client("identitystore")
@@ -205,63 +234,63 @@ def identity_store_client(setup_env_vars: pytest.fixture) -> boto3.client:
 @pytest.fixture(scope="session")
 def sso_admin_client(setup_env_vars: pytest.fixture) -> boto3.client:
     """
-    Fixture to mock AWS SSO Admin client using moto for session scope.
+    Create a mocked AWS SSO Admin client for testing.
+
+    Returns a moto-mocked AWS SSO Admin client with session scope,
+    allowing for simulated AWS SSO Admin API interactions without
+    making actual AWS service calls.
 
     Returns:
-    -------
-    - boto3.client: Mocked AWS SSO Admin client.
+        boto3.client: Mocked AWS SSO Admin client
     """
     with moto.mock_aws():
         yield boto3.client("sso-admin")
 
 
-################################################
-#         Fixtures - Local Unit Testing        #
-################################################
-
-
 @pytest.fixture(scope="session")
 def setup_mock_aws_environment(
     request: str,
-    organizations_client: boto3.client,  # pylint: disable=W0621
-    identity_store_client: boto3.client,  # pylint: disable=W0621
-    sso_admin_client: boto3.client,  # pylint: disable=W0621
+    organizations_client: boto3.client,
+    identity_store_client: boto3.client,
+    sso_admin_client: boto3.client,
 ) -> dict:
     """
-    Fixture to setup AWS environment:
-        1. Create AWS organization
-        2. Setup AWS mock organizations with OUs and accounts
-        3. Setup AWS Identity Center with users, groups, and permission sets
+    Comprehensive fixture to set up a mock AWS testing environment.
 
-    Parameters:
-    ----------
-    - request: str
-        Parameter from pytest marker or fixture definition.
-    - organizations_client: boto3.client
-        AWS Organizations client.
-    - identity_store_client: boto3.client
-        AWS Identity Store client.
-    - sso_admin_client: boto3.client
-        AWS SSO Admin client.
+    This fixture performs a complete setup of a mock AWS environment,
+    including:
+    1. Creating an AWS organization
+    2. Setting up organizational units and accounts
+    3. Creating Identity Center users, groups, and permission sets
+    4. Managing environment variables and resource mappings
+
+    Args:
+        request (str): Pytest request object for parameterized configuration.
+        organizations_client (boto3.client): AWS Organizations client.
+        identity_store_client (boto3.client): AWS Identity Store client.
+        sso_admin_client (boto3.client): AWS SSO Admin client.
 
     Returns:
-    -------
-    - dict: Dictionary containing setup details:
-        - root_ou_id: str
-            Root organizational unit ID.
-        - aws_organization_definitions: list[dict]
-            List of dictionaries defining AWS organizational structure.
-        - aws_sso_group_definitions: list
-            List of dictionaries defining AWS SSO groups.
-        - aws_sso_user_definitions: list
-            List of dictionaries defining AWS SSO users.
-        - aws_permission_set_definitions: list
-            List of dictionaries defining AWS permission sets.
-    """
+        dict: A comprehensive dictionary containing:
+            - root_ou_id: Root organizational unit ID
+            - identity_store_arn: Identity Store instance ARN
+            - identity_store_id: Identity Store instance ID
+            - sso_group_name_id_map: Mapping of SSO group names to IDs
+            - sso_username_id_map: Mapping of SSO usernames to IDs
+            - sso_permission_set_name_id_map: Mapping of permission set names to ARNs
+            - account_name_id_map: Mapping of account names to IDs
+            - ou_accounts_map: Mapping of OUs to their accounts
 
+    Notes:
+        - Uses JSON configuration files to define environment structure
+        - Automatically handles teardown of created resources
+        - Sets relevant environment variables for further testing
+    """
     # Load JSON definitions
     cwd = os.path.dirname(os.path.realpath(__file__))
-    organizations_map_path = os.path.join(cwd, "configs", "organizations", request.param)
+    organizations_map_path = os.path.join(
+        cwd, "configs", "organizations", request.param
+    )
     with open(organizations_map_path, "r", encoding="utf-8") as fp:
         aws_environment_details = json.load(fp)
 
@@ -311,11 +340,15 @@ def setup_mock_aws_environment(
                 Name=permission_set["name"],
                 Description=permission_set["description"],
             )["PermissionSet"]
-            created_permission_sets[permission_set["name"]] = permission_set_details["PermissionSetArn"]
+            created_permission_sets[permission_set["name"]] = permission_set_details[
+                "PermissionSetArn"
+            ]
 
         # SET ENV VARS
         MONKEYPATCH.setenv("ROOT_OU_ID", root_ou_id)
-        MONKEYPATCH.setenv("IDENTITY_STORE_ID", identity_store_instance["IdentityStoreId"])
+        MONKEYPATCH.setenv(
+            "IDENTITY_STORE_ID", identity_store_instance["IdentityStoreId"]
+        )
         MONKEYPATCH.setenv("IDENTITY_STORE_ARN", identity_store_instance["InstanceArn"])
 
         yield {
