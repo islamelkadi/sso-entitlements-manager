@@ -3,25 +3,16 @@ AWS Organizations and Identity Center Test Fixtures Module
 
 This module provides comprehensive testing utilities for AWS services using moto 
 and pytest. It facilitates the creation of mock AWS environments, including:
-- Organizational Units (OUs)
-- Accounts
-- Identity Center users and groups
-- Permission sets
+    - Organizational Units (OUs)
+    - Accounts
+    - Identity Center users and groups
+    - Permission sets
 
 Key Features:
-- Helper functions for creating and deleting AWS organizational structures
-- Pytest fixtures for mocking AWS service clients
-- Session-scoped environment setup and teardown
-- Flexible configuration loading for test environments
-
-Attributes:
-    MONKEYPATCH (pytest.MonkeyPatch): Global MonkeyPatch instance for 
-        environment variable manipulation.
-
-Dependencies:
-    - moto
-    - boto3
-    - pytest
+    - Helper functions for creating and deleting AWS organizational structures
+    - Pytest fixtures for mocking AWS service clients
+    - Session-scoped environment setup and teardown
+    - Flexible configuration loading for test environments
 """
 
 import os

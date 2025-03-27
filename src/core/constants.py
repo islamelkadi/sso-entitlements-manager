@@ -1,3 +1,6 @@
+"""
+Module with constants to use throughout the src/services modules
+"""
 # General constants for retry mechanisms
 MAX_RETRIES = 5  # Maximum number of retry attempts for operations that may fail
 RETRY_DELAY_SECONDS = 2.0  # Delay between retry attempts in seconds

@@ -4,29 +4,9 @@ Unit Tests for AWS Identity Center Management
 
 This module provides comprehensive test cases for the IdentityCenterManager, 
 validating various aspects of AWS Identity Center functionality, including:
-- SSO entity listing (users, groups, permission sets)
-- Account assignment creation and deletion
-- Invalid assignment reporting
-
-The tests leverage pytest parameterization and mock AWS environments to 
-thoroughly validate the AWS Identity Center management process.
-
-Key Test Scenarios:
-- Verifying SSO admin entities retrieval
-- Creating and deleting account assignments
-- Generating reports for invalid assignments
-
-Dependencies:
-- pytest
-- AWS boto3 SDK
-- Concurrent processing utilities
-- Custom test utilities
-
-Module Variables:
-- CWD: Current working directory path
-- PRE_TEST_ACCOUNT_ASSIGNMENT_PERCENTAGES: Incremental percentages for testing
-- AWS_ORG_DEFINITION_FILES: List of AWS organization definition files
-- VALID_MANIFEST_DEFINITION_FILES: List of valid manifest definition files
+    - SSO entity listing (users, groups, permission sets)
+    - Account assignment creation and deletion
+    - Invalid assignment reporting
 """
 import os
 import glob
@@ -73,9 +53,9 @@ def test_list_sso_admin_entities(setup_mock_aws_environment: pytest.fixture) -> 
     Test retrieving SSO entities from the IdentityCenterManager.
 
     Validates the correct retrieval of:
-    - SSO users
-    - SSO groups
-    - SSO permission sets
+        - SSO users
+        - SSO groups
+        - SSO permission sets
 
     Uses a parameterized mock AWS environment to test with different
     organizational configurations.
@@ -83,11 +63,27 @@ def test_list_sso_admin_entities(setup_mock_aws_environment: pytest.fixture) -> 
     Args:
         setup_mock_aws_environment (pytest.fixture): Fixture providing mock
         AWS environment details, including:
-        - identity_store_arn
-        - identity_store_id
-        - sso_username_id_map
-        - sso_group_name_id_map
-        - sso_permission_set_name_id_map
+            - identity_store_arn
+            - identity_store_id
+            - sso_username_id_map
+            - sso_group_name_id_map
+            - sso_permission_set_name_id_map
+
+        - Verifies that SSO usernames retrieved by the
+          IdentityCenterManager match the expected username-ID map from
+          the mock AWS environment. This ensures accurate user retrieval
+          and mapping.
+
+        - Confirms that SSO groups retrieved by the
+          IdentityCenterManager exactly match the expected group name-ID
+          map from the mock AWS environment. This validates the correct
+          extraction and mapping of SSO groups.
+
+        - Checks that SSO permission sets retrieved by the
+          IdentityCenterManager precisely correspond to the expected
+          permission set name-ID map from the mock AWS environment. This
+          verifies accurate permission set discovery and identification.
+
 
     Raises:
         AssertionError: If retrieved entities do not match expected values
@@ -132,11 +128,15 @@ def test_create_account_assignments(
     """
     Test the creation of account assignments based on manifest file and environment.
 
-    This test verifies the IdentityCenterManager's ability to create
-    account assignments by:
-    - Generating expected account assignments
-    - Pre-creating a subset of assignments
-    - Resolving and creating remaining assignments
+    Test Strategy:
+        1. Generates expected account assignments
+        2. Pre-creates permission set assignments using a subset of
+        the expected account assignments
+        3. Generates a list of account assignments to create via the
+        IdentityCenterManager class based on the assignments that
+        do not exist on the cloud
+        4. Compares the list ofexpected account assignments to create
+        to the list generate by the IdentityCenterManager class
 
     Args:
         sso_admin_client: Mock AWS SSO admin client for creating assignments
@@ -207,11 +207,13 @@ def test_delete_account_assignments(
     """
     Test the deletion of account assignments based on manifest file and environment.
 
-    Validates the IdentityCenterManager's ability to identify and prepare
-    account assignments for deletion by:
-    - Creating initial account assignments
-    - Generating expected account assignments from manifest
-    - Identifying assignments to be deleted
+    Test Strategy:
+        1. Create initial account assignments
+        2. Generate expected account assignments from manifest
+        3. Identify assignments to be deleted
+        4. Retrieve assignments to be delete via IdentityCenterManager.assignments_to_delete
+        property
+        5. Compare expected assignments to delete vs generated assignments to delete
 
     Args:
         sso_admin_client (pytest.fixture): Mock AWS SSO admin client
@@ -337,9 +339,9 @@ def test_generate_invalid_assignments_report(
 
     Verifies the IdentityCenterManager's ability to identify and report
     invalid assignments by checking:
-    - Invalid target names (OUs or accounts)
-    - Invalid principal names (users or groups)
-    - Invalid permission set names
+        - Invalid target names (OUs or accounts)
+        - Invalid principal names (users or groups)
+        - Invalid permission set names
 
     Args:
         setup_mock_aws_environment (pytest.fixture): Fixture with mock AWS environment details

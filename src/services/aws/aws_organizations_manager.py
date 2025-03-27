@@ -5,14 +5,14 @@ This module provides tools for comprehensive mapping and analysis of AWS Organiz
 
 The module defines a class `AwsOrganizationsManager` that can recursively explore and document
 the hierarchical structure of an AWS Organization, including:
-- Mapping organizational units (OUs)
-- Tracking active accounts within each OU
-- Creating lookup maps for accounts and organizational units
+    - Mapping organizational units (OUs)
+    - Tracking active accounts within each OU
+    - Creating lookup maps for accounts and organizational units
 
 Key Features:
-- Recursive traversal of AWS Organization hierarchy
-- Retrieval of active accounts per organizational unit
-- Creation of name-to-ID mapping for accounts
+    - Recursive traversal of AWS Organization hierarchy
+    - Retrieval of active accounts per organizational unit
+    - Creation of name-to-ID mapping for accounts
 
 Example:
     # Initialize the manager with a root OU ID

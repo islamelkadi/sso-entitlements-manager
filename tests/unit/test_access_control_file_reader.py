@@ -4,17 +4,6 @@ Unit Tests for AWS Lambda Function Manifest Schema Validation
 This module contains unit tests for validating manifest file schemas using 
 the AccessControlFileReader. It provides test cases for both valid and 
 invalid manifest file schemas, ensuring proper validation of configuration files.
-
-Key Features:
-- Parameterized tests for schema validation
-- Dynamic loading of test manifest files
-- Comprehensive schema validation checks
-
-Attributes:
-    CWD (str): Current working directory path.
-    MANIFEST_SCHEMA_DEFINITION_FILEPATH (str): Path to the manifest schema definition file.
-    VALID_MANIFEST_DEFINITION_FILES (list[str]): List of paths to valid manifest files.
-    INVALID_MANIFEST_DEFINITION_FILES (list[str]): List of paths to invalid manifest files.
 """
 
 # Imports
@@ -64,6 +53,10 @@ def test_rules_invalid_manifest_schema(manifest_filename: str) -> None:
     Args:
         manifest_filename (str): Absolute path to the manifest file to be validated.
 
+    Asserts:
+        - A jsonschema.ValidationError is raised when attempting to create an
+          AccessControlFileReader with an invalid manifest file.
+
     Raises:
         jsonschema.ValidationError: If the manifest file does not conform to the
             defined schema requirements.
@@ -83,17 +76,25 @@ def test_rules_valid_manifest_schema(manifest_filename: str) -> None:
     Validate the correct parsing of manifest files with valid schema definitions.
 
     This test verifies that:
-    1. The manifest file can be loaded successfully using both local loading
-       and AccessControlFileReader methods.
-    2. Excluded lists (OU, Account, SSO User, SSO Group, Permission Set)
-       are correctly extracted and match between different loading methods.
+        1. The manifest file can be loaded successfully using both local loading
+        and AccessControlFileReader methods.
+        2. Excluded lists (OU, Account, SSO User, SSO Group, Permission Set)
+        are correctly extracted and match between different loading methods.
 
     Args:
         manifest_filename (str): Absolute path to the manifest file to be tested.
 
-    Raises:
-        AssertionError: If the excluded lists do not match between different
-            loading methods or if loading fails.
+    Asserts:
+        - Excluded Organizational Unit (OU) names match between
+          local file loading method and AccessControlFileReader class method.
+        - Excluded Account names match between local file loading
+          method and AccessControlFileReader class method.
+        - Excluded SSO User names match between local file loading
+          method and AccessControlFileReader class method.
+        - Excluded SSO Group names match between local file loading
+          method and AccessControlFileReader class method.
+        - Excluded Permission Set names match between local file loading
+          method and AccessControlFileReader class method.
 
     Note:
         This test is parameterized to run against multiple valid manifest files.

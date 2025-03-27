@@ -3,25 +3,25 @@ Unit Tests for AWS SSO Account Assignment Management
 
 This module provides comprehensive test cases for AWS SSO account assignment 
 management, focusing on:
-- Verifying SSO account assignment creation
-- Validating assignment generation logic
-- Testing assignment deletion processes
+    - Verifying SSO account assignment creation
+    - Validating assignment generation logic
+    - Testing assignment deletion processes
 
 The tests leverage moto for mocking AWS environments and support:
-- Parametrized testing across multiple organization configurations
-- Validation of account assignments against manifest files
-- Handling of valid and invalid assignment scenarios
+    - Parametrized testing across multiple organization configurations
+    - Validation of account assignments against manifest files
+    - Handling of valid and invalid assignment scenarios
 
 Key Testing Strategies:
-- Dynamic generation of test scenarios
-- Concurrent assignment creation
-- Comprehensive coverage of assignment lifecycles
+    - Dynamic generation of test scenarios
+    - Concurrent assignment creation
+    - Comprehensive coverage of assignment lifecycles
 
 Dependencies:
-- pytest: Test framework
-- boto3: AWS SDK
-- moto: AWS service mocking
-- concurrent.futures: Parallel test execution support
+    - pytest: Test framework
+    - boto3: AWS SDK
+    - moto: AWS service mocking
+    - concurrent.futures: Parallel test execution support
 
 Note:
     Test configurations are dynamically loaded from '../configs' and 
@@ -136,9 +136,9 @@ def generate_invalid_assignments(
 
     This function validates the manifest file against the mock AWS environment,
     detecting inconsistencies in:
-    - Target resources (OUs or accounts)
-    - Principal references (users or groups)
-    - Permission set configurations
+        - Target resources (OUs or accounts)
+        - Principal references (users or groups)
+        - Permission set configurations
 
     Args:
         manifest_file (Dict[str, Any]): Parsed manifest file configuration.
@@ -223,10 +223,10 @@ def test_main(
     validates the completeness of assignment generation.
 
     Key Test Objectives:
-    - Generate expected account assignments
-    - Pre-create a subset of assignments
-    - Verify remaining assignments are correctly created
-    - Validate handling of invalid assignments
+        - Generate expected account assignments
+        - Pre-create a subset of assignments
+        - Verify remaining assignments are correctly created
+        - Validate handling of invalid assignments
 
     Args:
         sso_admin_client (boto3.client): Boto3 SSO admin client for API interactions.
@@ -305,9 +305,9 @@ def test_delete(
     are no longer defined in the manifest file.
 
     Key Test Objectives:
-    - Create comprehensive set of initial assignments
-    - Execute assignment synchronization
-    - Verify assignments not in manifest are deleted
+        - Create comprehensive set of initial assignments
+        - Execute assignment synchronization
+        - Verify assignments not in manifest are deleted
 
     Args:
         sso_admin_client (boto3.client): Boto3 SSO admin client for API interactions.

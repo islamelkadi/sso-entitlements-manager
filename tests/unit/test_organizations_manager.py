@@ -4,23 +4,9 @@ Unit Tests for AWS Organizations Manager
 
 This module contains comprehensive test cases for validating the AwsOrganizationsManager's 
 functionality, focusing on:
-- AWS account listing
-- Organizational unit handling
-- Account and OU exclusion mechanisms
-
-Key Test Scenarios:
-- Verifying correct initialization with required parameters
-- Validating active AWS account retrieval
-- Comparing AwsOrganizationsManager output with boto3 list_accounts
-
-Dependencies:
-- pytest
-- boto3
-- AwsOrganizationsManager from src.services.aws
-
-Test Coverage:
-- Validates organizational structure mapping
-- Ensures consistent account retrieval across different methods
+    - AWS account listing
+    - Organizational unit handling
+    - Account and OU exclusion mechanisms
 """
 
 import boto3
@@ -37,31 +23,27 @@ def test_list_active_included_aws_accounts(
     organizations_client: boto3.client, setup_mock_aws_environment: pytest.fixture
 ) -> None:
     """
-    Validate active AWS account listing across different retrieval methods.
-
     This test compares accounts retrieved via AwsOrganizationsManager against
-    those retrieved directly through boto3's list_accounts method. It ensures:
-    - Consistent account retrieval
-    - Accurate active account filtering
-    - Correct mapping of organizational structure
+    those retrieved directly through boto3's list_accounts method.
 
-    Test Methodology:
-    1. Initialize AwsOrganizationsManager with root OU ID
-    2. Extract account names from OU accounts map
-    3. Retrieve active account names using boto3 list_accounts
-    4. Compare sorted lists of account names
+    Test Strategy:
+        1. Initializes AwsOrganizationsManager with root OU ID
+        2. Extracts account names from OU accounts map
+        3. Retrieves active account names using boto3 list_accounts
+        4. Compares sorted lists of account names
 
     Args:
         organizations_client (boto3.client): Mocked AWS Organizations client
-        setup_mock_aws_environment (pytest.fixture): Fixture providing mock AWS environment setup
+        setup_mock_aws_environment (pytest.fixture): Fixture providing mockAWS environment setup
 
-    Raises:
-        AssertionError: If retrieved account lists do not match exactly
+    Asserts:
+        The active account names retrieved via the Boto3 API is the same as
+        that retrieved via the AwsOrganizationsManager class
 
     Note:
         This test assumes:
-        - All accounts in the organization are active
-        - Account names are unique and consistent across retrieval methods
+            - All accounts in the organization are active
+            - Account names are unique and consistent across retrieval methods
     """
     # Arrange
     root_ou_id = setup_mock_aws_environment["root_ou_id"]

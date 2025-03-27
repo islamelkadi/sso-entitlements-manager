@@ -6,11 +6,11 @@ for AWS Organizations and SSO Admin API calls. It implements intelligent retry
 strategies with exponential backoff and comprehensive exception logging.
 
 Key Features:
-- Automatic retry for transient AWS service exceptions
-- Exponential backoff between retry attempts
-- Detailed logging of errors and retry attempts
-- Configurable retry parameters
-- Specialized handling for AWS Organizations and SSO Admin exceptions
+    - Automatic retry for transient AWS service exceptions
+    - Exponential backoff between retry attempts
+    - Detailed logging of errors and retry attempts
+    - Configurable retry parameters
+    - Specialized handling for AWS Organizations and SSO Admin exceptions
 """
 
 import logging

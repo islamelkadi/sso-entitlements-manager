@@ -3,19 +3,19 @@ Utility Functions Module
 
 This module provides a collection of helper functions for common data manipulation 
 and file handling tasks across the repository. It includes utilities for:
-- Dictionary transformations
-- List conversions
-- File loading
-- Logging setup
+    - Dictionary transformations
+    - List conversions
+    - File loading
+    - Logging setup
 
 The functions are designed to be flexible, reusable, and support various data processing needs.
 
 Key Features:
-- Reverse dictionary lookup
-- List to dictionary conversion
-- Key-based uppercase conversion
-- YAML and JSON file loading
-- Flexible logging configuration
+    - Reverse dictionary lookup
+    - List to dictionary conversion
+    - Key-based uppercase conversion
+    - YAML and JSON file loading
+    - Flexible logging configuration
 """
 
 import json
@@ -161,9 +161,6 @@ def load_file(filepath: str) -> dict:
 
     Raises:
         ValueError: If the file format is not supported (.yaml, .yml, or .json).
-        FileNotFoundError: If the specified file does not exist.
-        json.JSONDecodeError: If the JSON file is malformed.
-        yaml.YAMLError: If the YAML file is invalid.
 
     Examples:
         >>> load_file('config.yaml')
@@ -208,7 +205,7 @@ def setup_logging(
     """
     # Load logging file
     config_file = pathlib.Path(logging_config_filepath)
-    with open(config_file) as fp:
+    with open(config_file, encoding="UTF-8") as fp:
         config = json.load(fp)
 
     # Create logs directory if it doesn't exist

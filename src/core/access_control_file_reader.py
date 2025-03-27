@@ -6,15 +6,10 @@ manifest files with JSON schema validation. It enables structured
 parsing of SSO and organizational access control configurations.
 
 Key Features:
-- JSON schema validation for manifest files
-- Parsing of access control rules
-- Generation of exclusion lists for various target types
-- Case-insensitive key processing
-
-Dependencies:
-- jsonschema: For JSON schema validation
-- src.core.utils: For file loading and key conversion utilities
-- src.core.constants: For target type labels
+    - JSON schema validation for manifest files
+    - Parsing of access control rules
+    - Generation of exclusion lists for various target types
+    - Case-insensitive key processing
 
 Warning:
     Requires properly formatted manifest and schema JSON files.
@@ -53,7 +48,6 @@ class AccessControlFileReader:
 
     Raises:
         jsonschema.ValidationError: If the manifest file does not conform to the schema.
-        FileNotFoundError: If the manifest or schema files cannot be found.
 
     Example:
         >>> reader = AccessControlFileReader(
@@ -101,9 +95,7 @@ class AccessControlFileReader:
 
     def _load_sso_manifest_file(self) -> None:
         """
-        Load the SSO manifest and schema files.
-
-        Reads the schema and manifest files, converting specified keys
+        Load the SSO manifest and schema files, and converts the specified keys
         to uppercase for consistency.
         """
         self._schema_definition = load_file(self._schema_definition_filepath)

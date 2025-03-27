@@ -5,15 +5,15 @@ This module provides tools for comprehensive management of AWS Identity Center (
 access control and account assignments.
 
 The module defines a class `IdentityCenterManager` that facilitates:
-- Mapping SSO users, groups, and permission sets
-- Generating and managing Role-Based Access Control (RBAC) assignments
-- Tracking and resolving account access permissions across AWS accounts
+    - Mapping SSO users, groups, and permission sets
+    - Generating and managing Role-Based Access Control (RBAC) assignments
+    - Tracking and resolving account access permissions across AWS accounts
 
 Key Features:
-- Dynamic mapping of SSO principals and permission sets
-- Generation of account assignments based on manifest file rules
-- Support for automatic or manual approval of access changes
-- Detailed reporting of invalid assignments
+    - Dynamic mapping of SSO principals and permission sets
+    - Generation of account assignments based on manifest file rules
+    - Support for automatic or manual approval of access changes
+    - Detailed reporting of invalid assignments
 
 Example:
     # Initialize the manager with Identity Store details
@@ -148,14 +148,9 @@ class IdentityCenterManager:
         Maps the current SSO environment by populating SSO resources.
 
         This method comprehensively maps:
-        - SSO Groups
-        - SSO Users
-        - SSO Permission Sets
-
-        Populates:
-        - self.sso_groups
-        - self.sso_users
-        - self.sso_permission_sets
+            - SSO Groups by populating self.sso_groups
+            - SSO Users by populating self.sso_users
+            - SSO Permission Sets by populating self.sso_permission_sets
 
         Raises:
             Exception: If no SSO groups, users, or permission sets are found.
@@ -222,13 +217,13 @@ class IdentityCenterManager:
         Lists the current account assignments for principals in the identity store.
 
         This method:
-        - Retrieves existing account assignments for users and groups
-        - Populates _current_account_assignments list
-        - Standardizes assignment dictionary format
+            - Retrieves existing account assignments for users and groups
+            - Populates _current_account_assignments list
+            - Standardizes assignment dictionary format
 
         Note:
-            Uses AWS SSO Admin API pagination to handle large numbers
-            of account assignments.
+            Uses AWS SSO Admin API pagination to handle large read requests
+            of account assignments in a paginated manner.
         """
         principal_type_map = {"USER": self.sso_users, "GROUP": self.sso_groups}
         principal_assignments_paginator = self._sso_admin_client.get_paginator(
@@ -259,10 +254,10 @@ class IdentityCenterManager:
         Generates Role-Based Access Control (RBAC) assignments.
 
         This method:
-        - Validates RBAC rules against existing SSO resources
-        - Creates a list of account assignments to be created or deleted
-        - Populates assignments_to_create and assignments_to_delete lists
-        - Tracks and logs invalid assignments
+            - Validates RBAC rules against existing SSO resources
+            - Creates a list of account assignments to be created or deleted
+            - Populates assignments_to_create and assignments_to_delete lists
+            - Tracks and logs invalid assignments
 
         Note:
             Performs comprehensive validation of:
@@ -411,8 +406,8 @@ class IdentityCenterManager:
         Executes the RBAC assignments by creating and deleting account assignments.
 
         This method:
-        - Creates new account assignments from assignments_to_create list
-        - Deletes obsolete account assignments from assignments_to_delete list
+            - Creates new account assignments from assignments_to_create list
+            - Deletes obsolete account assignments from assignments_to_delete list
 
         Note:
             Actual assignment creation and deletion are performed using
@@ -431,8 +426,8 @@ class IdentityCenterManager:
         Runs the full access control resolver process.
 
         This method performs the following steps:
-        1. Generates RBAC AWS account SSO assignments
-        2. If auto-approval is enabled, executes the assignments
+            1. Generates RBAC AWS account SSO assignments
+            2. If auto-approval is enabled, executes the assignments
 
         Note:
             The is_auto_approved flag controls whether assignments are

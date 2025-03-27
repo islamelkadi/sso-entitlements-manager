@@ -7,10 +7,10 @@ such as identifying accounts to ignore, removing specified targets, and generati
 expected account assignments based on a manifest file.
 
 Key Functions:
-- get_ignore_accounts: Identifies accounts to be excluded from processing
-- remove_ignored_targets: Removes specified targets from various mappings
-- generate_valid_targets: Filters and validates target accounts
-- generate_expected_account_assignments: Creates account assignment configurations
+    - get_ignore_accounts: Identifies accounts to be excluded from processing
+    - remove_ignored_targets: Removes specified targets from various mappings
+    - generate_valid_targets: Filters and validates target accounts
+    - generate_expected_account_assignments: Creates account assignment configurations
 """
 
 from typing import Dict, Set, List, Any

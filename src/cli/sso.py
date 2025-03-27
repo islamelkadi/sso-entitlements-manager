@@ -6,22 +6,21 @@ AWS Identity Center assignments based on RBAC (Role-Based Access Control) rules 
 in the manifest.
 
 Modules and Classes Used:
--------------------------
-- AccessControlFileReader: Reads and validates the AWS SSO manifest file.
-- AwsOrganizationsManager: Maps AWS Organizations entities such as OUs and accounts.
-- SsoAdminManager: Manages Identity Center assignments and RBAC rules.
+    - AccessControlFileReader: Reads and validates the AWS SSO manifest file.
+    - AwsOrganizationsManager: Maps AWS Organizations entities such as OUs and accounts.
+    - SsoAdminManager: Manages Identity Center assignments and RBAC rules.
 
 Key Features:
-- Parse SSO manifest file with RBAC rules
-- Map AWS Organizations structure
-- Create and manage Identity Center access assignments
-- Support for auto-approve mode
-- Flexible logging configuration
+    - Parse SSO manifest file with RBAC rules
+    - Map AWS Organizations structure
+    - Create and manage Identity Center access assignments
+    - Support for auto-approve mode
+    - Flexible logging configuration
 
 Environment Variables:
-- ROOT_OU_ID: Root Organizational Unit ID for AWS Organizations
-- IDENTITY_STORE_ID: AWS Identity Center Store ID
-- IDENTITY_STORE_ARN: AWS Identity Center Store ARN
+    - ROOT_OU_ID: Root Organizational Unit ID for AWS Organizations
+    - IDENTITY_STORE_ID: AWS Identity Center Store ID
+    - IDENTITY_STORE_ARN: AWS Identity Center Store ARN
 
 Example:
     # Run the script from command line
@@ -29,9 +28,9 @@ Example:
 
 Note:
     Requires appropriate AWS IAM permissions for:
-    - AWS Organizations listing
-    - AWS Identity Center management
-    - Reading manifest files
+        - AWS Organizations listing
+        - AWS Identity Center management
+        - Reading manifest files
 """
 
 import os

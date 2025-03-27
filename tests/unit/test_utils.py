@@ -1,45 +1,5 @@
 """
-Module: test_utils.py
-
-Comprehensive unit tests for utility functions in lib.utils module.
-
-This test suite validates the functionality of key utility functions including:
-- List to dictionary conversion
-- Specific key uppercase conversion
-- File loading mechanisms
-
-Key Test Scenarios:
-------------------
-1. List to Dictionary Conversion:
-   - Basic conversion
-   - Empty list handling
-   - Duplicate key management
-   - Missing key attribute error handling
-
-2. Uppercase Key Conversion:
-   - Flat dictionary conversion
-   - Nested dictionary conversion
-   - Mixed data type handling
-   - No-op scenarios
-
-3. File Loading:
-   - YAML file loading
-   - JSON file loading
-   - Unsupported file format handling
-
-Dependencies:
-------------
-- pytest: For test assertion and exception testing
-- unittest.mock: For mocking file operations
-- yaml: For YAML file parsing
-- json: For JSON file parsing
-
-Example:
-    To run tests:
-    $ pytest test_utils.py
-
-Note:
-    Requires pytest and appropriate mock libraries for execution.
+Unit tests for utility functions in lib.utils module.
 """
 
 import json
@@ -74,15 +34,10 @@ def test_convert_list_to_dict_basic_conversion() -> None:
     """
     Test basic conversion of list of dictionaries to dictionary with specified key as index.
 
-    Validates that:
-    - The resulting dictionary has the correct length
-    - Each item is correctly mapped by its key attribute
-    - Order and content of items are preserved
-
     Test Strategy:
-    - Create a list of dictionaries with unique identifiers
-    - Convert list to dictionary using 'id' as key
-    - Assert dictionary size and item mapping
+        1. Create a list of dictionaries with unique identifiers
+        2. Convert list to dictionary using 'id' as key
+        3. Assert dictionary size and item mapping
     """
     # Arrange
     obj_list = [
@@ -130,15 +85,10 @@ def test_convert_list_to_dict_duplicate_keys() -> None:
     """
     Test handling of duplicate keys during list to dictionary conversion.
 
-    Validates that:
-    - Duplicate keys result in overwriting of previous entries
-    - Final dictionary retains only the last encountered entry for a key
-    - Resulting dictionary size is reduced to unique keys
-
     Test Strategy:
-    - Create a list with duplicate key values
-    - Convert to dictionary
-    - Assert last entry for each key is preserved
+        1. Create a list with duplicate key values
+        2. Convert to dictionary
+        3. Assert last entry for each key is preserved
     """
     # Arrange
     obj_list = [
@@ -161,13 +111,9 @@ def test_convert_list_to_dict_missing_key_attr() -> None:
     """
     Test error handling when key attribute is missing in list of dictionaries.
 
-    Validates that:
-    - A KeyError is raised when the specified key attribute does not exist
-    - Error occurs before any partial conversion takes place
-
     Test Strategy:
-    - Attempt to convert list with non-existent key
-    - Assert KeyError is raised
+        1. Attempt to convert list with non-existent key
+        2. Assert KeyError is raised
     """
     # Arrange
     obj_list = [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}]
@@ -183,15 +129,10 @@ def test_convert_specific_keys_to_uppercase_single_flat_key() -> None:
     """
     Test conversion of specific keys to uppercase in a flat dictionary.
 
-    Validates that:
-    - Specified keys are converted to uppercase
-    - Other keys and nested structures remain unchanged
-    - Non-string values are preserved
-
     Test Strategy:
-    - Create a flat dictionary with mixed data types
-    - Specify a single key to convert to uppercase
-    - Assert only the specified key is converted
+        1. Create a flat dictionary with mixed data types
+        2. Specify specific keys to convert to uppercase
+        3. Assert only the specified key is converted
     """
     # Arrange
     item = {
@@ -220,15 +161,10 @@ def test_convert_specific_keys_to_uppercase_nested_keys() -> None:
     """
     Test conversion of specific keys to uppercase in nested dictionaries.
 
-    Validates that:
-    - Keys are converted to uppercase at different nesting levels
-    - Conversion works with lists of dictionaries
-    - Other data types and structures remain unmodified
-
     Test Strategy:
-    - Create a nested dictionary with multiple levels and list of dictionaries
-    - Specify keys to convert in different locations
-    - Assert correct uppercase conversion
+        1. Create a nested dictionary with multiple levels and list of dictionaries
+        2. Specify keys to convert in different locations
+        3. Assert correct uppercase conversion
     """
     # Arrange
     item = {
@@ -263,14 +199,10 @@ def test_convert_specific_keys_to_uppercase_no_keys_to_uppercase() -> None:
     """
     Test conversion when no keys are specified to be converted to uppercase.
 
-    Validates that:
-    - When no keys are specified, the input dictionary remains unchanged
-    - No modifications are made to the original dictionary
-
     Test Strategy:
-    - Create a dictionary with various keys
-    - Provide an empty list of keys to convert
-    - Assert the dictionary remains identical
+        1. Create a dictionary with various keys
+        2. Provide an empty list of keys to convert
+        3. Assert the dictionary remains identical
     """
     # Arrange
     item = {
@@ -297,16 +229,10 @@ def test_convert_specific_keys_to_uppercase_mixed_data_types() -> None:
     """
     Test conversion of specific keys to uppercase in a dictionary with mixed data types.
 
-    Validates that:
-    - Uppercase conversion works with various data types
-    - Non-string values are preserved
-    - Datetime objects remain unchanged
-    - Nested structures are correctly processed
-
     Test Strategy:
-    - Create a dictionary with mixed data types including datetime
-    - Specify keys to convert across different levels
-    - Assert correct uppercase conversion while preserving other types
+        1. Create a dictionary with mixed data types including datetime
+        2. Specify keys to convert across different levels
+        3. Assert correct uppercase conversion while preserving other types
     """
     # Arrange
     item = {
@@ -340,16 +266,11 @@ def test_load_yaml_file(mock_file_open) -> None:
     """
     Test loading YAML file using mock_open and patch decorators.
 
-    Validates that:
-    - YAML file is opened with correct parameters
-    - Content is correctly parsed using yaml.safe_load
-    - File is read with UTF-8 encoding
-
     Test Strategy:
-    - Mock file opening mechanism
-    - Provide predefined YAML content
-    - Assert file is opened correctly
-    - Verify parsed content matches expectations
+        1. Mock file opening mechanism
+        2. Provide predefined YAML content
+        3. Assert file is opened correctly
+        4. Verify parsed content matches expectations
     """
     # Arrange
     filepath = "test.yaml"
@@ -367,16 +288,11 @@ def test_load_json_file(mock_file_open) -> None:
     """
     Test loading JSON file using mock_open and patch decorators.
 
-    Validates that:
-    - JSON file is opened with correct parameters
-    - Content is correctly parsed using json.loads
-    - File is read with UTF-8 encoding
-
     Test Strategy:
-    - Mock file opening mechanism
-    - Provide predefined JSON content
-    - Assert file is opened correctly
-    - Verify parsed content matches expectations
+        1. Mock file opening mechanism
+        2. Provide predefined JSON content
+        3. Assert file is opened correctly
+        4. Verify parsed content matches expectations
     """
     # Arrange
     filepath = "test.json"
@@ -393,14 +309,9 @@ def test_load_unsupported_format() -> None:
     """
     Test error handling when loading unsupported file format.
 
-    Validates that:
-    - Attempting to load an unsupported file format raises a ValueError
-    - Error message clearly indicates unsupported format
-    - No partial loading or silent failure occurs
-
     Test Strategy:
-    - Attempt to load a file with an unsupported extension
-    - Assert ValueError is raised with specific error message
+        1. Attempt to load a file with an unsupported extension
+        2. Assert ValueError is raised with specific error message
     """
     # Assert
     with pytest.raises(ValueError, match="Unsupported file format"):

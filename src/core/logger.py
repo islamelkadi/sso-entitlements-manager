@@ -6,10 +6,10 @@ into JSON format. It enables structured logging by transforming log entries
 into machine-readable JSON documents with enhanced metadata.
 
 Key Features:
-- Converts log records to JSON format
-- Supports custom field mapping
-- Captures additional log record attributes
-- Provides UTC timestamp for log entries
+    - Converts log records to JSON format
+    - Supports custom field mapping
+    - Captures additional log record attributes
+    - Provides UTC timestamp for log entries
 """
 
 import json
@@ -113,11 +113,11 @@ class JsonFormatter(logging.Formatter):
 
         Constructs a comprehensive dictionary of log record attributes,
         including:
-        - Standard log message
-        - UTC timestamp
-        - Exception information (if applicable)
-        - Stack trace (if applicable)
-        - Custom log record attributes
+            - Standard log message
+            - UTC timestamp
+            - Exception information (if applicable)
+            - Stack trace (if applicable)
+            - Custom log record attributes
 
         Args:
             record (logging.LogRecord): The log record to process.
