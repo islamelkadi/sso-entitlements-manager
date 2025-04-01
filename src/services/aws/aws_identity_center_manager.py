@@ -29,14 +29,14 @@ Note:
     Requires appropriate AWS IAM permissions to manage 
     Identity Center access and assignments.
 """
-import time
 import logging
 import itertools
 from typing import Optional
 
 import boto3
-from rich.console import Console
+from rich import box
 from rich.table import Table
+from rich.console import Console
 from src.services.aws.utils import handle_aws_exceptions
 from src.core.utils import dict_reverse_lookup
 from src.core.constants import (
@@ -94,9 +94,9 @@ class IdentityCenterManager:
             This method automatically maps the SSO environment and lists current
             account assignments during instantiation.
         """
-        self.table_console = Console()
         self._identity_store_arn = identity_store_arn
         self._identity_store_id = identity_store_id
+        self._table_console = Console()
 
         self.sso_users: dict[str, str] = {}
         self.sso_groups: dict[str, str] = {}
@@ -425,6 +425,71 @@ class IdentityCenterManager:
         for assignment in self.assignments_to_delete:
             self._sso_admin_client.delete_account_assignment(**assignment)
 
+    def _create_assignments_change_set(self) -> None:
+        """
+        Creates and displays formatted tables of proposed account assignment changes.
+        
+        This method generates two visual tables:
+            - A green table showing account assignments to be created
+            - A red table showing account assignments to be deleted
+        
+        Each table includes details about the principals, permission sets, and 
+        target AWS accounts affected by the proposed changes. This provides a 
+        visual overview of the assignment change set before execution.
+        
+        Note:
+            Uses the rich library to create formatted console tables with colored 
+            styling based on the action type (create/delete).
+        """
+
+        assignments_table = {
+            "CREATE": self.assignments_to_create,
+            "DELETE": self.assignments_to_delete,
+        }
+
+        for action_type, assignments in assignments_table.items():
+            table_name = f"{action_type} - Account SSO Assignments"
+            table_color = "green" if action_type == "CREATE" else "red"
+            display_table = Table(title=table_name, style=table_color, box=box.DOUBLE, show_header=True, padding=1, highlight=True)
+
+            # Create table columns
+            column_names = [
+                "Principal Type",
+                "Principal Name",
+                "Permission Set Name",
+                "Target AWS Account",
+            ]
+            for column_name in column_names:
+                display_table.add_column(
+                    header=column_name, justify="center", style=table_color
+                )
+
+            # Create table rows
+            for assignment in assignments:
+                aws_account_name = dict_reverse_lookup(
+                    self.account_name_id_map, assignment["TargetId"]
+                )
+                permission_set_name = dict_reverse_lookup(
+                    self.sso_permission_sets, assignment["PermissionSetArn"]
+                )
+                if assignment["PrincipalType"] == "GROUP":
+                    principal_name = dict_reverse_lookup(
+                        self.sso_groups, assignment["PrincipalId"]
+                    )
+                else:
+                    principal_name = dict_reverse_lookup(
+                        self.sso_users, assignment["PrincipalId"]
+                    )
+
+                display_table.add_row(
+                    assignment["PrincipalType"],
+                    principal_name,
+                    permission_set_name,
+                    f"{aws_account_name} ({assignment['TargetId']})",
+                )
+
+            self._table_console.print(display_table)
+
     def run_access_control_resolver(self) -> None:
         """
         Runs the full access control resolver process.
@@ -441,48 +506,10 @@ class IdentityCenterManager:
         self._generate_rbac_assignments()
 
         # Display changeset
-        # Create table
-        create_table = Table(title="CREATE - Account SSO Assignments", style="green")
-        create_table.add_column("Principal Type", justify="center", style="green")
-        create_table.add_column("Principal Name", justify="center", style="green")
-        create_table.add_column("Permission Set Name", justify="center", style="green")
-        create_table.add_column("Target AWS Account", justify="center", style="green")
-        for assignment in self.assignments_to_create:
-            aws_account_name = dict_reverse_lookup(self.account_name_id_map, assignment["TargetId"])
-            permission_set_name = dict_reverse_lookup(self.sso_permission_sets, assignment["PermissionSetArn"])
-            if assignment["PrincipalType"] == "GROUP":
-                principal_name = dict_reverse_lookup(self.sso_groups, assignment["PrincipalId"])
-            else:
-                principal_name = dict_reverse_lookup(self.sso_users, assignment["PrincipalId"])
-            create_table.add_row(
-                assignment["PrincipalType"],
-                principal_name,
-                permission_set_name,
-                f"{aws_account_name} ({assignment['TargetId']})"
-            )
-        self.table_console.print(create_table)
+        self._logger.info("Creating assignment changset table")
+        self._create_assignments_change_set()
 
-        delete_table = Table(title="DELETE - Account SSO Assignments", style="red")
-        delete_table.add_column("Principal Type", justify="center", style="red")
-        delete_table.add_column("Principal Name", justify="center", style="red")
-        delete_table.add_column("Permission Set Name", justify="center", style="red")
-        delete_table.add_column("Target AWS Account", justify="center", style="red")
-        for assignment in self.assignments_to_delete:
-            aws_account_name = dict_reverse_lookup(self.account_name_id_map, assignment["TargetId"])
-            permission_set_name = dict_reverse_lookup(self.sso_permission_sets, assignment["PermissionSetArn"])
-            if assignment["PrincipalType"] == "GROUP":
-                principal_name = dict_reverse_lookup(self.sso_groups, assignment["PrincipalId"])
-            else:
-                principal_name = dict_reverse_lookup(self.sso_users, assignment["PrincipalId"])
-            delete_table.add_row(
-                assignment["PrincipalType"],
-                principal_name,
-                permission_set_name,
-                f"{aws_account_name} ({assignment['TargetId']})"
-            )
-        self.table_console.print(delete_table)
-
-        # time.sleep(60)
+        # Execute changeset
         if self.is_auto_approved:
             self._logger.warning("Running in auto-approved mode")
             self._logger.info("Executing RBAC assignments")
