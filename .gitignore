@@ -12,3 +12,4 @@ sandbox/** */
 **htmlcov
 **.pytest**
 **logs**
+*.txt
