@@ -37,6 +37,7 @@ import boto3
 from rich import box
 from rich.table import Table
 from rich.console import Console
+from rich.progress import track
 from src.services.aws.utils import handle_aws_exceptions
 from src.core.utils import dict_reverse_lookup
 from src.core.constants import (
@@ -417,40 +418,36 @@ class IdentityCenterManager:
             Actual assignment creation and deletion are performed using
             AWS SSO Admin API methods.
         """
-        self._logger.info("Executing create itinerary of SSO account assignments")
-        for assignment in self.assignments_to_create:
-            self._sso_admin_client.create_account_assignment(**assignment)
 
-        self._logger.warning("Creating delete itinerary of SSO account assignments")
-        for assignment in self.assignments_to_delete:
-            self._sso_admin_client.delete_account_assignment(**assignment)
+        def create_assignments_change_set(
+            action_type: str, sso_assignments: list[dict[str, str]]
+        ) -> None:
+            """
+            Creates and displays formatted tables of proposed account assignment changes.
 
-    def _create_assignments_change_set(self) -> None:
-        """
-        Creates and displays formatted tables of proposed account assignment changes.
-        
-        This method generates two visual tables:
-            - A green table showing account assignments to be created
-            - A red table showing account assignments to be deleted
-        
-        Each table includes details about the principals, permission sets, and 
-        target AWS accounts affected by the proposed changes. This provides a 
-        visual overview of the assignment change set before execution.
-        
-        Note:
-            Uses the rich library to create formatted console tables with colored 
-            styling based on the action type (create/delete).
-        """
+            This method generates two visual tables:
+                - A green table showing account assignments to be created
+                - A red table showing account assignments to be deleted
 
-        assignments_table = {
-            "CREATE": self.assignments_to_create,
-            "DELETE": self.assignments_to_delete,
-        }
+            Each table includes details about the principals, permission sets, and
+            target AWS accounts affected by the proposed changes. This provides a
+            visual overview of the assignment change set before execution.
 
-        for action_type, assignments in assignments_table.items():
+            Note:
+                Uses the rich library to create formatted console tables with colored
+                styling based on the action type (create/delete).
+            """
+
             table_name = f"{action_type} - Account SSO Assignments"
             table_color = "green" if action_type == "CREATE" else "red"
-            display_table = Table(title=table_name, style=table_color, box=box.DOUBLE, show_header=True, padding=1, highlight=True)
+            display_table = Table(
+                title=table_name,
+                style=table_color,
+                box=box.DOUBLE,
+                show_header=True,
+                padding=1,
+                highlight=True,
+            )
 
             # Create table columns
             column_names = [
@@ -465,7 +462,7 @@ class IdentityCenterManager:
                 )
 
             # Create table rows
-            for assignment in assignments:
+            for assignment in sso_assignments:
                 aws_account_name = dict_reverse_lookup(
                     self.account_name_id_map, assignment["TargetId"]
                 )
@@ -490,6 +487,30 @@ class IdentityCenterManager:
 
             self._table_console.print(display_table)
 
+        self._logger.info("Generating CREATE changeset for SSO account assignments")
+        create_assignments_change_set(
+            action_type="CREATE", sso_assignments=self.assignments_to_create
+        )
+
+        if self.is_auto_approved:
+            self._logger.warning("Running in auto-approved mode")
+            self._logger.info("Executing create itinerary of SSO account assignments")
+            for assignment in track(
+                sequence=self.assignments_to_create,
+                description="Creating account assignments",
+            ):
+                self._sso_admin_client.create_account_assignment(**assignment)
+
+        self._logger.info("Generating DELETE changeset for SSO account assignments")
+        create_assignments_change_set(
+            action_type="DELETE", sso_assignments=self.assignments_to_delete
+        )
+        if self.is_auto_approved:
+            self._logger.warning("Running in auto-approved mode")
+            self._logger.warning("Creating delete itinerary of SSO account assignments")
+            for assignment in track(self.assignments_to_delete):
+                self._sso_admin_client.delete_account_assignment(**assignment)
+
     def run_access_control_resolver(self) -> None:
         """
         Runs the full access control resolver process.
@@ -502,18 +523,8 @@ class IdentityCenterManager:
             The is_auto_approved flag controls whether assignments are
             automatically applied or require manual intervention.
         """
-        self._logger.info("Generating RBAC AWS account SSO assignments to process")
         self._generate_rbac_assignments()
-
-        # Display changeset
-        self._logger.info("Creating assignment changset table")
-        self._create_assignments_change_set()
-
-        # Execute changeset
-        if self.is_auto_approved:
-            self._logger.warning("Running in auto-approved mode")
-            self._logger.info("Executing RBAC assignments")
-            self._execute_rbac_assignments()
+        self._execute_rbac_assignments()
 
     @property
     def invalid_assignments_report(self) -> list:
