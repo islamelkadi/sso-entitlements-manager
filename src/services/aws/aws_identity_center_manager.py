@@ -31,7 +31,8 @@ Note:
 """
 import logging
 import itertools
-from typing import Optional
+from typing import Optional, Literal
+from dataclasses import dataclass, field, asdict
 
 import boto3
 from rich import box
@@ -39,6 +40,10 @@ from rich.table import Table
 from rich.console import Console
 from rich.progress import track
 from src.services.aws.utils import handle_aws_exceptions
+from src.services.aws.exceptions import (
+    NoPermissionSetsFoundError,
+    NoSSOPrincipalsFoundError,
+)
 from src.core.utils import dict_reverse_lookup
 from src.core.constants import (
     OU_TARGET_TYPE_LABEL,
@@ -49,12 +54,30 @@ from src.core.constants import (
 )
 
 
-class NoPermissionSetsFoundError(Exception):
-    """Raised when no permission sets are available for assignment."""
+class SubscriptableDataclass:
+    def __getitem__(self, key: str) -> str:
+        return asdict(self)[key]
+
+    def to_dict(self) -> dict[str, str]:
+        return asdict(self)
 
 
-class NoSSOPrincipalsFoundError(Exception):
-    """Raised when no SSO groups or users are found for access assignment."""
+@dataclass(kw_only=True, frozen=True)
+class InvalidAssignmentRule(SubscriptableDataclass):
+    rule_number: int
+    resource_type: str
+    resource_name: str
+    resource_invalid_reason: str
+
+
+@dataclass(kw_only=True, frozen=True)
+class AccountAssignment(SubscriptableDataclass):
+    PrincipalId: str
+    PrincipalType: Literal["USER", "GROUP"]
+    PermissionSetArn: str
+    InstanceArn: str
+    TargetId: str
+    TargetType: Literal["AWS_ACCOUNT"] = field(default="AWS_ACCOUNT", init=False)
 
 
 class IdentityCenterManager:
@@ -127,18 +150,18 @@ class IdentityCenterManager:
         )
 
         # Define assignment variables
-        self._local_account_assignments: list = []
-        self._current_account_assignments: list = []
+        self._local_account_assignments: list[AccountAssignment] = []
+        self._current_account_assignments: list[AccountAssignment] = []
 
-        self.assignments_to_create: list = []
-        self.assignments_to_delete: list = []
+        self._assignments_to_create: list[AccountAssignment] = []
+        self._assignments_to_delete: list[AccountAssignment] = []
 
         # Define invalid report variables
-        self._invalid_manifest_file_ou_names: list = []
-        self._invalid_manifest_file_account_names: list = []
-        self._invalid_manifest_file_group_names: list = []
-        self._invalid_manifest_file_user_names: list = []
-        self._invalid_manifest_file_permission_sets: list = []
+        self._invalid_manifest_file_ou_names: list[InvalidAssignmentRule] = []
+        self._invalid_manifest_file_account_names: list[InvalidAssignmentRule] = []
+        self._invalid_manifest_file_group_names: list[InvalidAssignmentRule] = []
+        self._invalid_manifest_file_user_names: list[InvalidAssignmentRule] = []
+        self._invalid_manifest_file_permission_sets: list[InvalidAssignmentRule] = []
 
         # Define logger
         self._logger: logging.Logger = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
@@ -245,14 +268,10 @@ class IdentityCenterManager:
                 for page in assignments_iterator:
                     self._current_account_assignments.extend(page["AccountAssignments"])
 
-        for i, _ in enumerate(self._current_account_assignments):
-            self._current_account_assignments[i][
-                "InstanceArn"
-            ] = self._identity_store_arn
-            self._current_account_assignments[i]["TargetType"] = "AWS_ACCOUNT"
-            self._current_account_assignments[i][
-                "TargetId"
-            ] = self._current_account_assignments[i].pop("AccountId")
+        for i, assignment in enumerate(self._current_account_assignments):
+            assignment["InstanceArn"] = self._identity_store_arn
+            assignment["TargetId"] = assignment.pop("AccountId")
+            self._current_account_assignments[i] = AccountAssignment(**assignment)
 
     def _generate_rbac_assignments(self) -> None:
         """
@@ -286,37 +305,48 @@ class IdentityCenterManager:
                 Optional[str]: The validated resource ID or None if invalid.
             """
             resource_maps = {
-                OU_TARGET_TYPE_LABEL: (
-                    self.ou_accounts_map,
-                    self._invalid_manifest_file_ou_names,
-                ),
-                ACCOUNT_TARGET_TYPE_LABEL: (
-                    self.account_name_id_map,
-                    self._invalid_manifest_file_account_names,
-                ),
-                GROUP_PRINCIPAL_TYPE_LABEL: (
-                    self.sso_groups,
-                    self._invalid_manifest_file_group_names,
-                ),
-                USER_PRINCIPAL_TYPE_LABEL: (
-                    self.sso_users,
-                    self._invalid_manifest_file_user_names,
-                ),
-                "permission_set": (
-                    self.sso_permission_sets,
-                    self._invalid_manifest_file_permission_sets,
-                ),
+                OU_TARGET_TYPE_LABEL: {
+                    "resource_map": self.ou_accounts_map,
+                    "invalid_resource_names": self._invalid_manifest_file_ou_names,
+                    "resource_invalid_reason": f"Invalid {OU_TARGET_TYPE_LABEL} - name not found",
+                },
+                ACCOUNT_TARGET_TYPE_LABEL: {
+                    "resource_map": self.account_name_id_map,
+                    "invalid_resource_names": self._invalid_manifest_file_account_names,
+                    "resource_invalid_reason": f"Invalid {ACCOUNT_TARGET_TYPE_LABEL} - name not found",
+                },
+                GROUP_PRINCIPAL_TYPE_LABEL: {
+                    "resource_map": self.sso_groups,
+                    "invalid_resource_names": self._invalid_manifest_file_group_names,
+                    "resource_invalid_reason": f"Invalid SSO {GROUP_PRINCIPAL_TYPE_LABEL} - name not found",
+                },
+                USER_PRINCIPAL_TYPE_LABEL: {
+                    "resource_map": self.sso_users,
+                    "invalid_resource_names": self._invalid_manifest_file_user_names,
+                    "resource_invalid_reason": f"Invalid SSO {USER_PRINCIPAL_TYPE_LABEL} - name not found",
+                },
+                "permission_set": {
+                    "resource_map": self.sso_permission_sets,
+                    "invalid_resource_names": self._invalid_manifest_file_permission_sets,
+                    "resource_invalid_reason": "Invalid Permission Set - name not found",
+                },
             }
 
-            resource_map, invalid_set = resource_maps[resource_type]
+            resource_map = resource_maps[resource_type].get("resource_map", {})
+            invalid_resource_names = resource_maps[resource_type].get(
+                "invalid_resource_names", []
+            )
+            resource_invalid_reason = resource_maps[resource_type].get(
+                "resource_invalid_reason", "NA"
+            )
             if resource_name not in resource_map:
-                invalid_set.append(
-                    {
-                        "rule_number": rule_number,
-                        "resource_type": resource_type,
-                        "resource_name": resource_name,
-                    }
+                invalid_rule = InvalidAssignmentRule(
+                    rule_number=rule_number,
+                    resource_type=resource_type,
+                    resource_name=resource_name,
+                    resource_invalid_reason=resource_invalid_reason,
                 )
+                invalid_resource_names.append(invalid_rule)
                 return None
 
             return resource_map[resource_name]
@@ -336,14 +366,14 @@ class IdentityCenterManager:
                 principal_type (str): The type of principal (USER or GROUP).
                 permission_set_arn (str): The ARN of the permission set to assign.
             """
-            assignment = {
-                "TargetId": target_id,
-                "TargetType": "AWS_ACCOUNT",
-                "PrincipalId": principal_id,
-                "PrincipalType": principal_type,
-                "PermissionSetArn": permission_set_arn,
-                "InstanceArn": self._identity_store_arn,
-            }
+
+            assignment = AccountAssignment(
+                TargetId=target_id,
+                PrincipalId=principal_id,
+                PrincipalType=principal_type,
+                PermissionSetArn=permission_set_arn,
+                InstanceArn=self._identity_store_arn,
+            )
 
             if assignment not in self._local_account_assignments:
                 self._local_account_assignments.append(assignment)
@@ -394,7 +424,7 @@ class IdentityCenterManager:
             )
         )
         for assignment in assignments_to_create:
-            self.assignments_to_create.append(assignment)
+            self._assignments_to_create.append(assignment)
 
         self._logger.warning("Creating itinerary of SSO account assignments to delete")
         assignments_to_delete = list(
@@ -404,7 +434,7 @@ class IdentityCenterManager:
             )
         )
         for assignment in assignments_to_delete:
-            self.assignments_to_delete.append(assignment)
+            self._assignments_to_delete.append(assignment)
 
     def _execute_rbac_assignments(self) -> None:
         """
@@ -420,7 +450,7 @@ class IdentityCenterManager:
         """
 
         def create_assignments_change_set(
-            action_type: str, sso_assignments: list[dict[str, str]]
+            action_type: str, sso_assignments: list[AccountAssignment]
         ) -> None:
             """
             Creates and displays formatted tables of proposed account assignment changes.
@@ -489,27 +519,27 @@ class IdentityCenterManager:
 
         self._logger.info("Generating CREATE changeset for SSO account assignments")
         create_assignments_change_set(
-            action_type="CREATE", sso_assignments=self.assignments_to_create
+            action_type="CREATE", sso_assignments=self._assignments_to_create
         )
 
         if self.is_auto_approved:
             self._logger.warning("Running in auto-approved mode")
             self._logger.info("Executing create itinerary of SSO account assignments")
             for assignment in track(
-                sequence=self.assignments_to_create,
+                sequence=self._assignments_to_create,
                 description="Creating account assignments",
             ):
-                self._sso_admin_client.create_account_assignment(**assignment)
+                self._sso_admin_client.create_account_assignment(**assignment.to_dict())
 
         self._logger.info("Generating DELETE changeset for SSO account assignments")
         create_assignments_change_set(
-            action_type="DELETE", sso_assignments=self.assignments_to_delete
+            action_type="DELETE", sso_assignments=self._assignments_to_delete
         )
         if self.is_auto_approved:
             self._logger.warning("Running in auto-approved mode")
             self._logger.warning("Creating delete itinerary of SSO account assignments")
-            for assignment in track(self.assignments_to_delete):
-                self._sso_admin_client.delete_account_assignment(**assignment)
+            for assignment in track(self._assignments_to_delete):
+                self._sso_admin_client.delete_account_assignment(**assignment.to_dict())
 
     def run_access_control_resolver(self) -> None:
         """
@@ -527,6 +557,16 @@ class IdentityCenterManager:
         self._execute_rbac_assignments()
 
     @property
+    def assignments_to_create(self) -> list[dict[str, str]]:
+        """ """
+        return [x.to_dict() for x in self._assignments_to_create]
+
+    @property
+    def assignments_to_delete(self) -> list[dict[str, str]]:
+        """ """
+        return [x.to_dict() for x in self._assignments_to_delete]
+
+    @property
     def invalid_assignments_report(self) -> list:
         """
         Generates a report of invalid assignments.
@@ -540,10 +580,11 @@ class IdentityCenterManager:
             during the RBAC assignment generation process.
         """
         self._logger.info("Generate invalid AWS account SSO assignments")
-        return (
+        invalid_rules = (
             self._invalid_manifest_file_ou_names
             + self._invalid_manifest_file_account_names
             + self._invalid_manifest_file_group_names
             + self._invalid_manifest_file_user_names
             + self._invalid_manifest_file_permission_sets
         )
+        return [x.to_dict() for x in invalid_rules]
