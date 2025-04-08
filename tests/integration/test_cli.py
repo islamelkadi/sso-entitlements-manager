@@ -42,6 +42,7 @@ from tests.utils import (
     generate_expected_account_assignments,
 )
 from src.core.utils import load_file
+from src.services.aws.aws_identity_center_manager import InvalidAssignmentRule
 
 # Constants
 CWD = os.path.dirname(os.path.realpath(__file__))
@@ -155,6 +156,7 @@ def generate_invalid_assignments(
     invalid_assignments = []
     rbac_rules = manifest_file.get("rbac_rules", [])
     for i, rule in enumerate(rbac_rules):
+        # Check target names
         target_reference = (
             list(setup_mock_aws_environment["ou_accounts_map"].keys())
             if rule["target_type"] == "OU"
@@ -162,39 +164,41 @@ def generate_invalid_assignments(
         )
         for target_name in rule["target_names"]:
             if target_name not in target_reference:
-                invalid_assignments.append(
-                    {
-                        "rule_number": i,
-                        "resource_type": rule["target_type"],
-                        "resource_name": target_name,
-                    }
+                invalid_rule = InvalidAssignmentRule(
+                    rule_number=i,
+                    resource_type=rule["target_type"],
+                    resource_name=target_name,
+                    resource_invalid_reason=f"Invalid {rule['target_type']} - name not found",
                 )
+                invalid_assignments.append(invalid_rule.to_dict())
 
+        # Check principal name
         principal_reference = (
             setup_mock_aws_environment["sso_group_name_id_map"].keys()
             if rule["principal_type"] == "GROUP"
             else setup_mock_aws_environment["sso_username_id_map"]
         )
         if rule["principal_name"] not in principal_reference:
-            invalid_assignments.append(
-                {
-                    "rule_number": i,
-                    "resource_type": rule["principal_type"],
-                    "resource_name": rule["principal_name"],
-                }
+            invalid_rule = InvalidAssignmentRule(
+                rule_number=i,
+                resource_type=rule["principal_type"],
+                resource_name=rule["principal_name"],
+                resource_invalid_reason=f"Invalid SSO {rule['principal_type']} - name not found",
             )
+            invalid_assignments.append(invalid_rule.to_dict())
 
+        # Check permission set name
         if (
             rule["permission_set_name"]
             not in setup_mock_aws_environment["sso_permission_set_name_id_map"]
         ):
-            invalid_assignments.append(
-                {
-                    "rule_number": i,
-                    "resource_type": "permission_set",
-                    "resource_name": rule["permission_set_name"],
-                }
+            invalid_rule = InvalidAssignmentRule(
+                rule_number=i,
+                resource_type="permission_set",
+                resource_name=rule["permission_set_name"],
+                resource_invalid_reason="Invalid Permission Set - name not found",
             )
+            invalid_assignments.append(invalid_rule.to_dict())
     return invalid_assignments
 
 
@@ -242,7 +246,7 @@ def test_main(
         - Assert newly created and invalid assignments match expectations
     """
     invalid_assignments_report_sort_keys = operator.itemgetter(
-        "rule_number", "resource_type", "resource_name"
+        "rule_number", "resource_type", "resource_name", "resource_invalid_reason"
     )
     created_assignments_sort_keys = operator.itemgetter(
         "PermissionSetArn", "PrincipalType", "PrincipalId", "TargetId"
