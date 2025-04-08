@@ -16,9 +16,12 @@ import concurrent.futures
 from typing import Dict, List, Any
 
 import pytest
-from src.core.utils import load_file
-from src.services.aws.aws_identity_center_manager import IdentityCenterManager
 from tests.utils import generate_expected_account_assignments
+from src.core.utils import load_file
+from src.services.aws.aws_identity_center_manager import (
+    IdentityCenterManager,
+    InvalidAssignmentRule,
+)
 
 
 # Globals vars
@@ -351,7 +354,9 @@ def test_generate_invalid_assignments_report(
         Verifies that the generated invalid assignments report matches
         the expected invalid assignments.
     """
-    sort_keys = operator.itemgetter("rule_number", "resource_type", "resource_name")
+    sort_keys = operator.itemgetter(
+        "rule_number", "resource_type", "resource_name", "resource_invalid_reason"
+    )
     manifest_file = load_file(manifest_filename)
     rbac_rules = manifest_file.get("rbac_rules", [])
 
@@ -380,28 +385,28 @@ def test_generate_invalid_assignments_report(
         )
         for target_name in rule["target_names"]:
             if target_name not in target_reference:
-                invalid_assignments.append(
-                    {
-                        "rule_number": i,
-                        "resource_type": rule["target_type"],
-                        "resource_name": target_name,
-                    }
+                invalid_rule = InvalidAssignmentRule(
+                    rule_number=i,
+                    resource_type=rule["target_type"],
+                    resource_name=target_name,
+                    resource_invalid_reason=f"Invalid {rule['target_type']} - name not found",
                 )
+                invalid_assignments.append(invalid_rule.to_dict())
 
         # Check principal name
-        target_reference = (
+        principal_reference = (
             setup_mock_aws_environment["sso_group_name_id_map"].keys()
             if rule["principal_type"] == "GROUP"
             else setup_mock_aws_environment["sso_username_id_map"]
         )
-        if rule["principal_name"] not in target_reference:
-            invalid_assignments.append(
-                {
-                    "rule_number": i,
-                    "resource_type": rule["principal_type"],
-                    "resource_name": rule["principal_name"],
-                }
+        if rule["principal_name"] not in principal_reference:
+            invalid_rule = InvalidAssignmentRule(
+                rule_number=i,
+                resource_type=rule["principal_type"],
+                resource_name=rule["principal_name"],
+                resource_invalid_reason=f"Invalid SSO {rule['principal_type']} - name not found",
             )
+            invalid_assignments.append(invalid_rule.to_dict())
 
         # Check permission set name
         if (
@@ -413,6 +418,7 @@ def test_generate_invalid_assignments_report(
                     "rule_number": i,
                     "resource_type": "permission_set",
                     "resource_name": rule["permission_set_name"],
+                    "resource_invalid_reason": "Invalid Permission Set - name not found",
                 }
             )
 
