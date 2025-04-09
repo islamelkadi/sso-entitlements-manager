@@ -157,11 +157,7 @@ class IdentityCenterManager:
         self._assignments_to_delete: list[AccountAssignment] = []
 
         # Define invalid report variables
-        self._invalid_manifest_file_ou_names: list[InvalidAssignmentRule] = []
-        self._invalid_manifest_file_account_names: list[InvalidAssignmentRule] = []
-        self._invalid_manifest_file_group_names: list[InvalidAssignmentRule] = []
-        self._invalid_manifest_file_user_names: list[InvalidAssignmentRule] = []
-        self._invalid_manifest_file_permission_sets: list[InvalidAssignmentRule] = []
+        self._overall_invalid_manifest_file_rules: list[InvalidAssignmentRule] = []
 
         # Define logger
         self._logger: logging.Logger = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
@@ -307,27 +303,27 @@ class IdentityCenterManager:
             resource_maps = {
                 OU_TARGET_TYPE_LABEL: {
                     "resource_map": self.ou_accounts_map,
-                    "invalid_resource_names": self._invalid_manifest_file_ou_names,
+                    "invalid_resource_names": self._overall_invalid_manifest_file_rules,
                     "resource_invalid_reason": f"Invalid {OU_TARGET_TYPE_LABEL} - name not found",
                 },
                 ACCOUNT_TARGET_TYPE_LABEL: {
                     "resource_map": self.account_name_id_map,
-                    "invalid_resource_names": self._invalid_manifest_file_account_names,
+                    "invalid_resource_names": self._overall_invalid_manifest_file_rules,
                     "resource_invalid_reason": f"Invalid {ACCOUNT_TARGET_TYPE_LABEL} - name not found",
                 },
                 GROUP_PRINCIPAL_TYPE_LABEL: {
                     "resource_map": self.sso_groups,
-                    "invalid_resource_names": self._invalid_manifest_file_group_names,
+                    "invalid_resource_names": self._overall_invalid_manifest_file_rules,
                     "resource_invalid_reason": f"Invalid SSO {GROUP_PRINCIPAL_TYPE_LABEL} - name not found",
                 },
                 USER_PRINCIPAL_TYPE_LABEL: {
                     "resource_map": self.sso_users,
-                    "invalid_resource_names": self._invalid_manifest_file_user_names,
+                    "invalid_resource_names": self._overall_invalid_manifest_file_rules,
                     "resource_invalid_reason": f"Invalid SSO {USER_PRINCIPAL_TYPE_LABEL} - name not found",
                 },
                 "permission_set": {
                     "resource_map": self.sso_permission_sets,
-                    "invalid_resource_names": self._invalid_manifest_file_permission_sets,
+                    "invalid_resource_names": self._overall_invalid_manifest_file_rules,
                     "resource_invalid_reason": "Invalid Permission Set - name not found",
                 },
             }
@@ -580,11 +576,4 @@ class IdentityCenterManager:
             during the RBAC assignment generation process.
         """
         self._logger.info("Generate invalid AWS account SSO assignments")
-        invalid_rules = (
-            self._invalid_manifest_file_ou_names
-            + self._invalid_manifest_file_account_names
-            + self._invalid_manifest_file_group_names
-            + self._invalid_manifest_file_user_names
-            + self._invalid_manifest_file_permission_sets
-        )
-        return [x.to_dict() for x in invalid_rules]
+        return [x.to_dict() for x in self._overall_invalid_manifest_file_rules]
