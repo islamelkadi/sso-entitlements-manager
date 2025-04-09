@@ -1,3 +1,6 @@
+# pylint: disable=redefined-outer-name, unused-argument
+# Disable above pylint flags as pytest fixture definitions
+# can lead to these pylint warnings.
 """
 AWS Organizations and Identity Center Test Fixtures Module
 
@@ -12,7 +15,7 @@ Key Features:
     - Helper functions for creating and deleting AWS organizational structures
     - Pytest fixtures for mocking AWS service clients
     - Session-scoped environment setup and teardown
-    - Flexible configuration loading for test environments
+    - Flexible configuration loading for xtest environments
 """
 
 import os
