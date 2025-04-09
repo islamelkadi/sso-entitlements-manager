@@ -2,17 +2,20 @@
 AWS Organizations Mapping Module
 
 This module provides tools for comprehensive mapping and analysis of AWS Organization structures.
+It enables automated discovery and documentation of organizational hierarchies, including
+accounts, OUs, and their relationships.
 
-The module defines a class `AwsOrganizationsManager` that can recursively explore and document
-the hierarchical structure of an AWS Organization, including:
-    - Mapping organizational units (OUs)
-    - Tracking active accounts within each OU
-    - Creating lookup maps for accounts and organizational units
+The module defines the following main components:
+    - AwsOrganizationsManager: Main class for AWS Organizations mapping
+    - OuAccountsObject: Type alias for account list structures
 
 Key Features:
     - Recursive traversal of AWS Organization hierarchy
     - Retrieval of active accounts per organizational unit
     - Creation of name-to-ID mapping for accounts
+    - Automatic filtering of inactive accounts
+    - Pagination handling for large organizations
+    - Comprehensive error handling
 
 Example:
     # Initialize the manager with a root OU ID
@@ -26,7 +29,10 @@ Example:
 
 Note:
     Requires appropriate AWS IAM permissions to list and describe 
-    organizational units and accounts.
+    organizational units and accounts, including:
+    - organizations:ListAccountsForParent
+    - organizations:ListOrganizationalUnitsForParent
+    - organizations:DescribeOrganizationalUnit
 """
 
 import logging
@@ -38,6 +44,18 @@ from src.services.aws.utils import handle_aws_exceptions
 
 # Type hints
 OuAccountsObject: TypeAlias = list[dict[str, str]]
+"""Type alias representing a list of account dictionaries.
+
+Each dictionary contains:
+    - 'Id': The AWS account ID
+    - 'Name': The human-readable account name
+
+Example:
+    [
+        {'Id': '123456789012', 'Name': 'Production'},
+        {'Id': '987654321098', 'Name': 'Development'}
+    ]
+"""
 
 
 class AwsOrganizationsManager:
