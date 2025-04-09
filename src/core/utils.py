@@ -23,8 +23,11 @@ import atexit
 import pathlib
 import logging
 import logging.config
-import logging.handlers
 import yaml
+
+from rich import box
+from rich.table import Table
+from rich.console import Console
 
 
 def dict_reverse_lookup(original_dict: dict, lookup_value: str):
@@ -221,3 +224,64 @@ def setup_logging(
     if queue_handler is not None:
         queue_handler.listener.start()
         atexit.register(queue_handler.listener.stop)
+
+
+def create_display_table(
+    table_name: str,
+    display_color: str,
+    column_names: list[str],
+    table_rows: list[list[str]],
+    table_padding: int = 1,
+) -> None:
+    """
+    Creates and displays a formatted console table using the rich library.
+
+    This function generates a professionally formatted table with customizable
+    styling, including colors, borders, and padding. The table is immediately
+    displayed to the console upon creation.
+
+    Args:
+        table_name (str): The title to display above the table
+        display_color (str): The color to use for the table (e.g., "green", "red", "yellow")
+        column_names (list[str]): List of column headers
+        table_rows (list[list[str]]): List of rows, where each row is a list of string values
+        table_padding (int, optional): Padding between cells. Defaults to 1
+
+    Example:
+        create_display_table(
+            table_name="AWS Accounts",
+            display_color="green",
+            column_names=["Account ID", "Account Name", "Status"],
+            table_rows=[
+                ["123456789012", "Production", "Active"],
+                ["987654321098", "Development", "Active"]
+            ]
+        )
+
+    Note:
+        - Uses the rich library's Table and Console classes for formatting
+        - All cell values must be strings or convertible to strings
+        - Column headers are center-justified
+        - Table uses double-line borders for visibility
+    """
+    display_table = Table(
+        title=table_name,
+        style=display_color,
+        box=box.DOUBLE,
+        padding=table_padding,
+        highlight=True,
+    )
+
+    # Add columns
+    for column_name in column_names:
+        display_table.add_column(
+            header=column_name, justify="center", style=display_color
+        )
+
+    # Add rows
+    for row in table_rows:
+        display_table.add_row(*row)
+
+    # Display table
+    table_console = Console()
+    table_console.print(display_table)
