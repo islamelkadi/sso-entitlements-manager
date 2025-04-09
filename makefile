@@ -35,16 +35,6 @@ format:
 	@echo "Running python linter"
 	@pylint $(sources)
 
-# Build lambda
-.PHONY: build-backend
-build-backend: env
-	@echo "Creating requirements.txt file"
-	@poetry export -f requirements.txt --output ./src/app/requirements.txt
-
-	@echo "Building lambdas"
-	@chmod +x ./tools/sam_build.sh
-	@./tools/sam_build.sh -p ./src
-
 # Clouformation Packaging
 .PHONY: cfn-package
 cfn-package:
