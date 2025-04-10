@@ -7,4 +7,5 @@ disable=
     too-few-public-methods,
     too-many-arguments,
     too-many-locals,
-    too-many-nested-blocks
+    too-many-nested-blocks,
+    too-many-positional-arguments
