@@ -15,3 +15,5 @@ USER_PRINCIPAL_TYPE_LABEL = "USER"  # Label for identifying individual user prin
 GROUP_PRINCIPAL_TYPE_LABEL = "GROUP"  # Label for identifying group principals
 PERMISSION_SET_TYPE_LABEL = "PERMISSION_SET"  # Label for AWS SSO permission sets
 SSO_ENTITLMENTS_APP_NAME = "sso_entitlements_manager"  # Application name for SSO entitlements logging and identification
+
+# ERROR CODES

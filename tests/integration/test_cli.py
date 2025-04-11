@@ -42,6 +42,12 @@ from tests.utils import (
     generate_expected_account_assignments,
 )
 from src.core.utils import load_file
+from src.core.constants import (
+    GROUP_PRINCIPAL_TYPE_LABEL,
+    USER_PRINCIPAL_TYPE_LABEL,
+    PERMISSION_SET_TYPE_LABEL,
+    OU_TARGET_TYPE_LABEL,
+)
 from src.services.aws.aws_identity_center_manager import InvalidAssignmentRule
 
 # Constants
@@ -112,6 +118,7 @@ def create_assignments(
             TargetId=assignment[3],
             TargetType="AWS_ACCOUNT",
         )
+
         return {
             "PrincipalId": assignment[0],
             "PrincipalType": assignment[1],
@@ -159,7 +166,7 @@ def generate_invalid_assignments(
         # Check target names
         target_reference = (
             list(setup_mock_aws_environment["ou_accounts_map"].keys())
-            if rule["target_type"] == "OU"
+            if rule["target_type"] == OU_TARGET_TYPE_LABEL
             else setup_mock_aws_environment["account_name_id_map"].keys()
         )
         for target_name in rule["target_names"]:
@@ -168,14 +175,15 @@ def generate_invalid_assignments(
                     rule_number=i,
                     resource_type=rule["target_type"],
                     resource_name=target_name,
-                    resource_invalid_reason=f"Invalid {rule['target_type']} - name not found",
+                    resource_invalid_error_message=f"Invalid {rule['target_type']} - resource with name ({target_name}) not found",
+                    resource_invalid_error_code=f"INVALID_{rule['target_type']}_NAME",
                 )
                 invalid_assignments.append(invalid_rule.to_dict())
 
         # Check principal name
         principal_reference = (
             setup_mock_aws_environment["sso_group_name_id_map"].keys()
-            if rule["principal_type"] == "GROUP"
+            if rule["principal_type"] == GROUP_PRINCIPAL_TYPE_LABEL
             else setup_mock_aws_environment["sso_username_id_map"]
         )
         if rule["principal_name"] not in principal_reference:
@@ -183,7 +191,8 @@ def generate_invalid_assignments(
                 rule_number=i,
                 resource_type=rule["principal_type"],
                 resource_name=rule["principal_name"],
-                resource_invalid_reason=f"Invalid SSO {rule['principal_type']} - name not found",
+                resource_invalid_error_message=f"Invalid SSO {rule['principal_type']} - resource with name ({rule["principal_name"]}) not found",
+                resource_invalid_error_code=f"INVALID_SSO_{rule['principal_type']}_NAME",
             )
             invalid_assignments.append(invalid_rule.to_dict())
 
@@ -194,9 +203,10 @@ def generate_invalid_assignments(
         ):
             invalid_rule = InvalidAssignmentRule(
                 rule_number=i,
-                resource_type="permission_set",
+                resource_type=PERMISSION_SET_TYPE_LABEL,
                 resource_name=rule["permission_set_name"],
-                resource_invalid_reason="Invalid Permission Set - name not found",
+                resource_invalid_error_message=f"Invalid {PERMISSION_SET_TYPE_LABEL} - resource with name ({rule['permission_set_name']}) not found",
+                resource_invalid_error_code=f"INVALID_{PERMISSION_SET_TYPE_LABEL}_NAME",
             )
             invalid_assignments.append(invalid_rule.to_dict())
     return invalid_assignments
@@ -246,7 +256,10 @@ def test_main(
         - Assert newly created and invalid assignments match expectations
     """
     invalid_assignments_report_sort_keys = operator.itemgetter(
-        "rule_number", "resource_type", "resource_name", "resource_invalid_reason"
+        "rule_number",
+        "resource_type",
+        "resource_name",
+        "resource_invalid_error_message",
     )
     created_assignments_sort_keys = operator.itemgetter(
         "PermissionSetArn", "PrincipalType", "PrincipalId", "TargetId"
@@ -355,7 +368,7 @@ def test_delete(
         sso_admin_client,
         setup_mock_aws_environment,
         list(sso_user_ids),
-        "USER",
+        USER_PRINCIPAL_TYPE_LABEL,
         list(sso_permission_set_ids),
         list(account_ids),
     )
@@ -363,7 +376,7 @@ def test_delete(
         sso_admin_client,
         setup_mock_aws_environment,
         list(sso_group_ids),
-        "GROUP",
+        GROUP_PRINCIPAL_TYPE_LABEL,
         list(sso_permission_set_ids),
         list(account_ids),
     )

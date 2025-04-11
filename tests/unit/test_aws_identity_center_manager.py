@@ -18,6 +18,11 @@ from typing import Dict, List, Any
 import pytest
 from tests.utils import generate_expected_account_assignments
 from src.core.utils import load_file
+from src.core.constants import (
+    PERMISSION_SET_TYPE_LABEL,
+    GROUP_PRINCIPAL_TYPE_LABEL,
+    USER_PRINCIPAL_TYPE_LABEL,
+)
 from src.services.aws.aws_identity_center_manager import (
     IdentityCenterManager,
     InvalidAssignmentRule,
@@ -301,8 +306,12 @@ def test_delete_account_assignments(
     sso_user_ids = setup_mock_aws_environment["sso_username_id_map"].values()
     sso_group_ids = setup_mock_aws_environment["sso_group_name_id_map"].values()
 
-    current_account_assignments = create_assignments(sso_user_ids, "USER")
-    current_account_assignments += create_assignments(sso_group_ids, "GROUP")
+    current_account_assignments = create_assignments(
+        sso_user_ids, USER_PRINCIPAL_TYPE_LABEL
+    )
+    current_account_assignments += create_assignments(
+        sso_group_ids, GROUP_PRINCIPAL_TYPE_LABEL
+    )
 
     # Act
     identity_center_manager = IdentityCenterManager(
@@ -355,7 +364,10 @@ def test_generate_invalid_assignments_report(
         the expected invalid assignments.
     """
     sort_keys = operator.itemgetter(
-        "rule_number", "resource_type", "resource_name", "resource_invalid_reason"
+        "rule_number",
+        "resource_type",
+        "resource_name",
+        "resource_invalid_error_message",
     )
     manifest_file = load_file(manifest_filename)
     rbac_rules = manifest_file.get("rbac_rules", [])
@@ -389,7 +401,8 @@ def test_generate_invalid_assignments_report(
                     rule_number=i,
                     resource_type=rule["target_type"],
                     resource_name=target_name,
-                    resource_invalid_reason=f"Invalid {rule['target_type']} - name not found",
+                    resource_invalid_error_message=f"Invalid {rule['target_type']} - resource with name ({target_name}) not found",
+                    resource_invalid_error_code=f"INVALID_{rule['target_type']}_NAME",
                 )
                 invalid_assignments.append(invalid_rule.to_dict())
 
@@ -404,7 +417,8 @@ def test_generate_invalid_assignments_report(
                 rule_number=i,
                 resource_type=rule["principal_type"],
                 resource_name=rule["principal_name"],
-                resource_invalid_reason=f"Invalid SSO {rule['principal_type']} - name not found",
+                resource_invalid_error_message=f"Invalid SSO {rule['principal_type']} - resource with name ({rule["principal_name"]}) not found",
+                resource_invalid_error_code=f"INVALID_SSO_{rule['principal_type']}_NAME",
             )
             invalid_assignments.append(invalid_rule.to_dict())
 
@@ -413,14 +427,14 @@ def test_generate_invalid_assignments_report(
             rule["permission_set_name"]
             not in setup_mock_aws_environment["sso_permission_set_name_id_map"]
         ):
-            invalid_assignments.append(
-                {
-                    "rule_number": i,
-                    "resource_type": "permission_set",
-                    "resource_name": rule["permission_set_name"],
-                    "resource_invalid_reason": "Invalid Permission Set - name not found",
-                }
+            invalid_rule = InvalidAssignmentRule(
+                rule_number=i,
+                resource_type=PERMISSION_SET_TYPE_LABEL,
+                resource_name=rule["permission_set_name"],
+                resource_invalid_error_message=f"Invalid {PERMISSION_SET_TYPE_LABEL} - resource with name ({rule['permission_set_name']}) not found",
+                resource_invalid_error_code=f"INVALID_{PERMISSION_SET_TYPE_LABEL}_NAME",
             )
+            invalid_assignments.append(invalid_rule.to_dict())
 
     # Assert
     assert sorted(invalid_assignments, key=sort_keys) == sorted(

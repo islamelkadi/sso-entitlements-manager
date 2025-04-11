@@ -32,7 +32,7 @@ Note:
 
 import logging
 import itertools
-from typing import Optional, Literal
+from typing import Literal
 from dataclasses import dataclass, field, asdict
 
 import boto3
@@ -40,8 +40,9 @@ from rich.progress import track
 from src.core.utils import create_display_table
 from src.services.aws.utils import handle_aws_exceptions
 from src.services.aws.exceptions import (
-    NoPermissionSetsFoundError,
-    NoSSOPrincipalsFoundError,
+    PermissionSetNotFoundError,
+    SSOPrincipalNotFoundError,
+    AWSAccountOrOrgNotFoundError,
 )
 from src.core.utils import dict_reverse_lookup
 from src.core.constants import (
@@ -50,6 +51,7 @@ from src.core.constants import (
     GROUP_PRINCIPAL_TYPE_LABEL,
     USER_PRINCIPAL_TYPE_LABEL,
     SSO_ENTITLMENTS_APP_NAME,
+    PERMISSION_SET_TYPE_LABEL,
 )
 
 
@@ -91,13 +93,15 @@ class InvalidAssignmentRule(SubscriptableDataclass):
         rule_number (int): The index number of the rule in the manifest
         resource_type (str): The type of resource (OU, account, group, user, permission set)
         resource_name (str): The name of the invalid resource
-        resource_invalid_reason (str): Description of why the resource is invalid
+        resource_invalid_error_code (str): Error code of representing why the resource is invalid
+        resource_invalid_error_message (str): Description of why the resource is invalid
     """
 
     rule_number: int
     resource_type: str
     resource_name: str
-    resource_invalid_reason: str
+    resource_invalid_error_code: str
+    resource_invalid_error_message: str
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -249,8 +253,9 @@ class IdentityCenterManager:
             self._logger.error(
                 "No SSO groups or users principals found to assign access"
             )
-            raise NoSSOPrincipalsFoundError(
-                "No SSO groups or users principals found to assign access"
+            raise SSOPrincipalNotFoundError(
+                "No SSO groups or users principals found to assign access",
+                "EMPTY_TENANT",
             )
 
         # SSO Permission Sets
@@ -275,8 +280,9 @@ class IdentityCenterManager:
             self._logger.error(
                 "No permission sets found to assign to groups or users principals"
             )
-            raise NoPermissionSetsFoundError(
-                "No permission sets found to assign to groups or users principals"
+            raise PermissionSetNotFoundError(
+                "No permission sets found to assign to groups or users principals",
+                "EMPTY_TENANT",
             )
 
     @handle_aws_exceptions()
@@ -332,7 +338,7 @@ class IdentityCenterManager:
 
         def validate_aws_resource(
             rule_number: int, resource_name: str, resource_type: str
-        ) -> Optional[str]:
+        ) -> str:
             """
             Validates AWS resources against predefined resource maps.
 
@@ -348,27 +354,32 @@ class IdentityCenterManager:
                 OU_TARGET_TYPE_LABEL: {
                     "resource_map": self.ou_accounts_map,
                     "invalid_resource_names": self._invalid_manifest_file_rules,
-                    "resource_invalid_reason": f"Invalid {OU_TARGET_TYPE_LABEL} - name not found",
+                    "resource_invalid_error_message": f"Invalid {OU_TARGET_TYPE_LABEL} - resource with name ({resource_name}) not found",
+                    "resource_invalid_error_code": f"INVALID_{OU_TARGET_TYPE_LABEL}_NAME",
                 },
                 ACCOUNT_TARGET_TYPE_LABEL: {
                     "resource_map": self.account_name_id_map,
                     "invalid_resource_names": self._invalid_manifest_file_rules,
-                    "resource_invalid_reason": f"Invalid {ACCOUNT_TARGET_TYPE_LABEL} - name not found",
+                    "resource_invalid_error_message": f"Invalid {ACCOUNT_TARGET_TYPE_LABEL} - resource with name ({resource_name}) not found",
+                    "resource_invalid_error_code": f"INVALID_{ACCOUNT_TARGET_TYPE_LABEL}_NAME",
                 },
                 GROUP_PRINCIPAL_TYPE_LABEL: {
                     "resource_map": self.sso_groups,
                     "invalid_resource_names": self._invalid_manifest_file_rules,
-                    "resource_invalid_reason": f"Invalid SSO {GROUP_PRINCIPAL_TYPE_LABEL} - name not found",
+                    "resource_invalid_error_message": f"Invalid SSO {GROUP_PRINCIPAL_TYPE_LABEL} - resource with name ({resource_name}) not found",
+                    "resource_invalid_error_code": f"INVALID_SSO_{GROUP_PRINCIPAL_TYPE_LABEL}_NAME",
                 },
                 USER_PRINCIPAL_TYPE_LABEL: {
                     "resource_map": self.sso_users,
                     "invalid_resource_names": self._invalid_manifest_file_rules,
-                    "resource_invalid_reason": f"Invalid SSO {USER_PRINCIPAL_TYPE_LABEL} - name not found",
+                    "resource_invalid_error_message": f"Invalid SSO {USER_PRINCIPAL_TYPE_LABEL} - resource with name ({resource_name}) not found",
+                    "resource_invalid_error_code": f"INVALID_SSO_{USER_PRINCIPAL_TYPE_LABEL}_NAME",
                 },
-                "permission_set": {
+                PERMISSION_SET_TYPE_LABEL: {
                     "resource_map": self.sso_permission_sets,
                     "invalid_resource_names": self._invalid_manifest_file_rules,
-                    "resource_invalid_reason": "Invalid Permission Set - name not found",
+                    "resource_invalid_error_message": f"Invalid {PERMISSION_SET_TYPE_LABEL} - resource with name ({resource_name}) not found",
+                    "resource_invalid_error_code": f"INVALID_{PERMISSION_SET_TYPE_LABEL}_NAME",
                 },
             }
 
@@ -376,18 +387,39 @@ class IdentityCenterManager:
             invalid_resource_names = resource_maps[resource_type].get(
                 "invalid_resource_names", []
             )
-            resource_invalid_reason = resource_maps[resource_type].get(
-                "resource_invalid_reason", "NA"
+            resource_invalid_error_code = resource_maps[resource_type].get(
+                "resource_invalid_error_code", "NA"
+            )
+            resource_invalid_error_message = resource_maps[resource_type].get(
+                "resource_invalid_error_message", "NA"
             )
             if resource_name not in resource_map:
                 invalid_rule = InvalidAssignmentRule(
                     rule_number=rule_number,
                     resource_type=resource_type,
                     resource_name=resource_name,
-                    resource_invalid_reason=resource_invalid_reason,
+                    resource_invalid_error_message=resource_invalid_error_message,
+                    resource_invalid_error_code=resource_invalid_error_code,
                 )
                 invalid_resource_names.append(invalid_rule)
-                return None
+
+                # Raise error
+                # pylint: disable=R1720
+                if resource_type in (
+                    GROUP_PRINCIPAL_TYPE_LABEL,
+                    USER_PRINCIPAL_TYPE_LABEL,
+                ):
+                    raise SSOPrincipalNotFoundError(
+                        resource_invalid_error_message, resource_invalid_error_code
+                    )
+                elif resource_type in (OU_TARGET_TYPE_LABEL, ACCOUNT_TARGET_TYPE_LABEL):
+                    raise AWSAccountOrOrgNotFoundError(
+                        resource_invalid_error_message, resource_invalid_error_code
+                    )
+                else:
+                    raise PermissionSetNotFoundError(
+                        resource_invalid_error_message, resource_invalid_error_code
+                    )
 
             return resource_map[resource_name]
 
@@ -421,40 +453,56 @@ class IdentityCenterManager:
         for i, rule in enumerate(self.manifest_file_rbac_rules):
             self._logger.info(rule)
             rule["rule_number"] = i
-            rule["principal_id"] = validate_aws_resource(
-                rule["rule_number"], rule["principal_name"], rule["principal_type"]
-            )
-            rule["permission_set_arn"] = validate_aws_resource(
-                rule["rule_number"], rule["permission_set_name"], "permission_set"
-            )
-            if not (rule["principal_id"] and rule["permission_set_arn"]):
-                self._logger.debug(
-                    "Invalide Principal ID or Permission Set ARN provided for rule: %s. Continuing to next rule.",
+            try:
+                # Validate principal and permission set provided are valid and exist
+                rule["principal_id"] = validate_aws_resource(
+                    rule["rule_number"], rule["principal_name"], rule["principal_type"]
+                )
+                rule["permission_set_arn"] = validate_aws_resource(
+                    rule["rule_number"],
+                    rule["permission_set_name"],
+                    PERMISSION_SET_TYPE_LABEL,
+                )
+            except (PermissionSetNotFoundError, SSOPrincipalNotFoundError) as e:
+                self._logger.error(
+                    "Error: %s (manifest file rule: %s). Continuing to next rule.",
+                    str(e),
                     rule["rule_number"],
                 )
                 continue
 
             for name in rule["target_names"]:
-                is_valid_assignment_target = validate_aws_resource(
-                    rule["rule_number"], name, rule["target_type"]
-                )
-                if is_valid_assignment_target:
-                    if rule["target_type"] == OU_TARGET_TYPE_LABEL:
-                        for child_ou_account in self.ou_accounts_map[name]:
-                            add_unique_assignment(
-                                child_ou_account["Id"],
-                                rule["principal_id"],
-                                rule["principal_type"],
-                                rule["permission_set_arn"],
-                            )
-                    else:
-                        account_id = self.account_name_id_map[name]
+                try:
+                    # Validate AWS OU/Account target
+                    validate_aws_resource(
+                        rule["rule_number"], name, rule["target_type"]
+                    )
+                except AWSAccountOrOrgNotFoundError as e:
+                    self._logger.error(
+                        "Error: %s (manifest file rule: %s). Continuing to next rule.",
+                        str(e),
+                        rule["rule_number"],
+                    )
+                    continue
+
+                if rule["target_type"] == OU_TARGET_TYPE_LABEL:
+                    for child_ou_account in self.ou_accounts_map[name]:
+                        print("RULE")
+                        print(rule)
                         add_unique_assignment(
-                            account_id,
+                            child_ou_account["Id"],
                             rule["principal_id"],
                             rule["principal_type"],
                             rule["permission_set_arn"],
                         )
+                else:
+                    account_id = self.account_name_id_map[name]
+                    add_unique_assignment(
+                        account_id,
+                        rule["principal_id"],
+                        rule["principal_type"],
+                        rule["permission_set_arn"],
+                    )
 
         self._logger.info("Creating itinerary of SSO account assignments to create")
         self._assignments_to_create = list(
@@ -510,7 +558,7 @@ class IdentityCenterManager:
                         ),  # +1 to avoid confusion whilst users are reading the manfiest file
                         rule.resource_type,
                         rule.resource_name,
-                        rule.resource_invalid_reason,
+                        rule.resource_invalid_error_message,
                     ]
                 )
 
