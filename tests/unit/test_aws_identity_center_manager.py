@@ -2,7 +2,7 @@
 """
 Unit Tests for AWS Identity Center Management
 
-This module provides comprehensive test cases for the IdentityCenterManager, 
+This module provides comprehensive test cases for the IdentityCenterManager,
 validating various aspects of AWS Identity Center functionality, including:
     - SSO entity listing (users, groups, permission sets)
     - Account assignment creation and deletion

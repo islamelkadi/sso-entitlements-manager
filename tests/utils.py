@@ -1,9 +1,9 @@
 """
 Utils module for handling various utility functions related to RBAC management.
 
-This module provides utility functions for processing and managing Role-Based Access 
-Control (RBAC) rules within an AWS Organizations context. It supports operations 
-such as identifying accounts to ignore, removing specified targets, and generating 
+This module provides utility functions for processing and managing Role-Based Access
+Control (RBAC) rules within an AWS Organizations context. It supports operations
+such as identifying accounts to ignore, removing specified targets, and generating
 expected account assignments based on a manifest file.
 
 Key Functions:
@@ -233,9 +233,11 @@ def generate_expected_account_assignments(
 
         for target in valid_targets:
             target_assignment_item = {
-                "PrincipalId": sso_users_map[rule["principal_name"]]
-                if rule["principal_type"] == "USER"
-                else sso_groups_map[rule["principal_name"]],
+                "PrincipalId": (
+                    sso_users_map[rule["principal_name"]]
+                    if rule["principal_type"] == "USER"
+                    else sso_groups_map[rule["principal_name"]]
+                ),
                 "PrincipalType": rule["principal_type"],
                 "PermissionSetArn": sso_permission_sets[rule["permission_set_name"]],
                 "TargetId": target,

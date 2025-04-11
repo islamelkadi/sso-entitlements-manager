@@ -1,8 +1,8 @@
 """
 AWS Service Exception Handling Utility
 
-This module provides a decorator for robust error handling and retry mechanisms 
-for AWS Organizations and SSO Admin API calls. It implements intelligent retry 
+This module provides a decorator for robust error handling and retry mechanisms
+for AWS Organizations and SSO Admin API calls. It implements intelligent retry
 strategies with exponential backoff and comprehensive exception logging.
 
 Key Features:

@@ -1,7 +1,7 @@
 """
 AWS Identity Center Access Management Module
 
-This module provides tools for comprehensive management of AWS Identity Center (SSO) 
+This module provides tools for comprehensive management of AWS Identity Center (SSO)
 access control and account assignments.
 
 The module defines a class `IdentityCenterManager` that facilitates:
@@ -18,17 +18,18 @@ Key Features:
 Example:
     # Initialize the manager with Identity Store details
     sso_manager = IdentityCenterManager('arn:aws:sso:region:account-id:instance/d-instance-id', 'identity-store-id')
-    
+
     # Set RBAC rules from a manifest file
     sso_manager.manifest_file_rbac_rules = [...]
-    
+
     # Run access control resolver
     sso_manager.run_access_control_resolver()
 
 Note:
-    Requires appropriate AWS IAM permissions to manage 
+    Requires appropriate AWS IAM permissions to manage
     Identity Center access and assignments.
 """
+
 import logging
 import itertools
 from typing import Optional, Literal

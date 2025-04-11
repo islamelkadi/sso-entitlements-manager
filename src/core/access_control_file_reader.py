@@ -1,8 +1,8 @@
 """
 Access Control Manifest Parser Module
 
-This module provides a utility for reading and parsing access control 
-manifest files with JSON schema validation. It enables structured 
+This module provides a utility for reading and parsing access control
+manifest files with JSON schema validation. It enables structured
 parsing of SSO and organizational access control configurations.
 
 Key Features:

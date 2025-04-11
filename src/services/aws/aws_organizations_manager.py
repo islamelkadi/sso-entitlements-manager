@@ -20,15 +20,15 @@ Key Features:
 Example:
     # Initialize the manager with a root OU ID
     org_manager = AwsOrganizationsManager('ou-root-123abc')
-    
+
     # Access the full OU to accounts mapping
     ou_accounts = org_manager.ou_accounts_map
-    
+
     # Get a mapping of account names to their AWS account IDs
     account_ids = org_manager.accounts_name_id_map
 
 Note:
-    Requires appropriate AWS IAM permissions to list and describe 
+    Requires appropriate AWS IAM permissions to list and describe
     organizational units and accounts, including:
     - organizations:ListAccountsForParent
     - organizations:ListOrganizationalUnitsForParent

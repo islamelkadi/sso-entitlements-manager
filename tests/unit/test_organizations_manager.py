@@ -2,7 +2,7 @@
 """
 Unit Tests for AWS Organizations Manager
 
-This module contains comprehensive test cases for validating the AwsOrganizationsManager's 
+This module contains comprehensive test cases for validating the AwsOrganizationsManager's
 functionality, focusing on:
     - AWS account listing
     - Organizational unit handling

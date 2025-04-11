@@ -1,8 +1,8 @@
 """
 Unit Tests for AWS Lambda Function Manifest Schema Validation
 
-This module contains unit tests for validating manifest file schemas using 
-the AccessControlFileReader. It provides test cases for both valid and 
+This module contains unit tests for validating manifest file schemas using
+the AccessControlFileReader. It provides test cases for both valid and
 invalid manifest file schemas, ensuring proper validation of configuration files.
 """
 

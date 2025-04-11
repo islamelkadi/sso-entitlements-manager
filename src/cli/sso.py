@@ -1,8 +1,8 @@
 """
 AWS SSO Access Management Script.
 
-This script processes an AWS SSO manifest file, maps AWS Organizations entities, and manages 
-AWS Identity Center assignments based on RBAC (Role-Based Access Control) rules defined 
+This script processes an AWS SSO manifest file, maps AWS Organizations entities, and manages
+AWS Identity Center assignments based on RBAC (Role-Based Access Control) rules defined
 in the manifest.
 
 Modules and Classes Used:

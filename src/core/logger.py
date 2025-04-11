@@ -1,8 +1,8 @@
 """
 JSON Log Formatter Module
 
-This module provides a custom logging formatter that converts log records 
-into JSON format. It enables structured logging by transforming log entries 
+This module provides a custom logging formatter that converts log records
+into JSON format. It enables structured logging by transforming log entries
 into machine-readable JSON documents with enhanced metadata.
 
 Key Features:
@@ -138,9 +138,11 @@ class JsonFormatter(logging.Formatter):
             always_fields["stack_info"] = self.formatStack(record.stack_info)
 
         message = {
-            key: msg_val
-            if (msg_val := always_fields.pop(val, None)) is not None
-            else getattr(record, val)
+            key: (
+                msg_val
+                if (msg_val := always_fields.pop(val, None)) is not None
+                else getattr(record, val)
+            )
             for key, val in self.fmt_keys.items()
         }
         message.update(always_fields)

@@ -1,7 +1,7 @@
 """
 AWS Identity Center Exceptions Module
 
-This module defines custom exceptions for handling AWS Identity Center (SSO) 
+This module defines custom exceptions for handling AWS Identity Center (SSO)
 specific error conditions. These exceptions help in providing clear and actionable
 error messages when dealing with SSO permissions and principals.
 

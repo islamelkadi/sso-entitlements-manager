@@ -1,7 +1,7 @@
 """
 Utility Functions Module
 
-This module provides a collection of helper functions for common data manipulation 
+This module provides a collection of helper functions for common data manipulation
 and file handling tasks across the repository. It includes utilities for:
     - Dictionary transformations
     - List conversions

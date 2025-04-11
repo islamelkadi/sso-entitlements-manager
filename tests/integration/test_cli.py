@@ -1,7 +1,7 @@
 """
 Unit Tests for AWS SSO Account Assignment Management
 
-This module provides comprehensive test cases for AWS SSO account assignment 
+This module provides comprehensive test cases for AWS SSO account assignment
 management, focusing on:
     - Verifying SSO account assignment creation
     - Validating assignment generation logic
@@ -24,7 +24,7 @@ Dependencies:
     - concurrent.futures: Parallel test execution support
 
 Note:
-    Test configurations are dynamically loaded from '../configs' and 
+    Test configurations are dynamically loaded from '../configs' and
     '../manifests' directories.
 """
 
