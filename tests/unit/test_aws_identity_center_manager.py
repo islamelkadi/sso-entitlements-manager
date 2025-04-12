@@ -19,9 +19,20 @@ import pytest
 from tests.utils import generate_expected_account_assignments
 from src.core.utils import load_file
 from src.core.constants import (
-    PERMISSION_SET_TYPE_LABEL,
-    GROUP_PRINCIPAL_TYPE_LABEL,
     USER_PRINCIPAL_TYPE_LABEL,
+    GROUP_PRINCIPAL_TYPE_LABEL,
+    PERMISSION_SET_TYPE_LABEL,
+    OU_TARGET_TYPE_LABEL,
+    OU_INVALID_ERROR_CODE,
+    OU_INVALID_ERROR_MESSAGE,
+    ACCOUNT_INVALID_ERROR_CODE,
+    ACCOUNT_INVALID_ERROR_MESSAGE,
+    SSO_GROUP_INVALID_ERROR_CODE,
+    SSO_GROUP_INVALID_ERROR_MESSAGE,
+    SSO_USER_INVALID_ERROR_CODE,
+    SSO_USER_INVALID_ERROR_MESSAGE,
+    PERMISSION_SET_INVALID_ERROR_CODE,
+    PERMISSION_SET_INVALID_ERROR_MESSAGE,
 )
 from src.services.aws.aws_identity_center_manager import (
     IdentityCenterManager,
@@ -392,7 +403,7 @@ def test_generate_invalid_assignments_report(
         # Check target names
         target_reference = (
             list(setup_mock_aws_environment["ou_accounts_map"].keys())
-            if rule["target_type"] == "OU"
+            if rule["target_type"] == OU_TARGET_TYPE_LABEL
             else setup_mock_aws_environment["account_name_id_map"].keys()
         )
         for target_name in rule["target_names"]:
@@ -401,15 +412,23 @@ def test_generate_invalid_assignments_report(
                     rule_number=i,
                     resource_type=rule["target_type"],
                     resource_name=target_name,
-                    resource_invalid_error_message=f"Invalid {rule['target_type']} - resource with name ({target_name}) not found",
-                    resource_invalid_error_code=f"INVALID_{rule['target_type']}_NAME",
+                    resource_invalid_error_message=(
+                        OU_INVALID_ERROR_MESSAGE
+                        if rule["target_type"] == "OU"
+                        else ACCOUNT_INVALID_ERROR_MESSAGE
+                    ),
+                    resource_invalid_error_code=(
+                        OU_INVALID_ERROR_CODE
+                        if rule["target_type"] == "OU"
+                        else ACCOUNT_INVALID_ERROR_CODE
+                    ),
                 )
                 invalid_assignments.append(invalid_rule.to_dict())
 
         # Check principal name
         principal_reference = (
             setup_mock_aws_environment["sso_group_name_id_map"].keys()
-            if rule["principal_type"] == "GROUP"
+            if rule["principal_type"] == GROUP_PRINCIPAL_TYPE_LABEL
             else setup_mock_aws_environment["sso_username_id_map"]
         )
         if rule["principal_name"] not in principal_reference:
@@ -417,8 +436,16 @@ def test_generate_invalid_assignments_report(
                 rule_number=i,
                 resource_type=rule["principal_type"],
                 resource_name=rule["principal_name"],
-                resource_invalid_error_message=f"Invalid SSO {rule['principal_type']} - resource with name ({rule["principal_name"]}) not found",
-                resource_invalid_error_code=f"INVALID_SSO_{rule['principal_type']}_NAME",
+                resource_invalid_error_message=(
+                    SSO_GROUP_INVALID_ERROR_MESSAGE
+                    if rule["principal_type"] == "GROUP"
+                    else SSO_USER_INVALID_ERROR_MESSAGE
+                ),
+                resource_invalid_error_code=(
+                    SSO_GROUP_INVALID_ERROR_CODE
+                    if rule["principal_type"] == "GROUP"
+                    else SSO_USER_INVALID_ERROR_CODE
+                ),
             )
             invalid_assignments.append(invalid_rule.to_dict())
 
@@ -431,8 +458,8 @@ def test_generate_invalid_assignments_report(
                 rule_number=i,
                 resource_type=PERMISSION_SET_TYPE_LABEL,
                 resource_name=rule["permission_set_name"],
-                resource_invalid_error_message=f"Invalid {PERMISSION_SET_TYPE_LABEL} - resource with name ({rule['permission_set_name']}) not found",
-                resource_invalid_error_code=f"INVALID_{PERMISSION_SET_TYPE_LABEL}_NAME",
+                resource_invalid_error_message=PERMISSION_SET_INVALID_ERROR_MESSAGE,
+                resource_invalid_error_code=PERMISSION_SET_INVALID_ERROR_CODE,
             )
             invalid_assignments.append(invalid_rule.to_dict())
 

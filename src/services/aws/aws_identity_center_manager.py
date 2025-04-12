@@ -37,21 +37,30 @@ from dataclasses import dataclass, field, asdict
 
 import boto3
 from rich.progress import track
-from src.core.utils import create_display_table
 from src.services.aws.utils import handle_aws_exceptions
 from src.services.aws.exceptions import (
     PermissionSetNotFoundError,
     SSOPrincipalNotFoundError,
     AWSAccountOrOrgNotFoundError,
 )
-from src.core.utils import dict_reverse_lookup
+from src.core.utils import dict_reverse_lookup, create_display_table
 from src.core.constants import (
     OU_TARGET_TYPE_LABEL,
     ACCOUNT_TARGET_TYPE_LABEL,
-    GROUP_PRINCIPAL_TYPE_LABEL,
     USER_PRINCIPAL_TYPE_LABEL,
-    SSO_ENTITLMENTS_APP_NAME,
+    GROUP_PRINCIPAL_TYPE_LABEL,
     PERMISSION_SET_TYPE_LABEL,
+    SSO_ENTITLMENTS_APP_NAME,
+    OU_INVALID_ERROR_CODE,
+    OU_INVALID_ERROR_MESSAGE,
+    ACCOUNT_INVALID_ERROR_CODE,
+    ACCOUNT_INVALID_ERROR_MESSAGE,
+    SSO_GROUP_INVALID_ERROR_CODE,
+    SSO_GROUP_INVALID_ERROR_MESSAGE,
+    SSO_USER_INVALID_ERROR_CODE,
+    SSO_USER_INVALID_ERROR_MESSAGE,
+    PERMISSION_SET_INVALID_ERROR_CODE,
+    PERMISSION_SET_INVALID_ERROR_MESSAGE,
 )
 
 
@@ -354,32 +363,32 @@ class IdentityCenterManager:
                 OU_TARGET_TYPE_LABEL: {
                     "resource_map": self.ou_accounts_map,
                     "invalid_resource_names": self._invalid_manifest_file_rules,
-                    "resource_invalid_error_message": f"Invalid {OU_TARGET_TYPE_LABEL} - resource with name ({resource_name}) not found",
-                    "resource_invalid_error_code": f"INVALID_{OU_TARGET_TYPE_LABEL}_NAME",
+                    "resource_invalid_error_message": OU_INVALID_ERROR_MESSAGE,
+                    "resource_invalid_error_code": OU_INVALID_ERROR_CODE,
                 },
                 ACCOUNT_TARGET_TYPE_LABEL: {
                     "resource_map": self.account_name_id_map,
                     "invalid_resource_names": self._invalid_manifest_file_rules,
-                    "resource_invalid_error_message": f"Invalid {ACCOUNT_TARGET_TYPE_LABEL} - resource with name ({resource_name}) not found",
-                    "resource_invalid_error_code": f"INVALID_{ACCOUNT_TARGET_TYPE_LABEL}_NAME",
+                    "resource_invalid_error_message": ACCOUNT_INVALID_ERROR_MESSAGE,
+                    "resource_invalid_error_code": ACCOUNT_INVALID_ERROR_CODE,
                 },
                 GROUP_PRINCIPAL_TYPE_LABEL: {
                     "resource_map": self.sso_groups,
                     "invalid_resource_names": self._invalid_manifest_file_rules,
-                    "resource_invalid_error_message": f"Invalid SSO {GROUP_PRINCIPAL_TYPE_LABEL} - resource with name ({resource_name}) not found",
-                    "resource_invalid_error_code": f"INVALID_SSO_{GROUP_PRINCIPAL_TYPE_LABEL}_NAME",
+                    "resource_invalid_error_message": SSO_GROUP_INVALID_ERROR_MESSAGE,
+                    "resource_invalid_error_code": SSO_GROUP_INVALID_ERROR_CODE,
                 },
                 USER_PRINCIPAL_TYPE_LABEL: {
                     "resource_map": self.sso_users,
                     "invalid_resource_names": self._invalid_manifest_file_rules,
-                    "resource_invalid_error_message": f"Invalid SSO {USER_PRINCIPAL_TYPE_LABEL} - resource with name ({resource_name}) not found",
-                    "resource_invalid_error_code": f"INVALID_SSO_{USER_PRINCIPAL_TYPE_LABEL}_NAME",
+                    "resource_invalid_error_message": SSO_USER_INVALID_ERROR_MESSAGE,
+                    "resource_invalid_error_code": SSO_USER_INVALID_ERROR_CODE,
                 },
                 PERMISSION_SET_TYPE_LABEL: {
                     "resource_map": self.sso_permission_sets,
                     "invalid_resource_names": self._invalid_manifest_file_rules,
-                    "resource_invalid_error_message": f"Invalid {PERMISSION_SET_TYPE_LABEL} - resource with name ({resource_name}) not found",
-                    "resource_invalid_error_code": f"INVALID_{PERMISSION_SET_TYPE_LABEL}_NAME",
+                    "resource_invalid_error_message": PERMISSION_SET_INVALID_ERROR_MESSAGE,
+                    "resource_invalid_error_code": PERMISSION_SET_INVALID_ERROR_CODE,
                 },
             }
 
@@ -487,8 +496,6 @@ class IdentityCenterManager:
 
                 if rule["target_type"] == OU_TARGET_TYPE_LABEL:
                     for child_ou_account in self.ou_accounts_map[name]:
-                        print("RULE")
-                        print(rule)
                         add_unique_assignment(
                             child_ou_account["Id"],
                             rule["principal_id"],

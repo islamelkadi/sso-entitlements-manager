@@ -47,6 +47,16 @@ from src.core.constants import (
     USER_PRINCIPAL_TYPE_LABEL,
     PERMISSION_SET_TYPE_LABEL,
     OU_TARGET_TYPE_LABEL,
+    OU_INVALID_ERROR_CODE,
+    OU_INVALID_ERROR_MESSAGE,
+    ACCOUNT_INVALID_ERROR_CODE,
+    ACCOUNT_INVALID_ERROR_MESSAGE,
+    SSO_GROUP_INVALID_ERROR_CODE,
+    SSO_GROUP_INVALID_ERROR_MESSAGE,
+    SSO_USER_INVALID_ERROR_CODE,
+    SSO_USER_INVALID_ERROR_MESSAGE,
+    PERMISSION_SET_INVALID_ERROR_CODE,
+    PERMISSION_SET_INVALID_ERROR_MESSAGE,
 )
 from src.services.aws.aws_identity_center_manager import InvalidAssignmentRule
 
@@ -175,8 +185,16 @@ def generate_invalid_assignments(
                     rule_number=i,
                     resource_type=rule["target_type"],
                     resource_name=target_name,
-                    resource_invalid_error_message=f"Invalid {rule['target_type']} - resource with name ({target_name}) not found",
-                    resource_invalid_error_code=f"INVALID_{rule['target_type']}_NAME",
+                    resource_invalid_error_message=(
+                        OU_INVALID_ERROR_MESSAGE
+                        if rule["target_type"] == "OU"
+                        else ACCOUNT_INVALID_ERROR_MESSAGE
+                    ),
+                    resource_invalid_error_code=(
+                        OU_INVALID_ERROR_CODE
+                        if rule["target_type"] == "OU"
+                        else ACCOUNT_INVALID_ERROR_CODE
+                    ),
                 )
                 invalid_assignments.append(invalid_rule.to_dict())
 
@@ -191,8 +209,16 @@ def generate_invalid_assignments(
                 rule_number=i,
                 resource_type=rule["principal_type"],
                 resource_name=rule["principal_name"],
-                resource_invalid_error_message=f"Invalid SSO {rule['principal_type']} - resource with name ({rule["principal_name"]}) not found",
-                resource_invalid_error_code=f"INVALID_SSO_{rule['principal_type']}_NAME",
+                resource_invalid_error_message=(
+                    SSO_GROUP_INVALID_ERROR_MESSAGE
+                    if rule["principal_type"] == "GROUP"
+                    else SSO_USER_INVALID_ERROR_MESSAGE
+                ),
+                resource_invalid_error_code=(
+                    SSO_GROUP_INVALID_ERROR_CODE
+                    if rule["principal_type"] == "GROUP"
+                    else SSO_USER_INVALID_ERROR_CODE
+                ),
             )
             invalid_assignments.append(invalid_rule.to_dict())
 
@@ -205,8 +231,8 @@ def generate_invalid_assignments(
                 rule_number=i,
                 resource_type=PERMISSION_SET_TYPE_LABEL,
                 resource_name=rule["permission_set_name"],
-                resource_invalid_error_message=f"Invalid {PERMISSION_SET_TYPE_LABEL} - resource with name ({rule['permission_set_name']}) not found",
-                resource_invalid_error_code=f"INVALID_{PERMISSION_SET_TYPE_LABEL}_NAME",
+                resource_invalid_error_message=PERMISSION_SET_INVALID_ERROR_MESSAGE,
+                resource_invalid_error_code=PERMISSION_SET_INVALID_ERROR_CODE,
             )
             invalid_assignments.append(invalid_rule.to_dict())
     return invalid_assignments
