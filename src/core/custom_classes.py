@@ -1,3 +1,7 @@
+"""
+Module containing custom classes to be used throughout the solution.
+"""
+
 from dataclasses import asdict
 
 
