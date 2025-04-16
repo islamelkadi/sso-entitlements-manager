@@ -36,6 +36,16 @@ from typing import Literal
 from dataclasses import dataclass, field
 
 import boto3
+from mypy_boto3_sso_admin import SSOAdminClient
+from mypy_boto3_sso_admin.paginator import (
+    ListAccountAssignmentsForPrincipalPaginator,
+    ListPermissionSetsPaginator,
+)
+from mypy_boto3_identitystore import IdentityStoreClient
+from mypy_boto3_identitystore.paginator import (
+    ListGroupsPaginator,
+    ListUsersPaginator,
+)
 from rich.progress import track
 from src.services.aws.utils import handle_aws_exceptions
 from src.services.aws.exceptions import (
@@ -164,18 +174,18 @@ class IdentityCenterManager:
         self.is_auto_approved: bool = False
 
         # Define boto3 clients
-        self._sso_admin_client = boto3.client("sso-admin")
-        self._identity_store_client = boto3.client("identitystore")
+        self._sso_admin_client: SSOAdminClient = boto3.client("sso-admin")
+        self._identity_store_client: IdentityStoreClient = boto3.client("identitystore")
 
         # Define AWS client API paginators
-        self._list_groups_paginator = self._identity_store_client.get_paginator(
-            "list_groups"
+        self._list_groups_paginator: ListGroupsPaginator = (
+            self._identity_store_client.get_paginator("list_groups")
         )
-        self._list_sso_users_pagniator = self._identity_store_client.get_paginator(
-            "list_users"
+        self._list_sso_users_pagniator: ListUsersPaginator = (
+            self._identity_store_client.get_paginator("list_users")
         )
-        self._list_permission_sets_paginator = self._sso_admin_client.get_paginator(
-            "list_permission_sets"
+        self._list_permission_sets_paginator: ListPermissionSetsPaginator = (
+            self._sso_admin_client.get_paginator("list_permission_sets")
         )
 
         # Define assignment variables
@@ -281,8 +291,10 @@ class IdentityCenterManager:
             of account assignments in a paginated manner.
         """
         principal_type_map = {"USER": self.sso_users, "GROUP": self.sso_groups}
-        principal_assignments_paginator = self._sso_admin_client.get_paginator(
-            "list_account_assignments_for_principal"
+        principal_assignments_paginator: ListAccountAssignmentsForPrincipalPaginator = (
+            self._sso_admin_client.get_paginator(
+                "list_account_assignments_for_principal"
+            )
         )
 
         for principal_type, principals in principal_type_map.items():
