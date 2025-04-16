@@ -16,7 +16,8 @@ import concurrent.futures
 from typing import Dict, List, Any
 
 import pytest
-from tests.unit.conftest import MockAwsEnvironment
+from mypy_boto3_sso_admin import SSOAdminClient
+from tests.conftest import MockAwsEnvironment
 from tests.utils import generate_expected_account_assignments
 from src.core.utils import load_file
 from src.core.constants import (
@@ -40,9 +41,6 @@ from src.services.aws.aws_identity_center_manager import (
     InvalidAssignmentRule,
 )
 
-from mypy_boto3_sso_admin import SSOAdminClient
-from mypy_boto3_organizations import OrganizationsClient
-from mypy_boto3_identitystore import IdentityStoreClient
 
 # Globals vars
 CWD = os.path.dirname(os.path.realpath(__file__))
@@ -71,7 +69,9 @@ VALID_MANIFEST_DEFINITION_FILES = [
     ["aws_org_1.json", "aws_org_2.json"],
     indirect=["setup_mock_aws_environment"],
 )
-def test_list_sso_admin_entities(setup_mock_aws_environment: MockAwsEnvironment) -> None:
+def test_list_sso_admin_entities(
+    setup_mock_aws_environment: MockAwsEnvironment,
+) -> None:
     """
     Test retrieving SSO entities from the IdentityCenterManager.
 
