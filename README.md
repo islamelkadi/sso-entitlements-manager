@@ -69,3 +69,4 @@ It's important to note that the primary users of such a solution would be the `I
 - Solution must allow users to observe changeset and approve them
 - Solution must always ensure control panel state is upto date if used by multiple users
 - Solution must integrate to cloud-vendor platforms using a form of keyless authentication
+- Solution must allow importing of existing access control assignments into its state
