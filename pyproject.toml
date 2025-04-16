@@ -10,9 +10,13 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.13"
 jsonschema = "4.23.0"
-boto3 = "1.37.31"
 PyYAML = "6.0.2"
 rich = "14.0.0"
+boto3 = "1.37.31"
+mypy-boto3-sso-admin = "1.37.0"
+mypy-boto3-organizations = "1.37.0"
+mypy-boto3-identitystore = "1.37.0"
+
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "4.2.0"
