@@ -20,12 +20,12 @@ The current approach to managing multi-cloud access control through SSO lacks th
 ### 1.3 *Proposed Solution*
 To address the challenges of traceability, transparency, and reproducibility in multi-cloud access control management, we propose a git-based approach with a centralized configuration file. This solution offers:
 
-1. **Unified Control*: A single control panel for managing access across multiple cloud vendors, streamlining the process and reducing complexity.
-2. **Version Control*: Leveraging git's native capabilities to provide full traceability of changes through commit history, ensuring every modification is logged and reversible.
-3. **Enhanced Transparency*: Commit messages and committer IDs offer clear insights into who made changes, when they were made, and why, addressing the current lack of context in access provisioning.
-4. **Process Integration*: Capability to integrate with existing workflows through webhooks, enabling ties to project management systems and ensuring changes are associated with approved tickets.
-5. **Auditability*: The git-based system creates an auditable trail of all access control modifications, crucial for compliance and security reviews.
-6. **Reproducibility*: By moving from manual processes to a configuration-as-code approach, all changes become reproducible and can be easily applied across environments.
+1. **Unified Control**: A single control panel for managing access across multiple cloud vendors, streamlining the process and reducing complexity.
+2. **Version Control**: Leveraging git's native capabilities to provide full traceability of changes through commit history, ensuring every modification is logged and reversible.
+3. **Enhanced Transparency**: Commit messages and committer IDs offer clear insights into who made changes, when they were made, and why, addressing the current lack of context in access provisioning.
+4. **Process Integration**: Capability to integrate with existing workflows through webhooks, enabling ties to project management systems and ensuring changes are associated with approved tickets.
+5. **Auditability**: The git-based system creates an auditable trail of all access control modifications, crucial for compliance and security reviews.
+6. **Reproducibility**: By moving from manual processes to a configuration-as-code approach, all changes become reproducible and can be easily applied across environments.
 7. **Security Tool Integration**: Compatibility with security information and event management (SIEM) tools, enhancing overall security posture and incident response capabilities.
 
 This solution transforms access control management from an opaque, manual process into a transparent, traceable, and automated system, significantly reducing security risks and improving operational efficiency in multi-cloud environments.
