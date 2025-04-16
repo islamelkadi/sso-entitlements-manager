@@ -36,27 +36,30 @@ Note:
 """
 
 import logging
-from typing import TypeAlias
+from typing import TypeAlias, Literal
+from dataclasses import dataclass, field
 
 import boto3
+from mypy_boto3_organizations.client import OrganizationsClient
+from src.core.custom_classes import SubscriptableDataclass
 from src.core.constants import SSO_ENTITLMENTS_APP_NAME
 from src.services.aws.utils import handle_aws_exceptions
 
+# Data Classes
+@dataclass(kw_only=True, frozen=True)
+class AwsAccount(SubscriptableDataclass):
+    """Represents an AWS Account"""
+
+    # pylint: disable=invalid-name
+    # Class attributes are defined in camel case as AWS API requires
+    # them in that format.
+    Id: str
+    Name: str
+    Status: Literal["ACTIVE"] = field(default="ACTIVE")
+
+
 # Type hints
-OuAccountsObject: TypeAlias = list[dict[str, str]]
-"""Type alias representing a list of account dictionaries.
-
-Each dictionary contains:
-    - 'Id': The AWS account ID
-    - 'Name': The human-readable account name
-
-Example:
-    [
-        {'Id': '123456789012', 'Name': 'Production'},
-        {'Id': '987654321098', 'Name': 'Development'}
-    ]
-"""
-
+OuAccountsObject: TypeAlias = list[AwsAccount]
 
 class AwsOrganizationsManager:
     """
@@ -110,13 +113,13 @@ class AwsOrganizationsManager:
             This method automatically initiates the organization mapping process
             during instantiation.
         """
-        self._ou_accounts_map = {}
+        self._ou_accounts_map: dict[str, AwsAccount] = {}
         self._account_name_id_map: dict[str, str] = {}
         self._logger: logging.Logger = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
 
         # Initialize AWS clients
         self._root_ou_id = root_ou_id
-        self._organizations_client = boto3.client("organizations")
+        self._organizations_client: OrganizationsClient = boto3.client("organizations")
         self._accounts_pagniator = self._organizations_client.get_paginator(
             "list_accounts_for_parent"
         )
@@ -153,19 +156,15 @@ class AwsOrganizationsManager:
             ou_name = "root"
 
         # Add ou entry to ou_accounts map
-        if ou_name not in self._ou_accounts_map:
-            self._ou_accounts_map[ou_name] = []
+        self._ou_accounts_map[ou_name] = []
 
         # Get accounts under OU
         for page in self._accounts_pagniator.paginate(ParentId=ou_id):
             for account in page.get("Accounts", []):
                 if account["Status"] == "ACTIVE":
-                    self._ou_accounts_map[ou_name].append(
-                        {"Id": account["Id"], "Name": account["Name"]}
-                    )
-
-                if account["Name"] not in self._account_name_id_map:
-                    self._account_name_id_map[account["Name"]] = account["Id"]
+                    account = AwsAccount(Id=account["Id"], Name=account["Name"])
+                    self._ou_accounts_map[ou_name].append(account)
+                self._account_name_id_map[account["Name"]] = account["Id"]
 
         # Recursively populate ou account map
         for page in self._ous_paginator.paginate(ParentId=ou_id):
