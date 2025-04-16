@@ -34,3 +34,18 @@ This solution transforms access control management from an opaque, manual proces
 The following is a list of similar solutions that have been created to address this issue:
 
 - [Manage permission sets and account assignments in AWS IAM Identity Center with a CI/CD pipeline](https://aws.amazon.com/blogs/infrastructure-and-automation/manage-permission-sets-and-account-assignments-in-aws-iam-identity-center-with-a-ci-cd-pipeline/)
+
+## 2. Stakeholders
+| Stakeholder | Reasons for Interest |
+|------------|-------------------|
+| CISOs and Security Teams | • Primary concern with overall organizational security posture<br>• Need for better visibility and control over access management<br>• Interest in reducing security risks and potential for breaches |
+| IT Operations and System Administrators | • Responsible for implementing and managing access control<br>• Benefit from streamlined processes and reduced manual work<br>• Need for better tools to manage complex multi-cloud environments |
+| Compliance Officers, Auditors, and Legal Teams | • Ensure adherence to regulatory requirements (e.g., GDPR, HIPAA, SOX)<br>• Need for auditable trails of access changes for compliance reporting<br>• Interest in reducing risk of non-compliance penalties |
+
+It's important to note that the primary users of such a solution would be the `IT Operations and System Administrators` of an organization's team as they are most likely responsible for managing access to their cloud footprints.
+
+## 3. Requirements
+
+### 3.1 Functional Requirements
+
+### 3.2 Non-functional Requirements
