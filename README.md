@@ -59,5 +59,13 @@ It's important to note that the primary users of such a solution would be the `I
 ## 3. Requirements <a id="requirements"></a>
 
 ### 3.1 Functional Requirements <a id="functional-requirements"></a>
+- Solution must offer a simple control panel with an easy to use syntax
+- Solution must produce a report of invalid syntax made by end user
+- Solution must display a changeset to the pending access control changes
 
 ### 3.2 Non-functional Requirements <a id="non-functional-requirements"></a>
+- Solution needs to offer traceability into when changes were made
+- Solution needs to offer transparency into who & why changes were made
+- Solution must allow users to observe changeset and approve them
+- Solution must always ensure control panel state is upto date if used by multiple users
+- Solution must integrate to cloud-vendor platforms using a form of keyless authentication
