@@ -40,10 +40,15 @@ from typing import TypeAlias, Literal
 from dataclasses import dataclass, field
 
 import boto3
-from mypy_boto3_organizations.client import OrganizationsClient
+from mypy_boto3_organizations import OrganizationsClient
+from mypy_boto3_organizations.paginator import (
+    ListAccountsForParentPaginator,
+    ListOrganizationalUnitsForParentPaginator,
+)
 from src.core.custom_classes import SubscriptableDataclass
 from src.core.constants import SSO_ENTITLMENTS_APP_NAME
 from src.services.aws.utils import handle_aws_exceptions
+
 
 # Data Classes
 @dataclass(kw_only=True, frozen=True)
@@ -60,6 +65,7 @@ class AwsAccount(SubscriptableDataclass):
 
 # Type hints
 OuAccountsObject: TypeAlias = list[AwsAccount]
+
 
 class AwsOrganizationsManager:
     """
@@ -120,11 +126,13 @@ class AwsOrganizationsManager:
         # Initialize AWS clients
         self._root_ou_id = root_ou_id
         self._organizations_client: OrganizationsClient = boto3.client("organizations")
-        self._accounts_pagniator = self._organizations_client.get_paginator(
-            "list_accounts_for_parent"
+        self._accounts_pagniator: ListAccountsForParentPaginator = (
+            self._organizations_client.get_paginator("list_accounts_for_parent")
         )
-        self._ous_paginator = self._organizations_client.get_paginator(
-            "list_organizational_units_for_parent"
+        self._ous_paginator: ListOrganizationalUnitsForParentPaginator = (
+            self._organizations_client.get_paginator(
+                "list_organizational_units_for_parent"
+            )
         )
 
         self._logger.info("Mapping AWS organization")
