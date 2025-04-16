@@ -22,9 +22,14 @@ import os
 import json
 from typing import Optional
 
+import pytest
 import moto
 import boto3
-import pytest
+from mypy_boto3_sso_admin import SSOAdminClient
+from mypy_boto3_organizations import OrganizationsClient
+from mypy_boto3_identitystore import IdentityStoreClient
+
+from src.services.aws.aws_organizations_manager import AwsAccount
 
 # Define constants
 MONKEYPATCH = pytest.MonkeyPatch()
@@ -115,9 +120,8 @@ def create_aws_ous_accounts(
             if parent_ou_name not in ou_accounts_map:
                 ou_accounts_map[parent_ou_name] = []
 
-            ou_accounts_map[parent_ou_name].append(
-                {"Id": account_id, "Name": organization_resource["name"]}
-            )
+            account = AwsAccount(Id=account_id, Name=organization_resource["name"])
+            ou_accounts_map[parent_ou_name].append(account)
 
     return account_name_id_map, ou_accounts_map
 
@@ -202,7 +206,7 @@ def aws_environment_setup():
 
 
 @pytest.fixture(scope="function")
-def organizations_client(aws_environment_setup: pytest.fixture) -> boto3.client:
+def organizations_client(aws_environment_setup: pytest.fixture) -> OrganizationsClient:
     """
     Create a mocked AWS Organizations client for testing.
 
@@ -217,7 +221,7 @@ def organizations_client(aws_environment_setup: pytest.fixture) -> boto3.client:
 
 
 @pytest.fixture(scope="function")
-def identity_store_client(aws_environment_setup: pytest.fixture) -> boto3.client:
+def identity_store_client(aws_environment_setup: pytest.fixture) -> IdentityStoreClient:
     """
     Create a mocked AWS Identity Store client for testing.
 
@@ -232,7 +236,7 @@ def identity_store_client(aws_environment_setup: pytest.fixture) -> boto3.client
 
 
 @pytest.fixture(scope="function")
-def sso_admin_client(aws_environment_setup: pytest.fixture) -> boto3.client:
+def sso_admin_client(aws_environment_setup: pytest.fixture) -> SSOAdminClient:
     """
     Create a mocked AWS SSO Admin client for testing.
 
