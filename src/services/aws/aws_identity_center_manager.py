@@ -33,7 +33,7 @@ Note:
 import logging
 import itertools
 from typing import Literal
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 
 import boto3
 from rich.progress import track
@@ -43,6 +43,7 @@ from src.services.aws.exceptions import (
     SSOPrincipalNotFoundError,
     AWSAccountOrOrgNotFoundError,
 )
+from src.core.custom_classes import SubscriptableDataclass
 from src.core.utils import dict_reverse_lookup, create_display_table
 from src.core.constants import (
     OU_TARGET_TYPE_LABEL,
@@ -62,35 +63,6 @@ from src.core.constants import (
     PERMISSION_SET_INVALID_ERROR_CODE,
     PERMISSION_SET_INVALID_ERROR_MESSAGE,
 )
-
-
-class SubscriptableDataclass:
-    """
-    A base class that makes dataclasses subscriptable and convertible to dictionaries.
-
-    Provides dictionary-like access to dataclass fields and conversion to dictionary format.
-    """
-
-    def __getitem__(self, key: str) -> str:
-        """
-        Enables dictionary-style access to dataclass fields.
-
-        Args:
-            key (str): The field name to access
-
-        Returns:
-            str: The value of the requested field
-        """
-        return asdict(self)[key]
-
-    def to_dict(self) -> dict[str, str]:
-        """
-        Converts the dataclass instance to a dictionary.
-
-        Returns:
-            dict[str, str]: Dictionary representation of the dataclass
-        """
-        return asdict(self)
 
 
 @dataclass(kw_only=True, frozen=True)
