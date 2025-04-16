@@ -20,7 +20,7 @@ Key Features:
 
 import os
 import json
-from typing import Optional
+from typing import Optional, Generator, List, TypedDict
 
 import pytest
 import moto
@@ -34,6 +34,17 @@ from src.services.aws.aws_organizations_manager import AwsAccount
 # Define constants
 MONKEYPATCH = pytest.MonkeyPatch()
 
+# Define classes
+class MockAwsEnvironment(TypedDict):
+    """Type definition for mock AWS environment return value."""
+    root_ou_id: str
+    identity_store_arn: str
+    identity_store_id: str
+    sso_group_name_id_map: dict[str, str]
+    sso_username_id_map: dict[str, str]
+    sso_permission_set_name_id_map: dict[str, str]
+    account_name_id_map: dict[str, str]
+    ou_accounts_map: dict[str, List[dict[str, str]]]
 
 # Define helper functions
 def create_aws_ous_accounts(
@@ -206,7 +217,7 @@ def aws_environment_setup():
 
 
 @pytest.fixture(scope="function")
-def organizations_client(aws_environment_setup: pytest.fixture) -> OrganizationsClient:
+def organizations_client(aws_environment_setup: pytest.fixture) -> Generator[OrganizationsClient, None, None]:
     """
     Create a mocked AWS Organizations client for testing.
 
@@ -221,7 +232,7 @@ def organizations_client(aws_environment_setup: pytest.fixture) -> Organizations
 
 
 @pytest.fixture(scope="function")
-def identity_store_client(aws_environment_setup: pytest.fixture) -> IdentityStoreClient:
+def identity_store_client(aws_environment_setup: pytest.fixture) -> Generator[IdentityStoreClient, None, None]:
     """
     Create a mocked AWS Identity Store client for testing.
 
@@ -236,7 +247,7 @@ def identity_store_client(aws_environment_setup: pytest.fixture) -> IdentityStor
 
 
 @pytest.fixture(scope="function")
-def sso_admin_client(aws_environment_setup: pytest.fixture) -> SSOAdminClient:
+def sso_admin_client(aws_environment_setup: pytest.fixture) -> Generator[SSOAdminClient, None, None]:
     """
     Create a mocked AWS SSO Admin client for testing.
 
@@ -252,11 +263,11 @@ def sso_admin_client(aws_environment_setup: pytest.fixture) -> SSOAdminClient:
 
 @pytest.fixture(scope="function")
 def setup_mock_aws_environment(
-    request: str,
-    organizations_client: boto3.client,
-    identity_store_client: boto3.client,
-    sso_admin_client: boto3.client,
-) -> dict:
+    request: pytest.FixtureRequest,
+    organizations_client: OrganizationsClient,
+    identity_store_client: IdentityStoreClient,
+    sso_admin_client: SSOAdminClient,
+) -> Generator[MockAwsEnvironment, None, None]:
     """
     Comprehensive fixture to set up a mock AWS testing environment.
 
