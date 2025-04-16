@@ -9,8 +9,9 @@ functionality, focusing on:
     - Account and OU exclusion mechanisms
 """
 
-import boto3
 import pytest
+from tests.unit.conftest import MockAwsEnvironment
+from mypy_boto3_organizations import OrganizationsClient
 from src.services.aws.aws_organizations_manager import AwsOrganizationsManager
 
 
@@ -20,7 +21,7 @@ from src.services.aws.aws_organizations_manager import AwsOrganizationsManager
     indirect=["setup_mock_aws_environment"],
 )
 def test_list_active_included_aws_accounts(
-    organizations_client: boto3.client, setup_mock_aws_environment: pytest.fixture
+    organizations_client: OrganizationsClient, setup_mock_aws_environment: MockAwsEnvironment
 ) -> None:
     """
     This test compares accounts retrieved via AwsOrganizationsManager against
@@ -33,7 +34,7 @@ def test_list_active_included_aws_accounts(
         4. Compares sorted lists of account names
 
     Args:
-        organizations_client (boto3.client): Mocked AWS Organizations client
+        organizations_client (OrganizationsClient): Mocked AWS Organizations client
         setup_mock_aws_environment (pytest.fixture): Fixture providing mockAWS environment setup
 
     Asserts:
