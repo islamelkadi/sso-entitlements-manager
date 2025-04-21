@@ -62,12 +62,12 @@ It's important to note that the primary users of such a solution would be the `I
 
 ## 3. Requirements <a id="requirements"></a>
 
-### 3.1 Functional Requirements <a id="functional-requirements"></a>
+### 3.1 *Functional Requirements* <a id="functional-requirements"></a>
 - Solution must offer a simple control panel with an easy to use syntax
 - Solution must produce a report of invalid syntax made by end user
 - Solution must display a changeset to the pending access control changes
 
-### 3.2 Non-functional Requirements <a id="non-functional-requirements"></a>
+### 3.2 *Non-functional Requirements* <a id="non-functional-requirements"></a>
 - Solution needs to offer traceability into when changes were made
 - Solution needs to offer transparency into who & why changes were made
 - Solution must allow users to observe changeset and approve them
@@ -81,11 +81,11 @@ It's important to note that the primary users of such a solution would be the `I
 
 ## 5.0 *Next Steps* <a id="next-steps"></a>
 
-### 5.1 Supporting Additional Cloud Vendors <a id="cloud-vendors"></a>
+### *5.1 Supporting Additional Cloud Vendors* <a id="cloud-vendors"></a>
 - Adding RBAC management support for Microsoft Azure
 - Adding RBAC management support for Google Cloud
 
-### 5.2 Supporting SIEM providers <a id="siem-providers"></a>
+### *5.2 Supporting SIEM providers* <a id="siem-providers"></a>
 - Adding support for Microsoft Sentinel
 - Adding support for OpenSearch dashboards
  
