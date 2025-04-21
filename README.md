@@ -71,3 +71,14 @@ It's important to note that the primary users of such a solution would be the `I
 - Solution must integrate to cloud-vendor platforms using a form of keyless authentication
 - Solution must allow importing of existing access control assignments into its state
 - Solution must create a guardrail to deny access control changes unless made through itself
+
+## *Next Steps* <a id="next-steps"></a>
+
+### Supporting Additional Cloud Vendors
+- Adding RBAC management support for Microsoft Azure
+- Adding RBAC management support for Google Cloud
+
+### Supporting SIEM providers
+- Adding support for Microsoft Sentinel
+- Adding support for OpenSearch dashboards
+ 
