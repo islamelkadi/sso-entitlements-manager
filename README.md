@@ -18,6 +18,9 @@
 3. [Requirements](#requirements)
     - [Functional Requirements](#functional-requirements)
     - [Non-functional Requirements](#non-functional-requirements)
+4. [Next Steps](#next-steps)
+    - [Supporting Additional Cloud Vendors](#cloud-vendors)
+    - [Supporting SIEM providers](#siem-providers)
 
 # Design Document
 
@@ -74,11 +77,11 @@ It's important to note that the primary users of such a solution would be the `I
 
 ## *Next Steps* <a id="next-steps"></a>
 
-### Supporting Additional Cloud Vendors
+### Supporting Additional Cloud Vendors <a id="cloud-vendors"></a>
 - Adding RBAC management support for Microsoft Azure
 - Adding RBAC management support for Google Cloud
 
-### Supporting SIEM providers
+### Supporting SIEM providers <a id="siem-providers"></a>
 - Adding support for Microsoft Sentinel
 - Adding support for OpenSearch dashboards
  
