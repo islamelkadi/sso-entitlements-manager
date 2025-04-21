@@ -18,7 +18,8 @@
 3. [Requirements](#requirements)
     - [Functional Requirements](#functional-requirements)
     - [Non-functional Requirements](#non-functional-requirements)
-4. [Next Steps](#next-steps)
+4. [Out of Scope](#out-of-scope)
+5. [Next Steps](#next-steps)
     - [Supporting Additional Cloud Vendors](#cloud-vendors)
     - [Supporting SIEM providers](#siem-providers)
 
@@ -75,13 +76,16 @@ It's important to note that the primary users of such a solution would be the `I
 - Solution must allow importing of existing access control assignments into its state
 - Solution must create a guardrail to deny access control changes unless made through itself
 
-## *Next Steps* <a id="next-steps"></a>
+## 4.0 *Out of Scope* <a id=out-of-scope"></a>
+- Supporting access to business applications. It's important to note that this tools is specifically built to control human identity access to cloud platforms (e.g. AWS accounts, GCP Projects, etc) and their underlying resources.
 
-### Supporting Additional Cloud Vendors <a id="cloud-vendors"></a>
+## 5.0 *Next Steps* <a id="next-steps"></a>
+
+### 5.1 Supporting Additional Cloud Vendors <a id="cloud-vendors"></a>
 - Adding RBAC management support for Microsoft Azure
 - Adding RBAC management support for Google Cloud
 
-### Supporting SIEM providers <a id="siem-providers"></a>
+### 5.2 Supporting SIEM providers <a id="siem-providers"></a>
 - Adding support for Microsoft Sentinel
 - Adding support for OpenSearch dashboards
  
