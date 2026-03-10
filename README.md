@@ -169,6 +169,9 @@ The tool supports complex access patterns:
 git clone https://github.com/permia-cloud-security/sso-manager.git
 cd sso-manager
 
+# Install development dependencies
+make install-dev
+
 # Start development environment
 make dev-env
 

@@ -10,7 +10,7 @@ functionality, focusing on:
 """
 
 import pytest
-from tests.unit.conftest import MockAwsEnvironment
+from tests.conftest import MockAwsEnvironment
 from mypy_boto3_organizations import OrganizationsClient
 from src.services.aws.aws_organizations_manager import AwsOrganizationsManager
 
