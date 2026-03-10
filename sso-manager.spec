@@ -17,7 +17,6 @@ a = Analysis(
         'rich',
         'src.core.utils',
         'src.core.constants',
-        'src.core.version',
         'src.core.access_control_file_reader',
         'src.services.aws.aws_organizations_manager',
         'src.services.aws.aws_identity_center_manager',

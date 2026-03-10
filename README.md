@@ -184,10 +184,10 @@ make build
 
 ### Build System
 
-The project uses a modern Python-native build pipeline:
+The project uses a modern Python build pipeline:
 - **Poetry**: Python dependency management and packaging
 - **PyInstaller**: Binary executable creation using `sso-manager.spec` configuration
-- **python-semantic-release**: Automated versioning and releases (pythonic alternative to Node.js semantic-release)
+- **python-semantic-release**: Automated GitHub releases and tagging
 - **GitHub Actions**: Automated CI/CD pipeline
 
 #### PyInstaller Configuration
@@ -217,12 +217,12 @@ a = Analysis(
 
 This is the standard approach for PyInstaller - while not "pure Python," it's the industry-accepted method for creating standalone Python executables.
 
-#### Pythonic Version Management
+#### Simplified Version Management
 
-The project uses pythonic version management:
-- **Primary**: `importlib.metadata.version()` for installed packages
-- **Fallback**: Reading from `pyproject.toml` during development
-- **Automation**: `python-semantic-release` for automated versioning
+The project uses a simplified approach to versioning:
+- **CLI Version**: Points users to GitHub releases page for version information
+- **GitHub Releases**: Automated releases with semantic versioning (v1.0.0, v1.1.0, etc.)
+- **No Code Complexity**: No version parsing or complex version management in the codebase
 
 ### Testing
 
