@@ -45,7 +45,6 @@ filterwarnings = "ignore"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
-
 [tool.semantic_release]
 version_toml = ["pyproject.toml:tool.poetry.version"]
 branch = "main"
@@ -70,8 +69,6 @@ commit_author = "semantic-release <semantic-release>"
 version_toml = ["pyproject.toml:tool.poetry.version"]
 branch = "main"
 changelog_file = "CHANGELOG.md"
-build_command = "poetry run pyinstaller sso-manager.spec"
-dist_path = "dist/"
 upload_to_pypi = false
 upload_to_release = true
 hvcs = "github"

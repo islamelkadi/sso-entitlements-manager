@@ -67,12 +67,6 @@ build:
 	@poetry run pyinstaller sso-manager.spec
 	@echo "$(GREEN)Binary created in dist/ directory$(NC)"
 
-.PHONY: release
-release:
-	@echo "$(GREEN)Creating semantic release$(NC)"
-	@poetry run semantic-release version
-	@echo "$(GREEN)Release created$(NC)"
-
 .PHONY: clean-build
 clean-build:
 	@echo "Cleaning build artifacts"

@@ -43,7 +43,6 @@ import pathlib
 import argparse
 from src.core.utils import setup_logging
 from src.core.constants import SSO_ENTITLMENTS_APP_NAME
-from src.core.version import get_version, get_version_info
 from src.core.access_control_file_reader import AccessControlFileReader
 from src.services.aws.aws_organizations_manager import AwsOrganizationsManager
 from src.services.aws.aws_identity_center_manager import IdentityCenterManager
@@ -146,8 +145,6 @@ def create_argument_parser():
     Returns:
         argparse.ArgumentParser: Configured argument parser with subcommands
     """
-    version_info = get_version_info()
-    
     parser = argparse.ArgumentParser(
         description="Multi-Cloud Access Management Tool - Professional infrastructure-as-code access management for AWS, Azure, and Google Cloud Platform",
         prog="sso-manager"
@@ -157,7 +154,7 @@ def create_argument_parser():
     parser.add_argument(
         '--version',
         action='version',
-        version=f"{version_info['name']} {version_info['version']} - {version_info['description']}"
+        version="sso-manager - Multi-Cloud Access Management Tool\nFor version info, see: https://github.com/permia-cloud-security/sso-manager/releases"
     )
     
     subparsers = parser.add_subparsers(
