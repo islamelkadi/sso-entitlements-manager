@@ -27,6 +27,10 @@ pytest-xdist = "3.6.1"
 pytest-cov = "6.1.1"
 pylint = "3.3.6"
 black = "25.1.0"
+python-semantic-release = "^9.0.0"
+pyinstaller = "^6.0.0"
+python-semantic-release = "^9.0.0"
+pyinstaller = "^6.0.0"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -41,3 +45,34 @@ filterwarnings = "ignore"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.semantic_release]
+version_toml = ["pyproject.toml:tool.poetry.version"]
+branch = "main"
+changelog_file = "CHANGELOG.md"
+build_command = "poetry run pyinstaller sso-manager.spec"
+dist_path = "dist/"
+upload_to_pypi = false
+upload_to_release = true
+hvcs = "github"
+commit_author = "semantic-release <semantic-release>"
+[tool.semantic_release]
+version_toml = ["pyproject.toml:tool.poetry.version"]
+branch = "main"
+changelog_file = "CHANGELOG.md"
+build_command = "poetry run pyinstaller sso-manager.spec"
+dist_path = "dist/"
+upload_to_pypi = false
+upload_to_release = true
+hvcs = "github"
+commit_author = "semantic-release <semantic-release>"
+[tool.semantic_release]
+version_toml = ["pyproject.toml:tool.poetry.version"]
+branch = "main"
+changelog_file = "CHANGELOG.md"
+build_command = "poetry run pyinstaller sso-manager.spec"
+dist_path = "dist/"
+upload_to_pypi = false
+upload_to_release = true
+hvcs = "github"
+commit_author = "semantic-release <semantic-release>"

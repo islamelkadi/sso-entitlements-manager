@@ -1,20 +1,21 @@
 """
-AWS SSO Access Management Script.
+Multi-Cloud Access Management Tool.
 
-This script processes an AWS SSO manifest file, maps AWS Organizations entities, and manages
-AWS Identity Center assignments based on RBAC (Role-Based Access Control) rules defined
-in the manifest.
+This professional CLI tool manages access assignments across AWS, Azure, and Google Cloud Platform
+using infrastructure-as-code patterns with plan/apply workflows. It processes SSO manifest files,
+maps cloud organization entities, and manages Identity Center assignments based on RBAC rules.
 
 Modules and Classes Used:
-    - AccessControlFileReader: Reads and validates the AWS SSO manifest file.
+    - AccessControlFileReader: Reads and validates the SSO manifest file.
     - AwsOrganizationsManager: Maps AWS Organizations entities such as OUs and accounts.
-    - SsoAdminManager: Manages Identity Center assignments and RBAC rules.
+    - IdentityCenterManager: Manages Identity Center assignments and RBAC rules.
 
 Key Features:
+    - Plan/apply workflow for infrastructure-as-code patterns
     - Parse SSO manifest file with RBAC rules
-    - Map AWS Organizations structure
+    - Map cloud organization structures (AWS, Azure, GCP ready)
     - Create and manage Identity Center access assignments
-    - Support for auto-approve mode
+    - Professional multi-cloud access management
     - Flexible logging configuration
 
 Environment Variables:
@@ -22,12 +23,15 @@ Environment Variables:
     - IDENTITY_STORE_ID: AWS Identity Center Store ID
     - IDENTITY_STORE_ARN: AWS Identity Center Store ARN
 
-Example:
-    # Run the script from command line
-    python sso_access_management.py --manifest-filepath ./manifest.yaml --auto-approve
+Examples:
+    # Show proposed changes without executing them
+    sso-manager plan --manifest-path ./manifest.yaml --log-level INFO
+    
+    # Execute the proposed changes
+    sso-manager apply --manifest-path ./manifest.yaml --log-level INFO
 
 Note:
-    Requires appropriate AWS IAM permissions for:
+    Requires appropriate cloud IAM permissions for:
         - AWS Organizations listing
         - AWS Identity Center management
         - Reading manifest files
@@ -39,6 +43,7 @@ import pathlib
 import argparse
 from src.core.utils import setup_logging
 from src.core.constants import SSO_ENTITLMENTS_APP_NAME
+from src.core.version import get_version, get_version_info
 from src.core.access_control_file_reader import AccessControlFileReader
 from src.services.aws.aws_organizations_manager import AwsOrganizationsManager
 from src.services.aws.aws_identity_center_manager import IdentityCenterManager
@@ -134,36 +139,120 @@ def create_sso_assignments(
     }
 
 
-if __name__ == "__main__":
-    # Initialize CLI arguments parser
-    cli_arguments_parser = argparse.ArgumentParser(
-        description="CLI tool to help manage SSO assignments access at scale"
+def create_argument_parser():
+    """
+    Create argument parser with plan/apply subcommands.
+    
+    Returns:
+        argparse.ArgumentParser: Configured argument parser with subcommands
+    """
+    version_info = get_version_info()
+    
+    parser = argparse.ArgumentParser(
+        description="Multi-Cloud Access Management Tool - Professional infrastructure-as-code access management for AWS, Azure, and Google Cloud Platform",
+        prog="sso-manager"
     )
+    
+    # Add version information
+    parser.add_argument(
+        '--version',
+        action='version',
+        version=f"{version_info['name']} {version_info['version']} - {version_info['description']}"
+    )
+    
+    subparsers = parser.add_subparsers(
+        dest='command',
+        help='Available commands for multi-cloud access management',
+        required=True
+    )
+    
+    # Plan subcommand
+    plan_parser = subparsers.add_parser(
+        'plan',
+        help='Show proposed access changes without executing them (infrastructure-as-code planning phase)'
+    )
+    add_common_arguments(plan_parser)
+    
+    # Apply subcommand
+    apply_parser = subparsers.add_parser(
+        'apply',
+        help='Execute the proposed access changes (infrastructure-as-code apply phase)'
+    )
+    add_common_arguments(apply_parser)
+    
+    return parser
 
-    # Add CLI arguments with detailed help text
-    cli_arguments_parser.add_argument(
-        "--manifest-filepath",
+
+def add_common_arguments(parser):
+    """
+    Add common arguments to subcommand parsers.
+    
+    Args:
+        parser: The subcommand parser to add arguments to
+    """
+    parser.add_argument(
+        '--manifest-path',
         required=True,
         type=pathlib.Path,
-        help="Local path to the SSO manifest file defining RBAC rules",
+        help='Path to the SSO manifest file defining RBAC rules for multi-cloud access management'
     )
-    cli_arguments_parser.add_argument(
-        "--auto-approve",
-        default=False,
-        action="store_true",
-        help="Run in simulation mode without making actual changes",
+    parser.add_argument(
+        '--log-level',
+        default='INFO',
+        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+        help='Logging verbosity level for detailed execution tracking (default: INFO)'
     )
-    cli_arguments_parser.add_argument(
-        "--log-level",
-        default="INFO",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        help="Logging verbosity level (default: INFO)",
-    )
-    cli_arguments = cli_arguments_parser.parse_args()
 
-    # Create SSO assignments
+
+def execute_plan(args):
+    """
+    Execute plan subcommand - shows proposed changes without applying them.
+    
+    This implements the infrastructure-as-code planning phase, allowing administrators
+    to review proposed access changes before execution.
+    
+    Args:
+        args: Parsed command line arguments containing manifest_path and log_level
+    """
     create_sso_assignments(
-        str(cli_arguments.manifest_filepath),
-        cli_arguments.auto_approve,
-        cli_arguments.log_level,
+        manifest_file_path=str(args.manifest_path),
+        auto_approve=False,
+        log_level=args.log_level
     )
+
+
+def execute_apply(args):
+    """
+    Execute apply subcommand - applies the proposed changes.
+    
+    This implements the infrastructure-as-code apply phase, executing the
+    access changes defined in the manifest file.
+    
+    Args:
+        args: Parsed command line arguments containing manifest_path and log_level
+    """
+    create_sso_assignments(
+        manifest_file_path=str(args.manifest_path),
+        auto_approve=True,
+        log_level=args.log_level
+    )
+
+
+def main():
+    """
+    Main CLI entry point with subcommand routing.
+    
+    Implements professional multi-cloud access management with plan/apply workflow
+    supporting AWS, Azure, and Google Cloud Platform infrastructure-as-code patterns.
+    """
+    parser = create_argument_parser()
+    args = parser.parse_args()
+    
+    if args.command == 'plan':
+        execute_plan(args)
+    elif args.command == 'apply':
+        execute_apply(args)
+
+
+if __name__ == "__main__":
+    main()

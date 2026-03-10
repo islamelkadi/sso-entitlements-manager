@@ -60,6 +60,29 @@ cfn-deploy: cfn-package
 		--capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND
 	@echo "$(GREEN)Successfully deployed CloudFormation templates$(NC)\n"
 
+# Binary build system
+.PHONY: build
+build:
+	@echo "$(GREEN)Building standalone executable$(NC)"
+	@poetry run pyinstaller sso-manager.spec
+	@echo "$(GREEN)Binary created in dist/ directory$(NC)"
+
+.PHONY: release
+release:
+	@echo "$(GREEN)Creating semantic release$(NC)"
+	@poetry run semantic-release version
+	@echo "$(GREEN)Release created$(NC)"
+
+.PHONY: clean-build
+clean-build:
+	@echo "Cleaning build artifacts"
+	@rm -rf build/ dist/ *.spec __pycache__/
+
+.PHONY: install-dev
+install-dev:
+	@echo "Installing development dependencies"
+	@poetry install --with dev
+
 # Remove cached python folders
 .PHONY: cleanup
 cleanup:
@@ -68,3 +91,7 @@ cleanup:
 
 	@echo "Remove Poetry artifacts"
 	@rm -rf .pytest_cache .coverage coverage.xml
+
+.PHONY: clean-all
+clean-all: cleanup clean-build
+	@echo "All artifacts cleaned"

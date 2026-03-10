@@ -1,39 +1,339 @@
-<!-- Pytest Coverage Comment:Begin -->
-<!-- Pytest Coverage Comment:End -->
-
+[![Build Status](https://github.com/permia-cloud-security/sso-manager/actions/workflows/release.yml/badge.svg)](https://github.com/permia-cloud-security/sso-manager/actions/workflows/release.yml)
 [![Testing](https://github.com/permia-cloud-security/sso-manager/actions/workflows/testing.yaml/badge.svg)](https://github.com/permia-cloud-security/sso-manager/actions/workflows/testing.yaml)
-
 [![Linting](https://github.com/permia-cloud-security/sso-manager/actions/workflows/linting.yaml/badge.svg)](https://github.com/permia-cloud-security/sso-manager/actions/workflows/linting.yaml)
-
 [![Scanning](https://github.com/permia-cloud-security/sso-manager/actions/workflows/scanning.yaml/badge.svg)](https://github.com/permia-cloud-security/sso-manager/actions/workflows/scanning.yaml)
+[![Latest Release](https://img.shields.io/github/v/release/permia-cloud-security/sso-manager)](https://github.com/permia-cloud-security/sso-manager/releases)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-# Table of contents
+# SSO Manager - Multi-Cloud Access Management Tool
 
-1. [Introduction](#introduction)
-    - [Background](#background)
-    - [Problem Statement](#problem-statement)
-    - [Proposed Solution](#proposed-solution)
-    - [Related Work](#related-work)
-2. [Stakeholders](#stakeholders)
-3. [Requirements](#requirements)
-    - [Functional Requirements](#functional-requirements)
-    - [Non-functional Requirements](#non-functional-requirements)
-4. [Out of Scope](#out-of-scope)
-5. [Next Steps](#next-steps)
-    - [Supporting Additional Cloud Vendors](#cloud-vendors)
-    - [Supporting SIEM providers](#siem-providers)
+> **Professional infrastructure-as-code access management for AWS, Azure, and Google Cloud Platform**
 
-# Design Document
+A modern CLI tool that transforms multi-cloud access control management using infrastructure-as-code patterns with plan/apply workflows. Built for enterprise environments requiring transparency, traceability, and automated access management across cloud platforms.
 
-## 1. *Introduction* <a id="introduction"></a>
+## 🚀 Quick Start
 
-### 1.1 *Background* <a id="background"></a>
+### Installation
+
+#### Binary Download (Recommended)
+Download the latest binary for your platform from the [releases page](https://github.com/permia-cloud-security/sso-manager/releases):
+
+```bash
+# Linux
+curl -L https://github.com/permia-cloud-security/sso-manager/releases/latest/download/sso-manager-linux -o sso-manager
+chmod +x sso-manager
+
+# macOS
+curl -L https://github.com/permia-cloud-security/sso-manager/releases/latest/download/sso-manager-macos -o sso-manager
+chmod +x sso-manager
+
+# Windows
+# Download sso-manager-windows.exe from releases page
+```
+
+#### From Source
+```bash
+git clone https://github.com/permia-cloud-security/sso-manager.git
+cd sso-manager
+make build
+```
+
+### Usage
+
+The tool follows infrastructure-as-code patterns with plan/apply commands:
+
+```bash
+# Show proposed access changes without executing them
+sso-manager plan --manifest-path ./access-rules.yaml --log-level INFO
+
+# Execute the proposed access changes
+sso-manager apply --manifest-path ./access-rules.yaml --log-level INFO
+```
+
+### Environment Setup
+
+Configure required environment variables:
+
+```bash
+export ROOT_OU_ID="r-xxxxxxxxxx"           # AWS Organizations Root OU ID
+export IDENTITY_STORE_ID="d-xxxxxxxxxx"    # AWS Identity Center Store ID  
+export IDENTITY_STORE_ARN="arn:aws:sso:::instance/ssoins-xxxxxxxxxx"  # Identity Center ARN
+```
+
+## 📋 Table of Contents
+
+1. [Overview](#overview)
+2. [Key Features](#key-features)
+3. [Architecture](#architecture)
+4. [Configuration](#configuration)
+5. [Development](#development)
+6. [Roadmap](#roadmap)
+7. [Contributing](#contributing)
+
+## 🎯 Overview
+
+### Background
+
+In today's multi-cloud environment, organizations face significant challenges in managing access control at scale. With numerous employees requiring access across AWS, Azure, and Google Cloud Platform through centralized authentication systems, the complexity of permission management has increased exponentially.
+
+This challenge is particularly critical given the current threat landscape, where broken access control consistently ranks as the top security vulnerability in the OWASP Top 10. Traditional approaches lack transparency and traceability, leaving organizations vulnerable to security risks and compliance issues.
+
+### Problem Statement
+
+Current multi-cloud access control management lacks:
+- **Transparency**: No clear visibility into who made access decisions and why
+- **Traceability**: Limited audit trails for access provisioning changes  
+- **Reproducibility**: Manual processes that can't be easily replicated
+- **Compliance**: Difficulty meeting regulatory requirements for access management
+
+### Solution Approach
+
+SSO Manager addresses these challenges through:
+
+1. **Infrastructure-as-Code**: Declarative YAML configuration for all access rules
+2. **Plan/Apply Workflow**: Review changes before execution, similar to Terraform
+3. **Git-Based Traceability**: Full version control and audit trails
+4. **Multi-Cloud Ready**: Designed for AWS, Azure, and GCP expansion
+5. **Enterprise Integration**: Webhook support for existing workflows
+
+## 🌟 Key Features
+
+- **Plan/Apply Commands**: Infrastructure-as-code workflow for access management
+- **Multi-Cloud Architecture**: Currently supports AWS, designed for Azure and GCP
+- **Professional CLI**: Enterprise-grade command-line interface with comprehensive help
+- **Binary Distribution**: Standalone executables for all major platforms
+- **Automated Releases**: Semantic versioning with automated GitHub releases
+- **Comprehensive Logging**: Configurable log levels for detailed execution tracking
+- **Environment Integration**: Seamless integration with existing cloud environments
+
+## 🏗️ Architecture
+
+### Current Implementation (AWS)
+```
+Manifest File → SSO Manager → AWS Organizations → Identity Center Assignments
+     ↓              ↓              ↓                    ↓
+  YAML Rules    Plan/Apply    Account Mapping    Permission Sets
+```
+
+### Multi-Cloud Vision
+```
+                    ┌─── AWS Organizations ───┐
+Manifest File ──→ SSO Manager ──┼─── Azure AD ──────────┼──→ Unified Access Control
+                    └─── GCP IAM ─────────────┘
+```
+
+## ⚙️ Configuration
+
+### Manifest File Structure
+
+Create a YAML manifest file defining your access rules:
+
+```yaml
+rules:
+  - rule_type: "allow"
+    principal_type: "user"
+    principal_name: "john.doe@company.com"
+    permission_set_name: "ReadOnlyAccess"
+    target_type: "account"
+    target_name: "production-account"
+    
+  - rule_type: "allow"
+    principal_type: "group"
+    principal_name: "DevOps-Team"
+    permission_set_name: "PowerUserAccess"
+    target_type: "ou"
+    target_name: "development-ou"
+```
+
+### Advanced Configuration
+
+The tool supports complex access patterns:
+- User and group-based assignments
+- Account and Organizational Unit targeting
+- Multiple permission set mappings
+- Conditional access rules
+
+## 🛠️ Development
+
+### Prerequisites
+
+- Python 3.13+
+- Poetry for dependency management
+- Docker for containerized development
+- Make for build automation
+
+### Development Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/permia-cloud-security/sso-manager.git
+cd sso-manager
+
+# Start development environment
+make dev-env
+
+# Run tests
+make unittest
+
+# Format and lint code
+make format
+
+# Build binary
+make build
+```
+
+### Build System
+
+The project uses a modern Python-native build pipeline:
+- **Poetry**: Python dependency management and packaging
+- **PyInstaller**: Binary executable creation using `sso-manager.spec` configuration
+- **python-semantic-release**: Automated versioning and releases (pythonic alternative to Node.js semantic-release)
+- **GitHub Actions**: Automated CI/CD pipeline
+
+#### PyInstaller Configuration
+
+The `sso-manager.spec` file is PyInstaller's configuration file that defines how to build the standalone executable:
+
+```python
+# sso-manager.spec - PyInstaller build configuration
+a = Analysis(
+    ['src/cli/sso.py'],           # Entry point script
+    pathex=['.'],                 # Search paths
+    datas=[                       # Include data files
+        ('src/schemas/*.json', 'schemas'),
+    ],
+    hiddenimports=[               # Modules not auto-detected
+        'boto3', 'botocore', 'yaml', 'jsonschema', 'rich'
+    ],
+    # ... other configuration
+)
+```
+
+**What the .spec file does:**
+- **Entry Point**: Specifies `src/cli/sso.py` as the main script
+- **Dependencies**: Lists hidden imports that PyInstaller might miss
+- **Data Files**: Includes JSON schema files needed at runtime
+- **Build Options**: Configures single-file executable creation
+
+This is the standard approach for PyInstaller - while not "pure Python," it's the industry-accepted method for creating standalone Python executables.
+
+#### Pythonic Version Management
+
+The project uses pythonic version management:
+- **Primary**: `importlib.metadata.version()` for installed packages
+- **Fallback**: Reading from `pyproject.toml` during development
+- **Automation**: `python-semantic-release` for automated versioning
+
+### Testing
+
+```bash
+# Run unit tests with coverage
+make unittest
+
+# Run linting
+make format
+
+# Clean build artifacts
+make clean-all
+```
+
+## 🗺️ Roadmap
+
+### Phase 1: AWS Foundation ✅
+- [x] AWS Organizations integration
+- [x] Identity Center management
+- [x] Plan/apply workflow
+- [x] Binary distribution
+
+### Phase 2: Multi-Cloud Expansion 🚧
+- [ ] **Microsoft Azure Integration**
+  - Azure Active Directory support
+  - Azure subscription management
+  - Role-based access control (RBAC)
+  
+- [ ] **Google Cloud Platform Integration**
+  - GCP IAM integration
+  - Project and organization management
+  - Service account automation
+
+### Phase 3: Enterprise Features 📋
+- [ ] **Advanced Workflows**
+  - Approval workflows
+  - Conditional access policies
+  - Time-based access controls
+  
+- [ ] **Integration Ecosystem**
+  - SIEM integration (Sentinel, Splunk)
+  - Webhook notifications
+  - API endpoints for automation
+
+### Phase 4: Security & Compliance 🔒
+- [ ] **Enhanced Security**
+  - Policy validation
+  - Compliance reporting
+  - Risk assessment integration
+  
+- [ ] **Audit & Governance**
+  - Advanced audit trails
+  - Compliance dashboards
+  - Automated compliance checks
+
+## 🤝 Contributing
+
+We welcome contributions! This project demonstrates:
+
+- **Modern Python Development**: Poetry, type hints, comprehensive testing
+- **Professional CLI Design**: Argparse, rich help text, error handling
+- **DevOps Best Practices**: Docker, GitHub Actions, automated releases
+- **Enterprise Architecture**: Multi-cloud design, scalable patterns
+
+### Development Guidelines
+
+1. **Code Quality**: Follow PEP 8, use type hints, maintain test coverage
+2. **Documentation**: Update README and docstrings for new features
+3. **Testing**: Add tests for new functionality
+4. **Commits**: Use conventional commit messages for semantic releases
+
+### Getting Started
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes with tests
+4. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🏢 Professional Context
+
+This project showcases enterprise-grade software development practices:
+
+- **Infrastructure-as-Code**: Modern DevOps patterns and workflows
+- **Multi-Cloud Architecture**: Scalable design for cloud-native environments  
+- **Professional CLI**: Enterprise-quality command-line interface
+- **Automated Operations**: CI/CD, semantic releases, binary distribution
+- **Security Focus**: Access control, audit trails, compliance readiness
+
+Perfect for demonstrating skills in cloud security, DevOps automation, and enterprise software development.
+
+---
+
+## Legacy Documentation
+
+The following sections contain the original design documentation and requirements analysis.
+
+## Legacy Design Documentation
+
+### 1. *Introduction* <a id="introduction"></a>
+
+#### 1.1 *Background* <a id="background"></a>
 In today's multi-cloud environment, organizations face significant challenges in managing access control at scale, particularly when implementing Single Sign-On (SSO) solutions. With numerous employees requiring access across various cloud vendors through a centralized authentication system, the complexity of permission management has increased exponentially. This challenge is particularly critical given the current threat landscape, where broken access control consistently ranks as the top security vulnerability in the OWASP Top 10. Many organizations rely on system administrators to create IAM roles and policies, granting access to users and groups typically synchronized from their SSO identity providers. However, this process, often executed through non-reproducible means such as manual console operations or CLI commands, lacks transparency and traceability, leaving organizations vulnerable to security risks and compliance issues, despite the enhanced security that SSO provides.
 
-### 1.2 *Problem Statement* <a id="problem-statement"></a>
+#### 1.2 *Problem Statement* <a id="problem-statement"></a>
 The current approach to managing multi-cloud access control through SSO lacks the necessary transparency, traceability, and audibility. While SSO simplifies user authentication, organizations still struggle to answer fundamental questions about access provisioning within their cloud environments, including the rationale behind access decisions, the individuals responsible for granting access, and the timing of access provisions. This lack of visibility, transparency, traceability and non-reproducibility, even in SSO-enabled environments, not only hampers effective security management but also exposes organizations to potential compliance violations and increased security risks, undermining some of the key benefits that SSO aims to provide.
 
-### 1.3 *Proposed Solution* <a id="proposed-solution"></a>
+#### 1.3 *Proposed Solution* <a id="proposed-solution"></a>
 To address the challenges of traceability, transparency, and reproducibility in multi-cloud access control management, we propose a git-based approach with a centralized configuration file. This solution offers:
 
 1. **Unified Control**: A single control panel for managing access across multiple cloud vendors, streamlining the process and reducing complexity.
@@ -46,28 +346,26 @@ To address the challenges of traceability, transparency, and reproducibility in 
 
 This solution transforms access control management from an opaque, manual process into a transparent, traceable, and automated system, significantly reducing security risks and improving operational efficiency in multi-cloud environments.
 
-### 1.4 *Related Work* <a id="related-work"></a>
+#### 1.4 *Related Work* <a id="related-work"></a>
 The following is a list of similar solutions that have been created to address this issue:
 
 - [Manage permission sets and account assignments in AWS IAM Identity Center with a CI/CD pipeline](https://aws.amazon.com/blogs/infrastructure-and-automation/manage-permission-sets-and-account-assignments-in-aws-iam-identity-center-with-a-ci-cd-pipeline/)
-
-## 2. Stakeholders <a id="stakeholders"></a>
+### 2. Stakeholders <a id="stakeholders"></a>
 | Stakeholder | Reasons for Interest |
-|------------|-------------------|
 | CISOs and Security Teams | • Primary concern with overall organizational security posture<br>• Need for better visibility and control over access management<br>• Interest in reducing security risks and potential for breaches |
 | IT Operations and System Administrators | • Responsible for implementing and managing access control<br>• Benefit from streamlined processes and reduced manual work<br>• Need for better tools to manage complex multi-cloud environments |
 | Compliance Officers, Auditors, and Legal Teams | • Ensure adherence to regulatory requirements (e.g., GDPR, HIPAA, SOX)<br>• Need for auditable trails of access changes for compliance reporting<br>• Interest in reducing risk of non-compliance penalties |
 
 It's important to note that the primary users of such a solution would be the `IT Operations and System Administrators` of an organization's team as they are most likely responsible for managing access to their cloud footprints.
 
-## 3. Requirements <a id="requirements"></a>
+### 3. Requirements <a id="requirements"></a>
 
-### 3.1 *Functional Requirements* <a id="functional-requirements"></a>
+#### 3.1 *Functional Requirements* <a id="functional-requirements"></a>
 - Solution must offer a simple control panel with an easy to use syntax
 - Solution must produce a report of invalid syntax made by end user
 - Solution must display a changeset to the pending access control changes
 
-### 3.2 *Non-functional Requirements* <a id="non-functional-requirements"></a>
+#### 3.2 *Non-functional Requirements* <a id="non-functional-requirements"></a>
 - Solution needs to offer traceability into when changes were made
 - Solution needs to offer transparency into who & why changes were made
 - Solution must allow users to observe changeset and approve them
@@ -76,16 +374,16 @@ It's important to note that the primary users of such a solution would be the `I
 - Solution must allow importing of existing access control assignments into its state
 - Solution must create a guardrail to deny access control changes unless made through itself
 
-## 4.0 *Out of Scope* <a id=out-of-scope"></a>
+### 4.0 *Out of Scope* <a id="out-of-scope"></a>
 - Supporting access to business applications. It's important to note that this tools is specifically built to control human identity access to cloud platforms (e.g. AWS accounts, GCP Projects, etc) and their underlying resources.
 
-## 5.0 *Next Steps* <a id="next-steps"></a>
+### 5.0 *Next Steps* <a id="next-steps"></a>
 
-### *5.1 Supporting Additional Cloud Vendors* <a id="cloud-vendors"></a>
+#### *5.1 Supporting Additional Cloud Vendors* <a id="cloud-vendors"></a>
 - Adding RBAC management support for Microsoft Azure
 - Adding RBAC management support for Google Cloud
 
-### *5.2 Supporting SIEM providers* <a id="siem-providers"></a>
+#### *5.2 Supporting SIEM providers* <a id="siem-providers"></a>
 - Adding support for Microsoft Sentinel
 - Adding support for OpenSearch dashboards
  
