@@ -45,26 +45,7 @@ filterwarnings = "ignore"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
-[tool.semantic_release]
-version_toml = ["pyproject.toml:tool.poetry.version"]
-branch = "main"
-changelog_file = "CHANGELOG.md"
-build_command = "poetry run pyinstaller sso-manager.spec"
-dist_path = "dist/"
-upload_to_pypi = false
-upload_to_release = true
-hvcs = "github"
-commit_author = "semantic-release <semantic-release>"
-[tool.semantic_release]
-version_toml = ["pyproject.toml:tool.poetry.version"]
-branch = "main"
-changelog_file = "CHANGELOG.md"
-build_command = "poetry run pyinstaller sso-manager.spec"
-dist_path = "dist/"
-upload_to_pypi = false
-upload_to_release = true
-hvcs = "github"
-commit_author = "semantic-release <semantic-release>"
+
 [tool.semantic_release]
 version_toml = ["pyproject.toml:tool.poetry.version"]
 branch = "main"
@@ -73,3 +54,15 @@ upload_to_pypi = false
 upload_to_release = true
 hvcs = "github"
 commit_author = "semantic-release <semantic-release>"
+# Only create releases for conventional commits that warrant a version bump
+major_on_zero = true
+allow_zero_version = false
+
+[tool.semantic_release.commit_parser_options]
+allowed_tags = ["build", "chore", "ci", "docs", "feat", "fix", "perf", "style", "refactor", "test"]
+minor_tags = ["feat"]
+patch_tags = ["fix", "perf"]
+
+[tool.semantic_release.branches.main]
+match = "main"
+prerelease = false
