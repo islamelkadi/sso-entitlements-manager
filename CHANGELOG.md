@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/islamelkadi/sso-entitlements-manager/compare/v1.0.1...v1.0.2) (2026-03-11)
+
+
+### Bug Fixes
+
+* add default AWS region and fix import order ([5a7b7fd](https://github.com/islamelkadi/sso-entitlements-manager/commit/5a7b7fd5a5569ba3a3236d74976f849b082c2b34))
+
 ## [1.0.1](https://github.com/islamelkadi/sso-entitlements-manager/compare/v1.0.0...v1.0.1) (2026-03-11)
 
 
