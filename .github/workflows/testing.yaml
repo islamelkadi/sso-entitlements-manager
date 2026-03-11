@@ -36,6 +36,14 @@ jobs:
       - name: Generate coverage report
         run: make unittest
 
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
       - name: Pytest coverage comment
         uses: MishaKav/pytest-coverage-comment@main
         with:

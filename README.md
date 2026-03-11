@@ -1,6 +1,7 @@
 [![Testing](https://github.com/permia-cloud-security/sso-manager/actions/workflows/testing.yaml/badge.svg)](https://github.com/permia-cloud-security/sso-manager/actions/workflows/testing.yaml)
 [![Linting](https://github.com/permia-cloud-security/sso-manager/actions/workflows/linting.yaml/badge.svg)](https://github.com/permia-cloud-security/sso-manager/actions/workflows/linting.yaml)
 [![Python Security Scan (SAST)](https://github.com/permia-cloud-security/sso-manager/actions/workflows/scanning.yaml/badge.svg)](https://github.com/permia-cloud-security/sso-manager/actions/workflows/scanning.yaml)
+[![Coverage](https://codecov.io/gh/permia-cloud-security/sso-manager/branch/main/graph/badge.svg)](https://codecov.io/gh/permia-cloud-security/sso-manager)
 
 # SSO Manager - Multi-Cloud Access Management Tool
 
