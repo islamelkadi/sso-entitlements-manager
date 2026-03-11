@@ -1,9 +1,6 @@
-[![Build Status](https://github.com/permia-cloud-security/sso-manager/actions/workflows/release.yml/badge.svg)](https://github.com/permia-cloud-security/sso-manager/actions/workflows/release.yml)
 [![Testing](https://github.com/permia-cloud-security/sso-manager/actions/workflows/testing.yaml/badge.svg)](https://github.com/permia-cloud-security/sso-manager/actions/workflows/testing.yaml)
 [![Linting](https://github.com/permia-cloud-security/sso-manager/actions/workflows/linting.yaml/badge.svg)](https://github.com/permia-cloud-security/sso-manager/actions/workflows/linting.yaml)
-[![Scanning](https://github.com/permia-cloud-security/sso-manager/actions/workflows/scanning.yaml/badge.svg)](https://github.com/permia-cloud-security/sso-manager/actions/workflows/scanning.yaml)
-[![Latest Release](https://img.shields.io/github/v/release/permia-cloud-security/sso-manager)](https://github.com/permia-cloud-security/sso-manager/releases)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python Security Scan (SAST)](https://github.com/permia-cloud-security/sso-manager/actions/workflows/scanning.yaml/badge.svg)](https://github.com/permia-cloud-security/sso-manager/actions/workflows/scanning.yaml)
 
 # SSO Manager - Multi-Cloud Access Management Tool
 

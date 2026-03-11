@@ -1,9 +1,6 @@
 version: 2
 updates:
-
   - package-ecosystem: "pip"
-    directory: "/**"
+    directory: "/"
     schedule:
-      time:     "03:00"
-      timezone: "Canada/Eastern"
-      interval: "daily"
+      interval: "monthly"

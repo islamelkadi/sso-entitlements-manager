@@ -1,10 +1,11 @@
 
-name: Scanning
+name: Python Security Scan (SAST)
 
 on:
-  # schedule:
-  #   - cron: "0 3 * * *"
-
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
   workflow_dispatch:
 
 permissions:
@@ -13,16 +14,12 @@ permissions:
   security-events: write
 
 jobs:
-
   security-scans:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-
-      - name: SAST - CFN Code
-        uses: stelligent/cfn_nag@v0.8.10
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v2
