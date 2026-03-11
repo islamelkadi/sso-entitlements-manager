@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/islamelkadi/sso-entitlements-manager/compare/v1.0.0...v1.0.1) (2026-03-11)
+
+
+### Bug Fixes
+
+* use poetry run for makefile commands in CI ([1bda5db](https://github.com/islamelkadi/sso-entitlements-manager/commit/1bda5db5e4644b868c1a46dd3af92107ad4fefa4))
+
 ## 1.0.0 (2026-03-11)
 
 
