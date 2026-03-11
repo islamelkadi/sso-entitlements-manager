@@ -23,16 +23,16 @@ dev-env:
 .PHONY: unittest
 unittest:
 	@echo "Generating coverage report"
-	@pytest --cov=tests/ --cov-report=xml:coverage.xml
+	@poetry run pytest --cov=tests/ --cov-report=xml:coverage.xml
 
 # Formatting & Linting
 .PHONY: format
 format:
 	@echo "Running python formatting"
-	@black $(sources) --safe
+	@poetry run black $(sources) --safe
 
 	@echo "Running python linter"
-	@pylint $(sources)
+	@poetry run pylint $(sources)
 
 # Binary build system
 .PHONY: build
