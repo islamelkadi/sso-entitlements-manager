@@ -1,3 +1,10 @@
+## [1.0.3](https://github.com/islamelkadi/sso-entitlements-manager/compare/v1.0.2...v1.0.3) (2026-03-11)
+
+
+### Bug Fixes
+
+* add missing workflow permissions ([50241aa](https://github.com/islamelkadi/sso-entitlements-manager/commit/50241aa55efb3e8a31af0d6aa9efc2739d7384c9))
+
 ## [1.0.2](https://github.com/islamelkadi/sso-entitlements-manager/compare/v1.0.1...v1.0.2) (2026-03-11)
 
 
