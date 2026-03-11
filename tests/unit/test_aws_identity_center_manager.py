@@ -48,7 +48,6 @@ def test_list_active_included_aws_accounts(
             - Account names are unique and consistent across retrieval methods
     """
     # Arrange
-    root_ou_id = setup_mock_aws_environment["root_ou_id"]
     py_aws_organizations = AwsOrganizationsManager()
 
     # Act
