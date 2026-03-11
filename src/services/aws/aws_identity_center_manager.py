@@ -30,6 +30,7 @@ Note:
     Identity Center access and assignments.
 """
 
+import os
 import logging
 import itertools
 from typing import Literal
@@ -146,20 +147,34 @@ class IdentityCenterManager:
             (OUs, accounts, groups, users, and permission sets).
     """
 
-    def __init__(self, identity_store_arn: str, identity_store_id: str) -> None:
+    def __init__(self) -> None:
         """
         Initialize the AWS Identity Center manager and set up SSO environment mapping.
 
-        Args:
-            identity_store_arn (str): The Amazon Resource Name (ARN) of the Identity Store.
-            identity_store_id (str): The unique identifier for the Identity Store.
+        The Identity Store ARN and ID are automatically discovered from AWS Identity Center.
 
         Note:
             This method automatically maps the SSO environment and lists current
-            account assignments during instantiation.
+            account assignments during instantiation. AWS resources are auto-discovered.
         """
-        self._identity_store_arn = identity_store_arn
-        self._identity_store_id = identity_store_id
+        # Define logger first
+        self._logger: logging.Logger = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
+
+        # Define boto3 clients
+        self._sso_admin_client: SSOAdminClient = boto3.client("sso-admin")
+        self._identity_store_client: IdentityStoreClient = boto3.client("identitystore")
+
+        # Auto-discover Identity Center details
+        self._logger.info("Auto-discovering Identity Center details...")
+
+        response = self._sso_admin_client.list_instances()
+        instance = response['Instances'][0]
+
+        self._identity_store_id = instance['IdentityStoreId']
+        self._identity_store_arn = instance['InstanceArn']  # This is the SSO instance ARN we need
+        
+        self._logger.info(f"Discovered Identity Store ID: {self._identity_store_id}")
+        self._logger.info(f"Discovered SSO Instance ARN: {self._identity_store_arn}")
 
         self.sso_users: dict[str, str] = {}
         self.sso_groups: dict[str, str] = {}
@@ -172,10 +187,6 @@ class IdentityCenterManager:
         self.ou_accounts_map = {}
         self.account_name_id_map = {}
         self.is_auto_approved: bool = False
-
-        # Define boto3 clients
-        self._sso_admin_client: SSOAdminClient = boto3.client("sso-admin")
-        self._identity_store_client: IdentityStoreClient = boto3.client("identitystore")
 
         # Define AWS client API paginators
         self._list_groups_paginator: ListGroupsPaginator = (
@@ -197,9 +208,6 @@ class IdentityCenterManager:
 
         # Define invalid report variables
         self._invalid_manifest_file_rules: list[InvalidAssignmentRule] = []
-
-        # Define logger
-        self._logger: logging.Logger = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
 
         # Setup workflow
         self._map_sso_environment()

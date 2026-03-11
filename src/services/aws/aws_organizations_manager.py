@@ -18,8 +18,8 @@ Key Features:
     - Comprehensive error handling
 
 Example:
-    # Initialize the manager with a root OU ID
-    org_manager = AwsOrganizationsManager('ou-root-123abc')
+    # Initialize the manager (auto-discovers root OU ID)
+    org_manager = AwsOrganizationsManager()
 
     # Access the full OU to accounts mapping
     ou_accounts = org_manager.ou_accounts_map
@@ -35,6 +35,7 @@ Note:
     - organizations:DescribeOrganizationalUnit
 """
 
+import os
 import logging
 from typing import TypeAlias, Literal
 from dataclasses import dataclass, field
@@ -108,23 +109,21 @@ class AwsOrganizationsManager:
                 }
     """
 
-    def __init__(self, root_ou_id: str) -> None:
+    def __init__(self) -> None:
         """
         Initialize the AWS Organizations manager and generate the organization map.
 
-        Args:
-            root_ou_id (str): The root Organizational Unit (OU) ID to start mapping from.
+        The root OU ID is automatically discovered from AWS Organizations.
 
         Note:
             This method automatically initiates the organization mapping process
-            during instantiation.
+            during instantiation. AWS resources are auto-discovered.
         """
         self._ou_accounts_map: dict[str, AwsAccount] = {}
         self._account_name_id_map: dict[str, str] = {}
         self._logger: logging.Logger = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
 
         # Initialize AWS clients
-        self._root_ou_id = root_ou_id
         self._organizations_client: OrganizationsClient = boto3.client("organizations")
         self._accounts_pagniator: ListAccountsForParentPaginator = (
             self._organizations_client.get_paginator("list_accounts_for_parent")
@@ -134,6 +133,12 @@ class AwsOrganizationsManager:
                 "list_organizational_units_for_parent"
             )
         )
+
+        # Auto-discover root OU ID
+        self._logger.info("Auto-discovering root OU ID...")
+        response = self._organizations_client.list_roots()
+        self._root_ou_id = response['Roots'][0]['Id']
+        self._logger.info(f"Discovered root OU ID: {self._root_ou_id}")
 
         self._logger.info("Mapping AWS organization")
         self._generate_aws_organization_map(self._root_ou_id)

@@ -48,15 +48,17 @@ sso-manager plan --manifest-path ./access-rules.yaml --log-level INFO
 sso-manager apply --manifest-path ./access-rules.yaml --log-level INFO
 ```
 
-### Environment Setup
+### AWS Setup
 
-Configure required environment variables:
+The tool automatically discovers required AWS resources:
+- **AWS Organizations Root OU ID** - Auto-discovered from your AWS Organizations setup
+- **AWS Identity Center Details** - Auto-discovered from your Identity Center instance
 
-```bash
-export ROOT_OU_ID="r-xxxxxxxxxx"           # AWS Organizations Root OU ID
-export IDENTITY_STORE_ID="d-xxxxxxxxxx"    # AWS Identity Center Store ID  
-export IDENTITY_STORE_ARN="arn:aws:sso:::instance/ssoins-xxxxxxxxxx"  # Identity Center ARN
-```
+**Prerequisites:**
+- AWS CLI configured with appropriate credentials
+- AWS Organizations enabled in your account
+- AWS Identity Center (SSO) enabled and configured
+- Required IAM permissions for Organizations and Identity Center access
 
 ## 📋 Table of Contents
 
@@ -112,13 +114,14 @@ Similar solutions addressing multi-cloud access management:
 
 ## 🌟 Key Features
 
+- **Auto-Discovery**: Automatically discovers AWS Organizations and Identity Center resources
 - **Plan/Apply Commands**: Infrastructure-as-code workflow for access management
 - **Multi-Cloud Architecture**: Currently supports AWS, designed for Azure and GCP
 - **Professional CLI**: Enterprise-grade command-line interface with comprehensive help
 - **Binary Distribution**: Standalone executables for all major platforms
 - **Automated Releases**: Semantic versioning with automated GitHub releases
 - **Comprehensive Logging**: Configurable log levels for detailed execution tracking
-- **Environment Integration**: Seamless integration with existing cloud environments
+- **Zero Configuration**: No manual environment variable setup required
 
 ## 🏗️ Architecture
 
@@ -126,7 +129,8 @@ Similar solutions addressing multi-cloud access management:
 ```
 Manifest File → SSO Manager → AWS Organizations → Identity Center Assignments
      ↓              ↓              ↓                    ↓
-  YAML Rules    Plan/Apply    Account Mapping    Permission Sets
+  YAML Rules    Plan/Apply    Auto-Discovery      Permission Sets
+                              Account Mapping
 ```
 
 ### Multi-Cloud Vision
@@ -261,6 +265,7 @@ make clean-all
 - [x] Identity Center management
 - [x] Plan/apply workflow
 - [x] Binary distribution
+- [x] Auto-discovery of AWS resources
 
 ### Phase 2: Multi-Cloud Expansion 🚧
 - [ ] **Microsoft Azure Integration**
@@ -290,5 +295,6 @@ This project showcases enterprise-grade software development practices:
 - **Professional CLI**: Enterprise-quality command-line interface
 - **Automated Operations**: CI/CD, semantic releases, binary distribution
 - **Security Focus**: Access control, audit trails, compliance readiness
+- **Auto-Discovery**: Zero-configuration setup with intelligent AWS resource detection
 
 Perfect for demonstrating skills in cloud security, DevOps automation, and enterprise software development.
