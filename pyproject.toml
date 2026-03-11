@@ -27,7 +27,6 @@ pytest-xdist = "3.6.1"
 pytest-cov = "6.1.1"
 pylint = "3.3.6"
 black = "25.1.0"
-python-semantic-release = "^9.0.0"
 pyinstaller = "^6.0.0"
 
 [tool.pytest.ini_options]
@@ -43,24 +42,3 @@ filterwarnings = "ignore"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
-
-[tool.semantic_release]
-version_toml = ["pyproject.toml:tool.poetry.version"]
-branch = "main"
-changelog_file = "CHANGELOG.md"
-upload_to_pypi = false
-upload_to_release = true
-hvcs = "github"
-commit_author = "semantic-release <semantic-release>"
-# Only create releases for conventional commits that warrant a version bump
-major_on_zero = true
-allow_zero_version = false
-
-[tool.semantic_release.commit_parser_options]
-allowed_tags = ["feat", "fix", "perf"]
-minor_tags = ["feat"]
-patch_tags = ["fix", "perf"]
-
-[tool.semantic_release.branches.main]
-match = "main"
-prerelease = false
