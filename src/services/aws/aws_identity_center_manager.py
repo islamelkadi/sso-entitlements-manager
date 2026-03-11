@@ -168,11 +168,13 @@ class IdentityCenterManager:
         self._logger.info("Auto-discovering Identity Center details...")
 
         response = self._sso_admin_client.list_instances()
-        instance = response['Instances'][0]
+        instance = response["Instances"][0]
 
-        self._identity_store_id = instance['IdentityStoreId']
-        self._identity_store_arn = instance['InstanceArn']  # This is the SSO instance ARN we need
-        
+        self._identity_store_id = instance["IdentityStoreId"]
+        self._identity_store_arn = instance[
+            "InstanceArn"
+        ]  # This is the SSO instance ARN we need
+
         self._logger.info(f"Discovered Identity Store ID: {self._identity_store_id}")
         self._logger.info(f"Discovered SSO Instance ARN: {self._identity_store_arn}")
 
