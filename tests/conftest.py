@@ -34,9 +34,11 @@ from src.services.aws.aws_organizations_manager import AwsAccount
 # Define constants
 MONKEYPATCH = pytest.MonkeyPatch()
 
+
 # Define classes
 class MockAwsEnvironment(TypedDict):
     """Type definition for mock AWS environment return value."""
+
     root_ou_id: str
     identity_store_arn: str
     identity_store_id: str
@@ -45,6 +47,7 @@ class MockAwsEnvironment(TypedDict):
     sso_permission_set_name_id_map: dict[str, str]
     account_name_id_map: dict[str, str]
     ou_accounts_map: dict[str, List[dict[str, str]]]
+
 
 # Define helper functions
 def create_aws_ous_accounts(
@@ -217,7 +220,9 @@ def aws_environment_setup():
 
 
 @pytest.fixture(scope="function")
-def organizations_client(aws_environment_setup: pytest.fixture) -> Generator[OrganizationsClient, None, None]:
+def organizations_client(
+    aws_environment_setup: pytest.fixture,
+) -> Generator[OrganizationsClient, None, None]:
     """
     Create a mocked AWS Organizations client for testing.
 
@@ -232,7 +237,9 @@ def organizations_client(aws_environment_setup: pytest.fixture) -> Generator[Org
 
 
 @pytest.fixture(scope="function")
-def identity_store_client(aws_environment_setup: pytest.fixture) -> Generator[IdentityStoreClient, None, None]:
+def identity_store_client(
+    aws_environment_setup: pytest.fixture,
+) -> Generator[IdentityStoreClient, None, None]:
     """
     Create a mocked AWS Identity Store client for testing.
 
@@ -247,7 +254,9 @@ def identity_store_client(aws_environment_setup: pytest.fixture) -> Generator[Id
 
 
 @pytest.fixture(scope="function")
-def sso_admin_client(aws_environment_setup: pytest.fixture) -> Generator[SSOAdminClient, None, None]:
+def sso_admin_client(
+    aws_environment_setup: pytest.fixture,
+) -> Generator[SSOAdminClient, None, None]:
     """
     Create a mocked AWS SSO Admin client for testing.
 

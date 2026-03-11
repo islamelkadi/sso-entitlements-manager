@@ -141,113 +141,113 @@ def create_sso_assignments(
 def create_argument_parser():
     """
     Create argument parser with plan/apply subcommands.
-    
+
     Returns:
         argparse.ArgumentParser: Configured argument parser with subcommands
     """
     parser = argparse.ArgumentParser(
         description="Multi-Cloud Access Management Tool - Professional infrastructure-as-code access management for AWS, Azure, and Google Cloud Platform",
-        prog="sso-manager"
+        prog="sso-manager",
     )
-    
+
     # Add version information
     parser.add_argument(
-        '--version',
-        action='version',
-        version="sso-manager - Multi-Cloud Access Management Tool\nFor version info, see: https://github.com/permia-cloud-security/sso-manager/releases"
+        "--version",
+        action="version",
+        version="sso-manager - Multi-Cloud Access Management Tool\nFor version info, see: https://github.com/permia-cloud-security/sso-manager/releases",
     )
-    
+
     subparsers = parser.add_subparsers(
-        dest='command',
-        help='Available commands for multi-cloud access management',
-        required=True
+        dest="command",
+        help="Available commands for multi-cloud access management",
+        required=True,
     )
-    
+
     # Plan subcommand
     plan_parser = subparsers.add_parser(
-        'plan',
-        help='Show proposed access changes without executing them (infrastructure-as-code planning phase)'
+        "plan",
+        help="Show proposed access changes without executing them (infrastructure-as-code planning phase)",
     )
     add_common_arguments(plan_parser)
-    
+
     # Apply subcommand
     apply_parser = subparsers.add_parser(
-        'apply',
-        help='Execute the proposed access changes (infrastructure-as-code apply phase)'
+        "apply",
+        help="Execute the proposed access changes (infrastructure-as-code apply phase)",
     )
     add_common_arguments(apply_parser)
-    
+
     return parser
 
 
 def add_common_arguments(parser):
     """
     Add common arguments to subcommand parsers.
-    
+
     Args:
         parser: The subcommand parser to add arguments to
     """
     parser.add_argument(
-        '--manifest-path',
+        "--manifest-path",
         required=True,
         type=pathlib.Path,
-        help='Path to the SSO manifest file defining RBAC rules for multi-cloud access management'
+        help="Path to the SSO manifest file defining RBAC rules for multi-cloud access management",
     )
     parser.add_argument(
-        '--log-level',
-        default='INFO',
-        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
-        help='Logging verbosity level for detailed execution tracking (default: INFO)'
+        "--log-level",
+        default="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="Logging verbosity level for detailed execution tracking (default: INFO)",
     )
 
 
 def execute_plan(args):
     """
     Execute plan subcommand - shows proposed changes without applying them.
-    
+
     This implements the infrastructure-as-code planning phase, allowing administrators
     to review proposed access changes before execution.
-    
+
     Args:
         args: Parsed command line arguments containing manifest_path and log_level
     """
     create_sso_assignments(
         manifest_file_path=str(args.manifest_path),
         auto_approve=False,
-        log_level=args.log_level
+        log_level=args.log_level,
     )
 
 
 def execute_apply(args):
     """
     Execute apply subcommand - applies the proposed changes.
-    
+
     This implements the infrastructure-as-code apply phase, executing the
     access changes defined in the manifest file.
-    
+
     Args:
         args: Parsed command line arguments containing manifest_path and log_level
     """
     create_sso_assignments(
         manifest_file_path=str(args.manifest_path),
         auto_approve=True,
-        log_level=args.log_level
+        log_level=args.log_level,
     )
 
 
 def main():
     """
     Main CLI entry point with subcommand routing.
-    
+
     Implements professional multi-cloud access management with plan/apply workflow
     supporting AWS, Azure, and Google Cloud Platform infrastructure-as-code patterns.
     """
     parser = create_argument_parser()
     args = parser.parse_args()
-    
-    if args.command == 'plan':
+
+    if args.command == "plan":
         execute_plan(args)
-    elif args.command == 'apply':
+    elif args.command == "apply":
         execute_apply(args)
 
 
