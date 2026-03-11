@@ -16,6 +16,7 @@ Key Features:
 import logging
 import functools
 import time
+import os
 from typing import Callable, Any
 
 import boto3
@@ -27,8 +28,9 @@ from src.core.constants import (
 
 # Define constants
 LOGGER = logging.getLogger(SSO_ENTITLMENTS_APP_NAME)
-SSO_ADMIN_CLIENT = boto3.client("sso-admin")
-AWS_ORGANIZATIONS_CLIENT = boto3.client("organizations")
+AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
+SSO_ADMIN_CLIENT = boto3.client("sso-admin", region_name = AWS_REGION)
+AWS_ORGANIZATIONS_CLIENT = boto3.client("organizations", region_name = AWS_REGION)
 
 
 # Define functions
