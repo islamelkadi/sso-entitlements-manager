@@ -14,7 +14,7 @@ PyYAML = "6.0.2"
 rich = "14.0.0"
 boto3 = "1.37.31"
 mypy-boto3-sso-admin = "1.37.0"
-mypy-boto3-organizations = "1.37.0"
+mypy-boto3-organizations = "1.42.41"
 mypy-boto3-identitystore = "1.37.0"
 
 
