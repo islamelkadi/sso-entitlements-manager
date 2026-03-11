@@ -22,7 +22,7 @@ from src.services.aws.aws_organizations_manager import AwsOrganizationsManager
 )
 def test_list_active_included_aws_accounts(
     organizations_client: OrganizationsClient,
-    setup_mock_aws_environment: MockAwsEnvironment,
+    setup_mock_aws_environment: MockAwsEnvironment,  # pylint: disable=unused-argument
 ) -> None:
     """
     This test compares accounts retrieved via AwsOrganizationsManager against
@@ -48,8 +48,7 @@ def test_list_active_included_aws_accounts(
             - Account names are unique and consistent across retrieval methods
     """
     # Arrange
-    root_ou_id = setup_mock_aws_environment["root_ou_id"]
-    py_aws_organizations = AwsOrganizationsManager(root_ou_id)
+    py_aws_organizations = AwsOrganizationsManager()
 
     # Act
     active_aws_accounts_via_class: list[str] = []

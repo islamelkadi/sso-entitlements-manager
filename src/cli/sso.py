@@ -17,11 +17,13 @@ Key Features:
     - Create and manage Identity Center access assignments
     - Professional multi-cloud access management
     - Flexible logging configuration
+    - Automatic AWS resource discovery
 
-Environment Variables:
-    - ROOT_OU_ID: Root Organizational Unit ID for AWS Organizations
-    - IDENTITY_STORE_ID: AWS Identity Center Store ID
-    - IDENTITY_STORE_ARN: AWS Identity Center Store ARN
+Auto-Discovery Features:
+    - Automatically discovers AWS Organizations root OU ID
+    - Automatically discovers AWS Identity Center instance details
+    - No manual configuration required
+    - Requires appropriate AWS IAM permissions for discovery
 
 Examples:
     # Show proposed changes without executing them
@@ -46,17 +48,6 @@ from src.core.constants import SSO_ENTITLMENTS_APP_NAME
 from src.core.access_control_file_reader import AccessControlFileReader
 from src.services.aws.aws_organizations_manager import AwsOrganizationsManager
 from src.services.aws.aws_identity_center_manager import IdentityCenterManager
-
-# Constant vars for AWS SSO and Organization configuration
-ROOT_OU_ID = os.getenv(
-    "ROOT_OU_ID"
-)  # Root Organizational Unit ID for traversing AWS Organization
-IDENTITY_STORE_ID = os.getenv(
-    "IDENTITY_STORE_ID"
-)  # Unique identifier for the AWS Identity Center store
-IDENTITY_STORE_ARN = os.getenv(
-    "IDENTITY_STORE_ARN"
-)  # ARN (Amazon Resource Name) for the Identity Center store
 
 # Logging configuration
 LOGGER = logging.getLogger(
@@ -115,10 +106,9 @@ def create_sso_assignments(
     )
 
     # Initialize AWS Organizations and Identity Center managers
-    aws_organization_manager = AwsOrganizationsManager(ROOT_OU_ID)
-    identity_center_manager = IdentityCenterManager(
-        IDENTITY_STORE_ARN, IDENTITY_STORE_ID
-    )
+    # Both will auto-discover their required AWS resources
+    aws_organization_manager = AwsOrganizationsManager()
+    identity_center_manager = IdentityCenterManager()
 
     # Create account assignments
     identity_center_manager.is_auto_approved = auto_approve
