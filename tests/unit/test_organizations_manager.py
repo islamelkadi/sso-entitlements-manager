@@ -23,7 +23,7 @@ from src.services.aws.aws_organizations_manager import AwsOrganizationsManager
 )
 def test_list_active_included_aws_accounts(
     organizations_client: OrganizationsClient,
-    setup_mock_aws_environment: MockAwsEnvironment,
+    setup_mock_aws_environment: MockAwsEnvironment,  # pylint: disable=unused-argument
 ) -> None:
     """
     This test compares accounts retrieved via AwsOrganizationsManager against
