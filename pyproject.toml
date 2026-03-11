@@ -14,18 +14,18 @@ PyYAML = "6.0.2"
 rich = "14.0.0"
 boto3 = "1.37.31"
 mypy-boto3-sso-admin = "1.37.0"
-mypy-boto3-organizations = "1.37.0"
+mypy-boto3-organizations = "1.42.41"
 mypy-boto3-identitystore = "1.37.0"
 
 
 [tool.poetry.group.dev.dependencies]
-pre-commit = "4.2.0"
+pre-commit = "4.5.1"
 pyclean = "3.1.0"
 moto = "5.1.3"
-pytest = "8.3.5"
+pytest = "9.0.2"
 pytest-xdist = "3.6.1"
-pytest-cov = "6.1.1"
-pylint = "3.3.6"
+pytest-cov = "7.0.0"
+pylint = "4.0.5"
 black = "25.1.0"
 pyinstaller = "^6.0.0"
 
