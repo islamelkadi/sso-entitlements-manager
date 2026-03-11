@@ -30,7 +30,6 @@ Note:
     Identity Center access and assignments.
 """
 
-import os
 import logging
 import itertools
 from typing import Literal
@@ -175,8 +174,8 @@ class IdentityCenterManager:
             "InstanceArn"
         ]  # This is the SSO instance ARN we need
 
-        self._logger.info(f"Discovered Identity Store ID: {self._identity_store_id}")
-        self._logger.info(f"Discovered SSO Instance ARN: {self._identity_store_arn}")
+        self._logger.info("Discovered Identity Store ID: %s", self._identity_store_id)
+        self._logger.info("Discovered SSO Instance ARN: %s", self._identity_store_arn)
 
         self.sso_users: dict[str, str] = {}
         self.sso_groups: dict[str, str] = {}

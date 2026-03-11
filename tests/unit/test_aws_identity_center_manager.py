@@ -49,7 +49,7 @@ def test_list_active_included_aws_accounts(
     """
     # Arrange
     root_ou_id = setup_mock_aws_environment["root_ou_id"]
-    py_aws_organizations = AwsOrganizationsManager(root_ou_id)
+    py_aws_organizations = AwsOrganizationsManager()
 
     # Act
     active_aws_accounts_via_class: list[str] = []

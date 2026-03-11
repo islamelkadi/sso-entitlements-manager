@@ -35,7 +35,6 @@ Note:
     - organizations:DescribeOrganizationalUnit
 """
 
-import os
 import logging
 from typing import TypeAlias, Literal
 from dataclasses import dataclass, field
@@ -138,7 +137,7 @@ class AwsOrganizationsManager:
         self._logger.info("Auto-discovering root OU ID...")
         response = self._organizations_client.list_roots()
         self._root_ou_id = response["Roots"][0]["Id"]
-        self._logger.info(f"Discovered root OU ID: {self._root_ou_id}")
+        self._logger.info("Discovered root OU ID: %s", self._root_ou_id)
 
         self._logger.info("Mapping AWS organization")
         self._generate_aws_organization_map(self._root_ou_id)
