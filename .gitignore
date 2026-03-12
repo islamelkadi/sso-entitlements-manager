@@ -1,0 +1,15 @@
+**build
+**.aws-sam
+**.DS_STORE
+src/layers/python/utils/**
+**__pycache__
+**venv
+**.venv
+**.egg-info**
+sandbox/** */
+**.coverage
+**coverage.**
+**htmlcov
+**.pytest**
+**logs**
+*.txt
