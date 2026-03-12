@@ -10,6 +10,9 @@ on:
         required: true
         type: string
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 permissions:
   contents: write
 
@@ -79,7 +82,7 @@ jobs:
         run: mv dist/sso-manager.exe dist/${{ matrix.artifact_name }}
         
       - name: Upload to release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.release.tag_name || inputs.tag_name }}
           files: dist/${{ matrix.artifact_name }}
