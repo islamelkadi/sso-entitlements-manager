@@ -1,0 +1,111 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "ignore": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "target_type": {
+                        "$ref": "#/$defs/exclude/target_type"
+                    },
+                    "target_names": {
+                        "$ref": "#/$defs/target_names"
+                    }
+                },
+                "required": [
+                    "target_type",
+                    "target_names"
+                ]
+            }
+        },
+        "rbac_rules": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "target_type": {
+                        "$ref": "#/$defs/include/target_type"
+                    },
+                    "target_names": {
+                        "$ref": "#/$defs/target_names"
+                    },
+                    "permission_set_name": {
+                        "$ref": "#/$defs/permission_set_name"
+                    },
+                    "principal_name": {
+                        "$ref": "#/$defs/principal_name"
+                    },
+                    "principal_type": {
+                        "$ref": "#/$defs/principal_type"
+                    },
+                    "rule_type": {
+                        "$ref": "#/$defs/rule_type"
+                    }
+                },
+                "required": [
+                    "target_type",
+                    "target_names",
+                    "permission_set_name",
+                    "principal_name",
+                    "principal_type"
+                ]
+            }
+        }
+    },
+    "$defs": {
+        "exclude": {
+            "target_type": {
+                "type": "string",
+                "enum": [
+                    "OU",
+                    "ACCOUNT",
+                    "USER",
+                    "GROUP",
+                    "PERMISSION_SET"
+                ]
+            }
+        },
+        "include": {
+            "target_type": {
+                "type": "string",
+                "enum": [
+                    "OU",
+                    "ACCOUNT"
+                ]
+            }
+        },
+        "target_names": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "nested": {
+            "type": "boolean",
+            "default": false
+        },
+        "permission_set_name": {
+            "type": "string"
+        },
+        "principal_name": {
+            "type": "string"
+        },
+        "principal_type": {
+            "type": "string",
+            "enum": [
+                "GROUP",
+                "USER"
+            ]
+        },
+        "rule_type": {
+            "type": "string",
+            "enum": [
+                "EXPLICIT",
+                "IMPLICIT"
+            ],
+            "default": "EXPLICIT"
+        }
+    }
+}
