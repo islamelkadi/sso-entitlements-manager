@@ -316,9 +316,8 @@ sso-manager/
 │   │       ├── 📄 aws_organizations_manager.py    # Organizations API wrapper
 │   │       ├── 📄 exceptions.py    # AWS-specific exceptions
 │   │       └── 📄 utils.py         # AWS utility functions
-│   ├── 📁 schemas/                  # JSON schemas for validation
-│   │   └── 📄 manifest_schema_definition.json    # YAML manifest schema
-│   └── 📁 integrations/            # Future cloud provider integrations
+│   └── 📁 schemas/                  # JSON schemas for validation
+│       └── 📄 manifest_schema_definition.json    # YAML manifest schema
 ├── 📁 tests/                        # Test suite
 │   ├── 📁 unit/                    # Unit tests
 │   ├── 📁 integration/             # Integration tests

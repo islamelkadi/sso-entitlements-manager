@@ -280,6 +280,80 @@ make clean-all
 
 ## 🔧 Technical Depth
 
+### Repository Structure
+
+The project follows a clean, modular architecture with clear separation of concerns:
+
+```
+sso-entitlements-manager/
+├── 📁 src/                         # Source code
+│   ├── 📄 __init__.py              # Package initialization
+│   ├── 📁 cli/                     # Command-line interface
+│   │   └── 📄 sso.py               # Main CLI entry point with typer
+│   ├── 📁 core/                    # Core business logic
+│   │   ├── 📄 access_control_file_reader.py  # YAML manifest parser & validator
+│   │   ├── 📄 constants.py         # Application constants
+│   │   ├── 📄 custom_classes.py    # Data classes for AWS resources
+│   │   ├── 📄 logger.py            # Structured logging configuration
+│   │   └── 📄 utils.py             # Utility functions
+│   ├── 📁 services/                # Cloud service integrations
+│   │   └── 📁 aws/                 # AWS-specific implementations
+│   │       ├── 📄 aws_identity_center_manager.py  # Identity Center operations
+│   │       ├── 📄 aws_organizations_manager.py    # Organizations API wrapper
+│   │       ├── 📄 exceptions.py    # AWS-specific exceptions
+│   │       └── 📄 utils.py         # AWS utility functions
+│   └── 📁 schemas/                 # JSON schemas for validation
+│       └── 📄 manifest_schema_definition.json    # YAML manifest schema
+├── 📁 tests/                       # Test suite
+│   ├── 📁 unit/                    # Unit tests
+│   │   ├── 📄 test_access_control_file_reader.py
+│   │   ├── 📄 test_aws_identity_center_manager.py
+│   │   ├── 📄 test_organizations_manager.py
+│   │   └── 📄 test_utils.py
+│   ├── 📁 integration/             # Integration tests
+│   │   └── 📄 test_cli.py          # End-to-end CLI testing
+│   ├── 📁 configs/                 # Test configurations
+│   │   └── 📁 organizations/       # Sample AWS org structures
+│   ├── 📁 manifests/               # Test manifest files
+│   │   ├── 📁 valid_schema/        # Valid YAML manifests
+│   │   └── 📁 invalid_schema/      # Invalid manifests for error testing
+│   ├── 📄 conftest.py              # Pytest configuration & fixtures
+│   └── 📄 utils.py                 # Test utilities
+├── 📁 logging/                     # Logging configuration
+│   ├── 📁 configs/                 # Log configuration files
+│   └── 📁 logs/                    # Runtime log files
+├── 📁 .github/                     # GitHub Actions workflows
+│   └── 📁 workflows/               # CI/CD pipeline definitions
+├── 📄 sso-manager.spec             # PyInstaller build configuration
+├── 📄 pyproject.toml               # Python project configuration
+├── 📄 makefile                     # Development automation
+├── 📄 Dockerfile                   # Container configuration
+├── 📄 .pre-commit-config.yaml      # Pre-commit hooks
+├── 📄 .pylintrc                    # Python linting configuration
+└── 📄 README.md                    # Project documentation
+```
+
+**Key Directory Purposes:**
+
+- **`src/cli/`** - User-facing command-line interface built with typer
+- **`src/core/`** - Business logic, data models, and utilities independent of cloud providers
+- **`src/services/aws/`** - AWS-specific service implementations (future: `azure/`, `gcp/`)
+- **`src/schemas/`** - JSON schemas for validating YAML manifest files
+- **`tests/unit/`** - Fast, isolated tests for individual components
+- **`tests/integration/`** - End-to-end tests with mocked AWS services
+- **`tests/configs/`** - Sample AWS organization structures for testing
+- **`tests/manifests/`** - Test YAML files covering valid and invalid scenarios
+- **`logging/`** - Centralized logging configuration and runtime logs
+- **`.github/workflows/`** - Automated CI/CD pipeline for testing, linting, and releases
+
+**Design Principles:**
+
+- **Separation of Concerns** - CLI, core logic, and cloud services are clearly separated
+- **Testability** - Each layer can be tested independently with appropriate mocks
+- **Extensibility** - New cloud providers can be added under `src/services/`
+- **Configuration as Code** - All settings managed through version-controlled files
+- **Zero Configuration** - Auto-discovery eliminates manual environment setup
+
 ### System Architecture Overview
 
 The SSO Manager follows a layered architecture pattern with clear separation of concerns:
