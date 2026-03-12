@@ -1,0 +1,12 @@
+ignore:
+  - target_type: OU
+    target_names:
+      - dev
+      - test
+rbac_rules:
+  - target_type: 1234
+    target_names:
+      - ou_1
+    permission_set_name: Administrator
+    principal_name: group1
+    principal_type: GROUP
